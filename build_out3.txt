@@ -1,0 +1,129 @@
+﻿
+> next-lms@0.1.0 build
+> next build
+
+  Γû▓ Next.js 14.2.35
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/66) ...
+   Generating static pages (16/66) 
+   Generating static pages (32/66) 
+   Generating static pages (49/66) 
+ Γ£ô Generating static pages (66/66)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                                  Size     First Load JS
+Γöî Γùï /                                                        6.8 kB          106 kB
+Γö£ Γùï /_not-found                                              880 B          88.9 kB
+Γö£ Γùï /admin                                                   1.22 kB        89.2 kB
+Γö£ Γùï /admin/analytics                                         1.07 kB        89.1 kB
+Γö£ Γùï /admin/banners                                           6.22 kB         161 kB
+Γö£ Γùï /admin/categories                                        5.9 kB          167 kB
+Γö£ Γùï /admin/courses                                           6.5 kB          177 kB
+Γö£ ╞Æ /admin/courses/[id]/curriculum                           8.21 kB         165 kB
+Γö£ Γùï /admin/dashboard                                         108 kB          244 kB
+Γö£ Γùï /admin/instructors                                       6.04 kB         159 kB
+Γö£ Γùï /admin/payments                                          1.06 kB        89.1 kB
+Γö£ Γùï /admin/settings                                          4.43 kB         153 kB
+Γö£ Γùï /admin/users                                             5.51 kB         158 kB
+Γö£ ╞Æ /api/admin/analytics                                     0 B                0 B
+Γö£ ╞Æ /api/admin/banners                                       0 B                0 B
+Γö£ ╞Æ /api/admin/categories                                    0 B                0 B
+Γö£ ╞Æ /api/admin/courses                                       0 B                0 B
+Γö£ ╞Æ /api/admin/courses/[courseId]/sections                   0 B                0 B
+Γö£ ╞Æ /api/admin/courses/[courseId]/sections/[sectionId]       0 B                0 B
+Γö£ ╞Æ /api/admin/courses/[courseId]/sections/reorder           0 B                0 B
+Γö£ ╞Æ /api/admin/dashboard                                     0 B                0 B
+Γö£ ╞Æ /api/admin/instructors                                   0 B                0 B
+Γö£ ╞Æ /api/admin/instructors/[id]/courses                      0 B                0 B
+Γö£ ╞Æ /api/admin/instructors/[id]/stats                        0 B                0 B
+Γö£ ╞Æ /api/admin/sections/[id]                                 0 B                0 B
+Γö£ ╞Æ /api/admin/settings                                      0 B                0 B
+Γö£ ╞Æ /api/admin/users                                         0 B                0 B
+Γö£ ╞Æ /api/admin/users/[id]                                    0 B                0 B
+Γö£ ╞Æ /api/assignments                                         0 B                0 B
+Γö£ ╞Æ /api/assignments/[id]                                    0 B                0 B
+Γö£ ╞Æ /api/auth/login                                          0 B                0 B
+Γö£ ╞Æ /api/auth/logout                                         0 B                0 B
+Γö£ ╞Æ /api/auth/otp/send                                       0 B                0 B
+Γö£ ╞Æ /api/auth/otp/verify                                     0 B                0 B
+Γö£ ╞Æ /api/auth/send-otp                                       0 B                0 B
+Γö£ ╞Æ /api/auth/verify-otp                                     0 B                0 B
+Γö£ ╞Æ /api/certificates                                        0 B                0 B
+Γö£ ╞Æ /api/certificates/[id]                                   0 B                0 B
+Γö£ ╞Æ /api/coupons                                             0 B                0 B
+Γö£ ╞Æ /api/coupons/[id]                                        0 B                0 B
+Γö£ ╞Æ /api/courses                                             0 B                0 B
+Γö£ ╞Æ /api/courses/[courseId]                                  0 B                0 B
+Γö£ ╞Æ /api/courses/[courseId]/reviews                          0 B                0 B
+Γö£ ╞Æ /api/courses/[courseId]/sections                         0 B                0 B
+Γö£ ╞Æ /api/enrollments                                         0 B                0 B
+Γö£ ╞Æ /api/enrollments/[id]                                    0 B                0 B
+Γö£ ╞Æ /api/instructor/analytics                                0 B                0 B
+Γö£ ╞Æ /api/instructor/courses/[courseId]/sections              0 B                0 B
+Γö£ ╞Æ /api/instructor/courses/[courseId]/sections/[sectionId]  0 B                0 B
+Γö£ ╞Æ /api/instructor/courses/[courseId]/sections/reorder      0 B                0 B
+Γö£ ╞Æ /api/instructor/earnings                                 0 B                0 B
+Γö£ ╞Æ /api/instructor/payouts                                  0 B                0 B
+Γö£ ╞Æ /api/instructor/sections/[id]                            0 B                0 B
+Γö£ ╞Æ /api/instructor/students                                 0 B                0 B
+Γö£ ╞Æ /api/lessons                                             0 B                0 B
+Γö£ ╞Æ /api/lessons/[lessonId]                                  0 B                0 B
+Γö£ ╞Æ /api/lessons/[lessonId]/assignment                       0 B                0 B
+Γö£ ╞Æ /api/lessons/[lessonId]/quiz                             0 B                0 B
+Γö£ ╞Æ /api/payments                                            0 B                0 B
+Γö£ ╞Æ /api/payments/[id]                                       0 B                0 B
+Γö£ ╞Æ /api/payments/checkout                                   0 B                0 B
+Γö£ ╞Æ /api/payments/verify                                     0 B                0 B
+Γö£ ╞Æ /api/quizs                                               0 B                0 B
+Γö£ ╞Æ /api/quizs/[id]                                          0 B                0 B
+Γö£ ╞Æ /api/reviews                                             0 B                0 B
+Γö£ ╞Æ /api/reviews/[id]                                        0 B                0 B
+Γö£ ╞Æ /api/sections                                            0 B                0 B
+Γö£ ╞Æ /api/sections/[sectionId]                                0 B                0 B
+Γö£ ╞Æ /api/sections/[sectionId]/lessons                        0 B                0 B
+Γö£ ╞Æ /api/setup/create-admin                                  0 B                0 B
+Γö£ ╞Æ /api/student/bookmarks                                   0 B                0 B
+Γö£ ╞Æ /api/student/certificates                                0 B                0 B
+Γö£ ╞Æ /api/student/enrollments                                 0 B                0 B
+Γö£ ╞Æ /api/student/learn/[courseId]                            0 B                0 B
+Γö£ ╞Æ /api/student/progress                                    0 B                0 B
+Γö£ ╞Æ /api/upload                                              0 B                0 B
+Γö£ ╞Æ /api/users                                               0 B                0 B
+Γö£ ╞Æ /api/users/[id]                                          0 B                0 B
+Γö£ ╞Æ /api/videos/play                                         0 B                0 B
+Γö£ ╞Æ /api/videos/upload                                       0 B                0 B
+Γö£ Γùï /courses                                                 5.42 kB         129 kB
+Γö£ ╞Æ /courses/[courseId]                                      4.56 kB         122 kB
+Γö£ Γùï /dashboard                                               2.81 kB        99.6 kB
+Γö£ Γùï /instructor                                              1.21 kB        89.2 kB
+Γö£ Γùï /instructor/analytics                                    3.01 kB         118 kB
+Γö£ Γùï /instructor/courses                                      6.1 kB          175 kB
+Γö£ ╞Æ /instructor/courses/[courseId]                           8.95 kB         172 kB
+Γö£ ╞Æ /instructor/courses/[courseId]/curriculum                9.49 kB         169 kB
+Γö£ Γùï /instructor/dashboard                                    2.89 kB         129 kB
+Γö£ Γùï /instructor/earnings                                     2.88 kB         127 kB
+Γö£ Γùï /instructor/students                                     2.61 kB         118 kB
+Γö£ ╞Æ /learning/[courseId]                                     11.8 kB         155 kB
+Γö£ Γùï /login                                                   4.04 kB         124 kB
+Γö£ Γùï /student/certificates                                    2.67 kB         118 kB
+Γö£ Γùï /student/dashboard                                       3.33 kB         130 kB
+Γö£ ╞Æ /student/learning/[courseId]                             5.51 kB         123 kB
+Γöö Γùï /student/my-courses                                      6.08 kB         130 kB
++ First Load JS shared by all                                88 kB
+  Γö£ chunks/2117-62b2b8c1c44066c6.js                          31.9 kB
+  Γö£ chunks/fd9d1056-9bdd33a74de45223.js                      53.6 kB
+  Γöö other shared chunks (total)                              2.46 kB
+
+
+╞Æ Middleware                                                 31.5 kB
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+

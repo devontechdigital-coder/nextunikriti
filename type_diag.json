@@ -1,0 +1,27 @@
+{
+  "_id": "object",
+  "batchId": "object",
+  "batchId_proto": "[object Object]",
+  "schoolId": "object",
+  "schoolId_proto": "[object Object]",
+  "isBatchIdObjectId": true,
+  "sample": {
+    "_id": "69c22eecccf783ec52b335c1",
+    "batchId": "69c22c5fccf783ec52b33393",
+    "schoolId": "69c11e53b776ecebcb630e59",
+    "teacherId": "69c22bb0ccf783ec52b33332",
+    "roomName": "Room 101",
+    "status": "active",
+    "createdAt": "2026-03-24T06:27:56.072Z",
+    "updatedAt": "2026-03-24T06:27:56.072Z",
+    "__v": 0,
+    "schedules": [
+      {
+        "dayOfWeek": "Tuesday",
+        "startTime": "11:57",
+        "endTime": "15:57",
+        "_id": "69c24b9859808aa6964bc3d1"
+      }
+    ]
+  }
+}

@@ -1,0 +1,42 @@
+﻿
+> next-lms@0.1.0 build
+> next build
+
+  Γû▓ Next.js 14.2.35
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+node.exe : Failed to 
+compile.
+At line:1 char:1
++ & "C:\Program 
+Files\nodejs/node.exe" 
+"C:\Users\Arvind\AppDat
+a\Roaming ...
++ ~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
+~~
+    + CategoryInfo     
+         : NotSpecifi  
+  ed: (Failed to com   
+ pile.:String) [],     
+RemoteException
+    + FullyQualifiedEr 
+   rorId : NativeComm  
+  andError
+ 
+
+./app/(student)/learnin
+g/[courseId]/page.js
+Module not found: 
+Can't resolve 
+'react-player/lazy'
+
+https://nextjs.org/docs
+/messages/module-not-fo
+und
+
+
+> Build failed because 
+of webpack errors

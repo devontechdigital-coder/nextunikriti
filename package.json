@@ -1,0 +1,50 @@
+{
+  "name": "next-lms",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/modifiers": "^9.0.0",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@google-cloud/storage": "^7.19.0",
+    "@reduxjs/toolkit": "^2.11.2",
+    "@stripe/stripe-js": "^8.9.0",
+    "axios": "^1.13.6",
+    "bcryptjs": "^3.0.3",
+    "bootstrap": "^5.3.8",
+    "bootstrap-icons": "^1.13.1",
+    "cookie": "^1.1.1",
+    "firebase": "^12.10.0",
+    "firebase-admin": "^13.7.0",
+    "jose": "^6.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "mongoose": "^9.3.0",
+    "next": "14.2.35",
+    "razorpay": "^2.9.6",
+    "react": "^18",
+    "react-bootstrap": "^2.10.10",
+    "react-dom": "^18",
+    "react-hot-toast": "^2.6.0",
+    "react-icons": "^5.6.0",
+    "react-player": "^3.4.0",
+    "react-quill": "^2.0.0",
+    "react-redux": "^9.2.0",
+    "recharts": "^3.8.0",
+    "sass": "^1.98.0",
+    "stripe": "^20.4.1",
+    "swiper": "^12.1.2",
+    "twilio": "^5.13.0",
+    "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "eslint": "^8",
+    "eslint-config-next": "14.2.35"
+  }
+}

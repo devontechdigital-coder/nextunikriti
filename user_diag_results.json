@@ -1,0 +1,85 @@
+{
+  "users": [
+    {
+      "_id": "69bbdaac27383b65b9e37c4f",
+      "name": "Platform Admin",
+      "email": "admin@gmail.com",
+      "role": "admin"
+    },
+    {
+      "_id": "69c1379761276d4defe2069e",
+      "email": "admin2@gmail.com",
+      "name": "Super Admin 2",
+      "role": "admin"
+    },
+    {
+      "_id": "69c137c6b776ecebcb63157e",
+      "name": "Seymour Skinner",
+      "email": "skinner.1774270406559@testacademy.edu",
+      "role": "school_admin",
+      "schoolId": "69c137c6b776ecebcb63157a"
+    },
+    {
+      "_id": "69c137fbb776ecebcb631582",
+      "name": "test school",
+      "email": "testschool@gmail.com",
+      "role": "school_admin",
+      "schoolId": "69c11e53b776ecebcb630e59"
+    },
+    {
+      "_id": "69c1383db776ecebcb6315ed",
+      "name": "Seymour Skinner",
+      "email": "skinner.1774270525121@testacademy.edu",
+      "role": "school_admin",
+      "schoolId": "69c1383db776ecebcb6315e5"
+    },
+    {
+      "_id": "69c1385db776ecebcb631608",
+      "name": "Seymour Skinner",
+      "email": "skinner.1774270556749@testacademy.edu",
+      "role": "school_admin",
+      "schoolId": "69c1385cb776ecebcb631604"
+    },
+    {
+      "_id": "69c139ebb776ecebcb631637",
+      "name": "Seymour Skinner",
+      "email": "skinner.1774270954298@testacademy.edu",
+      "role": "school_admin",
+      "schoolId": "69c139eab776ecebcb63162f"
+    }
+  ],
+  "schools": [
+    {
+      "_id": "69c11e53b776ecebcb630e59",
+      "schoolName": "Test School"
+    },
+    {
+      "_id": "69c1216eb776ecebcb630f42",
+      "schoolName": "Standalone School V2"
+    },
+    {
+      "_id": "69c12207b776ecebcb630f59",
+      "schoolName": "Test School No Agreement"
+    },
+    {
+      "_id": "69c137a7b776ecebcb63151a",
+      "schoolName": "Test Academy 1774270374324"
+    },
+    {
+      "_id": "69c137c6b776ecebcb63157a",
+      "schoolName": "Test Academy 1774270406403"
+    },
+    {
+      "_id": "69c1383db776ecebcb6315e5",
+      "schoolName": "Test Academy 1774270523361"
+    },
+    {
+      "_id": "69c1385cb776ecebcb631604",
+      "schoolName": "Test Academy 1774270556452"
+    },
+    {
+      "_id": "69c139eab776ecebcb63162f",
+      "schoolName": "Test Academy 1774270952181"
+    }
+  ]
+}
