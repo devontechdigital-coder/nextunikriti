@@ -4,6 +4,7 @@ import { FiBook, FiAward, FiSettings, FiLogOut } from 'react-icons/fi';
 import { useDispatch } from 'react-redux';
 import { logout as logoutAction } from '@/redux/slices/authSlice';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import axios from 'axios';
 
 export default function StudentLayout({ children }) {

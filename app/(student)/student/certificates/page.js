@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import Link from 'next/link';
 import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap';
 
 export default function StudentCertificatesPage() {

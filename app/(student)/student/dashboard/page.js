@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
+import { Container, Row, Col, Card, Alert, Spinner, Badge, ProgressBar, ListGroup } from 'react-bootstrap';
 import { useGetStudentLmsProgressQuery } from '@/redux/api/apiSlice';
 import { FaGraduationCap, FaCheckCircle, FaClock } from 'react-icons/fa';
 

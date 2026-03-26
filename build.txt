@@ -1,0 +1,17 @@
+
+> next-lms@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.35
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+Failed to compile.
+
+./app/api/student/progress/route.js
+Module not found: Can't resolve '@/models/CourseMapping'
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+> Build failed because of webpack errors

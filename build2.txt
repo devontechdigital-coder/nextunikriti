@@ -1,0 +1,159 @@
+
+> next-lms@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.35
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/114) ...
+   Generating static pages (28/114) 
+   Generating static pages (56/114) 
+   Generating static pages (85/114) 
+ReferenceError: Container is not defined
+    at x (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\.next\server\app\(instructor)\instructor\dashboard\page.js:1:3595)
+    at nj (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46252)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47572)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nI (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47011)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47718)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61547)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681) {
+  digest: '4232396668'
+}
+
+Error occurred prerendering page "/instructor/dashboard". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: Container is not defined
+    at x (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\.next\server\app\(instructor)\instructor\dashboard\page.js:1:3595)
+    at nj (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46252)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47572)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nI (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47011)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47718)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61547)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681)
+ReferenceError: Link is not defined
+    at p (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\.next\server\app\(student)\student\certificates\page.js:1:4014)
+    at nj (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46252)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47572)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61547)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64854)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681) {
+  digest: '3628744191'
+}
+ReferenceError: Link is not defined
+    at h (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\.next\server\app\(student)\student\my-courses\page.js:1:4000)
+    at nj (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46252)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47572)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61547)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64854)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681) {
+  digest: '3160295571'
+}
+ReferenceError: Link is not defined
+    at u (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\.next\server\app\(student)\student\dashboard\page.js:1:3996)
+    at nj (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46252)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47572)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61547)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64854)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681) {
+  digest: '2667888092'
+}
+ReferenceError: Link is not defined
+    at p (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\.next\server\app\(student)\dashboard\page.js:1:5203)
+    at nj (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46252)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47572)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61547)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64854)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681) {
+  digest: '2643065325'
+}
+
+Error occurred prerendering page "/student/certificates". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: Link is not defined
+    at p (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\.next\server\app\(student)\student\certificates\page.js:1:4014)
+    at nj (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46252)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47572)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61547)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64854)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681)
+
+Error occurred prerendering page "/dashboard". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: Link is not defined
+    at p (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\.next\server\app\(student)\dashboard\page.js:1:5203)
+    at nj (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46252)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47572)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61547)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64854)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681)
+
+Error occurred prerendering page "/student/my-courses". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: Link is not defined
+    at h (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\.next\server\app\(student)\student\my-courses\page.js:1:4000)
+    at nj (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46252)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47572)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61547)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64854)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681)
+
+Error occurred prerendering page "/student/dashboard". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: Link is not defined
+    at u (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\.next\server\app\(student)\student\dashboard\page.js:1:3996)
+    at nj (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46252)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47572)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61547)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64854)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681)
+ ✓ Generating static pages (114/114)
+
+> Export encountered errors on following paths:
+	/(instructor)/instructor/dashboard/page: /instructor/dashboard
+	/(student)/dashboard/page: /dashboard
+	/(student)/student/certificates/page: /student/certificates
+	/(student)/student/dashboard/page: /student/dashboard
+	/(student)/student/my-courses/page: /student/my-courses

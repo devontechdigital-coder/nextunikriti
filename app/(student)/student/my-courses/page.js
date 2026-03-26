@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container, Row, Col, Card, ProgressBar, Spinner, Alert, Button } from 'react-bootstrap';
+import { Container, Row, Col, Card, ProgressBar, Spinner, Alert, Button, Badge } from 'react-bootstrap';
 import Link from 'next/link';
 
 export default function MyCoursesPage() {

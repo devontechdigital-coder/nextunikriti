@@ -1,0 +1,47 @@
+
+> next-lms@0.1.0 build
+> next build
+
+  ▲ Next.js 14.2.35
+  - Environments: .env.local
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully
+   Skipping linting
+   Checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/114) ...
+   Generating static pages (28/114) 
+   Generating static pages (56/114) 
+   Generating static pages (85/114) 
+ReferenceError: Container is not defined
+    at d (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\.next\server\app\(student)\student\dashboard\page.js:1:4976)
+    at nj (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46252)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47572)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nI (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47011)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47718)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61547)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681) {
+  digest: '1571233862'
+}
+
+Error occurred prerendering page "/student/dashboard". Read more: https://nextjs.org/docs/messages/prerender-error
+
+ReferenceError: Container is not defined
+    at d (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\.next\server\app\(student)\student\dashboard\page.js:1:4976)
+    at nj (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:46252)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47572)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nI (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47011)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:47718)
+    at nM (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:61547)
+    at nL (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:64547)
+    at nB (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:67539)
+    at nD (C:\Users\Arvind\OneDrive\Documents\nextUnikriti\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:12:66681)
+ ✓ Generating static pages (114/114)
+
+> Export encountered errors on following paths:
+	/(student)/student/dashboard/page: /student/dashboard
