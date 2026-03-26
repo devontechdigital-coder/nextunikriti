@@ -10,38 +10,47 @@ import { notFound } from 'next/navigation';
 import { FaQuestionCircle, FaGraduationCap, FaClock, FaDesktop, FaMapMarkerAlt } from 'react-icons/fa';
 
 import PackageSelector from '@/components/PackageSelector';
+import Package from '@/models/Package';
 
 async function getCourse(courseId) {
-    await connectDB();
+    try {
+        await connectDB();
 
-    let course;
-    if (mongoose.Types.ObjectId.isValid(courseId)) {
-        course = await Course.findById(courseId);
+        let course;
+        if (mongoose.Types.ObjectId.isValid(courseId)) {
+            course = await Course.findById(courseId);
+        }
+
+        if (!course) {
+            course = await Course.findOne({ slug: courseId });
+        }
+
+        if (!course) return null;
+
+        // Populate necessary fields
+        await course.populate('course_creator', 'name avatar email bio');
+        await course.populate('instrument_id', 'name');
+        await course.populate('level_id', 'levelName');
+        await course.populate('categoryIds');
+
+        // Fetch packages directly from DB instead of internal API fetch
+        const packages = await Package.find({ course_id: course._id, is_active: true }).lean();
+
+        // Fetch sections and lessons
+        const sections = await Section.find({ courseId: course._id }).sort({ order: 1 }).lean();
+        for (const section of sections) {
+            section.lessons = await Lesson.find({ sectionId: section._id }).sort({ order: 1 }).lean();
+        }
+
+        return { 
+            ...course.toObject(), 
+            sections, 
+            packages: JSON.parse(JSON.stringify(packages)) 
+        };
+    } catch (error) {
+        console.error("Error fetching course:", error);
+        return null;
     }
-
-    if (!course) {
-        course = await Course.findOne({ slug: courseId });
-    }
-
-    if (!course) return null;
-
-    // Populate necessary fields
-    await course.populate('course_creator', 'name avatar email');
-    await course.populate('instrument_id', 'name');
-    await course.populate('level_id', 'levelName');
-    await course.populate('categoryIds');
-
-    // Fetch packages for this course
-    const packagesData = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/packages?course_id=${course._id}`, { cache: 'no-store' });
-    const packages = await packagesData.json();
-
-    // Fetch sections and lessons
-    const sections = await Section.find({ courseId: course._id }).sort({ order: 1 }).lean();
-    for (const section of sections) {
-        section.lessons = await Lesson.find({ sectionId: section._id }).sort({ order: 1 }).lean();
-    }
-
-    return { ...course.toObject(), sections, packages: packages.success ? packages.data : [] };
 }
 
 export async function generateMetadata({ params }) {
