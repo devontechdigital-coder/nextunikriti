@@ -66,7 +66,7 @@ export default function InstructorEarningsPage() {
           <Card className="border-0 shadow-sm text-center py-4 bg-primary text-white">
              <Card.Body>
                 <div className="small opacity-75 fw-bold text-uppercase mb-1">Total Revenue</div>
-                <h1 className="fw-bold mb-0">${data.totalRevenue.toFixed(2)}</h1>
+                <h1 className="fw-bold mb-0">₹{data.totalRevenue.toFixed(2)}</h1>
              </Card.Body>
           </Card>
         </Col>
@@ -74,7 +74,7 @@ export default function InstructorEarningsPage() {
           <Card className="border-0 shadow-sm text-center py-4 bg-success text-white">
              <Card.Body>
                 <div className="small opacity-75 fw-bold text-uppercase mb-1">Total Withdrawn</div>
-                <h1 className="fw-bold mb-0">${data.totalWithdrawn.toFixed(2)}</h1>
+                <h1 className="fw-bold mb-0">₹{data.totalWithdrawn.toFixed(2)}</h1>
              </Card.Body>
           </Card>
         </Col>
@@ -82,7 +82,7 @@ export default function InstructorEarningsPage() {
           <Card className="border-0 shadow-sm text-center py-4 bg-dark text-white">
              <Card.Body>
                 <div className="small opacity-75 fw-bold text-uppercase mb-1">Available Balance</div>
-                <h1 className="fw-bold mb-0">${data.balance.toFixed(2)}</h1>
+                <h1 className="fw-bold mb-0">₹{data.balance.toFixed(2)}</h1>
              </Card.Body>
           </Card>
         </Col>

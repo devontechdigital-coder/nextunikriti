@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Container, Tabs, Tab, Form, Button, Table, Spinner, Alert, Modal } from 'react-bootstrap';
 import { useGetAdminSettingsQuery, useUpdateAdminSettingsMutation } from '@/redux/api/apiSlice';
-import { FaTrash, FaPlus, FaSave, FaCheckCircle, FaHome, FaInfoCircle, FaCalendarAlt, FaAward, FaUsers, FaQuoteLeft, FaQuestionCircle, FaEnvelope, FaMapMarkerAlt, FaLink, FaFacebook, FaInstagram, FaLinkedin, FaPalette, FaGlobe } from 'react-icons/fa';
+import { FaTrash, FaPlus, FaSave, FaCheckCircle, FaHome, FaInfoCircle, FaCalendarAlt, FaAward, FaUsers, FaQuoteLeft, FaQuestionCircle, FaEnvelope, FaMapMarkerAlt, FaLink, FaFacebook, FaInstagram, FaLinkedin, FaPalette, FaGlobe, FaCreditCard } from 'react-icons/fa';
 
 export default function AdminSettingsPage() {
   const { data, isLoading, isError } = useGetAdminSettingsQuery();
@@ -36,6 +36,9 @@ export default function AdminSettingsPage() {
     customHeadScripts: '',
     customFooterScripts: ''
   });
+  const [paymentModeOnline, setPaymentModeOnline] = useState(true);
+  const [paymentModeLater, setPaymentModeLater] = useState(false);
+  const [showTestOtp, setShowTestOtp] = useState(false);
 
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -70,6 +73,9 @@ export default function AdminSettingsPage() {
         customHeadScripts: '',
         customFooterScripts: ''
       }));
+      setPaymentModeOnline(getVal('payment_mode_online', true));
+      setPaymentModeLater(getVal('payment_mode_later', false));
+      setShowTestOtp(getVal('show_test_otp', false));
     }
   }, [data]);
 
@@ -699,6 +705,101 @@ export default function AdminSettingsPage() {
                   </div>
                 </div>
               </div>
+
+              {/* Developer Options */}
+              <div className="mt-4 p-3 border rounded-3 bg-light shadow-sm">
+                <div className="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h6 className="fw-bold mb-1 d-flex align-items-center gap-2">
+                      🧪 Show Test OTP <span className="badge bg-warning text-dark small fw-normal">Dev Only</span>
+                    </h6>
+                    <p className="small text-muted mb-1">When enabled, the OTP is shown as a toast notification on the course enrollment page. <strong>Disable in production.</strong></p>
+                  </div>
+                  <Form.Check
+                    type="switch"
+                    id="toggle-show-test-otp"
+                    checked={showTestOtp}
+                    onChange={e => {
+                      setShowTestOtp(e.target.checked);
+                      handleSave('show_test_otp', e.target.checked);
+                    }}
+                    className="ms-3 mt-1"
+                  />
+                </div>
+                <span className={`badge ${showTestOtp ? 'bg-success' : 'bg-secondary'}`}>
+                  {showTestOtp ? 'OTP Visible' : 'OTP Hidden'}
+                </span>
+              </div>
+            </div>
+          </Tab>
+          {/* 10. PAYMENTS */}
+          <Tab eventKey="payments" title={<span><FaCreditCard className="me-2" /> Payments</span>}>
+            <div className="p-4">
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h5 className="mb-0 fw-bold">Payment Mode Settings</h5>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={isUpdating}
+                  onClick={async () => {
+                    await handleSave('payment_mode_online', paymentModeOnline);
+                    await handleSave('payment_mode_later', paymentModeLater);
+                  }}
+                >
+                  <FaSave className="me-1" /> Save Payment Settings
+                </Button>
+              </div>
+              <div className="row g-4">
+                <div className="col-md-6">
+                  <div className="p-4 border rounded-3 bg-light shadow-sm h-100">
+                    <div className="d-flex justify-content-between align-items-start mb-2">
+                      <div>
+                        <h6 className="fw-bold mb-1">💳 Pay Online</h6>
+                        <p className="small text-muted mb-0">Allow students to pay immediately via the configured payment gateway (Razorpay / Stripe).</p>
+                      </div>
+                      <Form.Check
+                        type="switch"
+                        id="toggle-pay-online"
+                        checked={paymentModeOnline}
+                        onChange={e => setPaymentModeOnline(e.target.checked)}
+                        className="ms-3 mt-1"
+                      />
+                    </div>
+                    {paymentModeOnline ? (
+                      <span className="badge bg-success">Enabled</span>
+                    ) : (
+                      <span className="badge bg-secondary">Disabled</span>
+                    )}
+                  </div>
+                </div>
+                <div className="col-md-6">
+                  <div className="p-4 border rounded-3 bg-light shadow-sm h-100">
+                    <div className="d-flex justify-content-between align-items-start mb-2">
+                      <div>
+                        <h6 className="fw-bold mb-1">🕒 Pay Later</h6>
+                        <p className="small text-muted mb-0">Allow students to reserve a course without paying now. Your team will follow up to collect payment.</p>
+                      </div>
+                      <Form.Check
+                        type="switch"
+                        id="toggle-pay-later"
+                        checked={paymentModeLater}
+                        onChange={e => setPaymentModeLater(e.target.checked)}
+                        className="ms-3 mt-1"
+                      />
+                    </div>
+                    {paymentModeLater ? (
+                      <span className="badge bg-success">Enabled</span>
+                    ) : (
+                      <span className="badge bg-secondary">Disabled</span>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {!paymentModeOnline && !paymentModeLater && (
+                <div className="alert alert-warning mt-4 small">
+                  ⚠️ Warning: At least one payment mode must be enabled, otherwise students won't be able to enroll.
+                </div>
+              )}
             </div>
           </Tab>
         </Tabs>

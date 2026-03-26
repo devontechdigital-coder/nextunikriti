@@ -1,16 +1,30 @@
 'use client';
 import { Container, Row, Col, Nav } from 'react-bootstrap';
 import { FiBook, FiAward, FiSettings, FiLogOut } from 'react-icons/fi';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { logout as logoutAction } from '@/redux/slices/authSlice';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import Link from 'next/link';
 import axios from 'axios';
 
 export default function StudentLayout({ children }) {
   const router = useRouter();
-
   const dispatch = useDispatch();
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
+
+  useEffect(() => {
+    // Basic access control: Redirect non-students to their respective dashboards
+    if (isAuthenticated && user?.role && user.role !== 'student') {
+        const dashboardUrls = {
+            admin: '/admin',
+            instructor: '/instructor',
+            school_admin: '/school/dashboard'
+        };
+        const target = dashboardUrls[user.role];
+        if (target) router.push(target);
+    }
+  }, [user, isAuthenticated, router]);
 
   const handleLogout = async () => {
     try {
@@ -30,12 +44,12 @@ export default function StudentLayout({ children }) {
         <Row>
           <Col md={3} lg={2} className="bg-dark text-white p-0 min-vh-100 position-fixed d-none d-md-block">
             <div className="p-4 border-bottom border-secondary">
-              <h5 className="mb-0">Student Panel</h5>
+              <h5 className="mb-0 text-truncate">Student Panel</h5>
             </div>
             <Nav className="flex-column p-3">
-              <Nav.Link as={Link} href="/dashboard" className="text-white mb-2"><FiBook className="me-2"/> My Learning</Nav.Link>
-              <Nav.Link as={Link} href="/dashboard/certificates" className="text-white mb-2"><FiAward className="me-2"/> Certificates</Nav.Link>
-              <Nav.Link as={Link} href="/dashboard/settings" className="text-white mb-2"><FiSettings className="me-2"/> Settings</Nav.Link>
+              <Nav.Link as={Link} href="/student/dashboard" className="text-white mb-2"><FiBook className="me-2"/> My Learning</Nav.Link>
+              <Nav.Link as={Link} href="/student/certificates" className="text-white mb-2"><FiAward className="me-2"/> Certificates</Nav.Link>
+              <Nav.Link as={Link} href="/student/settings" className="text-white mb-2"><FiSettings className="me-2"/> Settings</Nav.Link>
               <hr className="bg-secondary" />
               <Nav.Link onClick={handleLogout} className="text-danger mb-2" style={{ cursor: 'pointer' }}>
                 <FiLogOut className="me-2"/> Logout

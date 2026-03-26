@@ -5,6 +5,7 @@ import dbConnect from '@/lib/db';
 import Batch from '@/models/Batch';
 import Payment from '@/models/Payment';
 import Setting from '@/models/Setting';
+import Enrollment from '@/models/Enrollment';
 import { getUserFromCookie } from '@/utils/auth';
 
 export async function POST(req) {
@@ -16,12 +17,13 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: 'Unauthorized. Please login first.' }, { status: 401 });
     }
 
-    const { batch_id, package_id } = await req.json();
+    const { batch_id, package_id, payment_mode } = await req.json();
     
     let finalPrice = 0;
     let courseId = null;
     let name = '';
     let description = '';
+    let courseSlugOrId = '';
 
     if (package_id) {
       const Package = (await import('@/models/Package')).default;
@@ -31,6 +33,7 @@ export async function POST(req) {
       }
       finalPrice = pkg.price;
       courseId = pkg.course_id._id;
+      courseSlugOrId = pkg.course_id.slug || pkg.course_id._id;
       name = `${pkg.course_id.title} - ${pkg.name}`;
       description = pkg.description || `Enrollment in ${pkg.name} package`;
     } else if (batch_id) {
@@ -43,12 +46,45 @@ export async function POST(req) {
       }
       finalPrice = batch.price || batch.course_id?.price || 0;
       courseId = batch.course_id._id;
+      courseSlugOrId = batch.course_id.slug || batch.course_id._id;
       name = `${batch.course_id.title} - ${batch.batchName}`;
       description = `Batch starting ${batch.startDate ? new Date(batch.startDate).toLocaleDateString() : 'soon'}`;
     } else {
       return NextResponse.json({ success: false, message: 'Package ID or Batch ID is required' }, { status: 400 });
     }
 
+    // --- Pay Later Flow ---
+    if (payment_mode === 'pay_later') {
+      const paymentRecord = await Payment.create({
+        userId: user.id,
+        courseId,
+        batchId: batch_id || null,
+        packageId: package_id || null,
+        amount: finalPrice,
+        gateway: 'pay_later',
+        status: 'pending',
+        transactionId: `pay_later_${Date.now()}`
+      });
+
+      // Create enrollment with pending status
+      await Enrollment.findOneAndUpdate(
+        { userId: user.id, courseId },
+        {
+          userId: user.id,
+          courseId,
+          packageId: package_id || null,
+          batchId: batch_id || null,
+          paymentId: paymentRecord._id,
+          paymentStatus: 'pending',
+          status: 'pending_payment'
+        },
+        { upsert: true, new: true }
+      );
+
+      return NextResponse.json({ success: true, gateway: 'pay_later' });
+    }
+
+    // --- Online Payment Flow ---
     // Determine gateway
     let activeGateway = 'stripe'; // Default
     const gatewaySetting = await Setting.findOne({ key: 'payment_gateway' });
@@ -82,7 +118,7 @@ export async function POST(req) {
         }],
         mode: 'payment',
         success_url: `${process.env.NEXT_PUBLIC_BASE_URL}/student/my-courses?payment_success=true&payment_id=${paymentRecord._id}`,
-        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/courses/${batch.course_id.slug || batch.course_id._id}`,
+        cancel_url: `${process.env.NEXT_PUBLIC_BASE_URL}/courses/${courseSlugOrId}`,
         metadata: { 
             paymentId: paymentRecord._id.toString(),
             courseId: courseId.toString(),

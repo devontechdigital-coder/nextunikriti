@@ -13,7 +13,7 @@ export async function GET(req) {
     await connectDB();
     const enrollments = await Enrollment.find({ userId: user.id })
       .populate('courseId', 'title thumbnail category instructor')
-      .populate('packageId', 'name')
+      .populate('packageId', 'name price')
       .sort({ updatedAt: -1 });
 
     return NextResponse.json({ success: true, data: enrollments }, { status: 200 });

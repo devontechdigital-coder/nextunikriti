@@ -7,10 +7,12 @@ const paymentSchema = new mongoose.Schema({
   packageId: { type: mongoose.Schema.Types.ObjectId, ref: 'Package' },
   amount: { type: Number, required: true },
   status: { type: String, enum: ['pending', 'completed', 'failed', 'refunded'], default: 'pending' },
-  gateway: { type: String, enum: ['stripe', 'razorpay'], required: true },
+  gateway: { type: String, enum: ['stripe', 'razorpay', 'pay_later'], required: true },
   transactionId: { type: String, required: true },
   receiptId: { type: String }, // For razorpay usually
   couponApplied: { type: mongoose.Schema.Types.ObjectId, ref: 'Coupon' }
 }, { timestamps: true });
 
-export default mongoose.models.Payment || mongoose.model('Payment', paymentSchema);
+// Always delete cached model to pick up schema changes on hot-reload
+delete mongoose.models['Payment'];
+export default mongoose.model('Payment', paymentSchema);

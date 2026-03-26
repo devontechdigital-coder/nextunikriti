@@ -60,7 +60,7 @@ export default function InstructorDashboard() {
         <Col md={3}>
           <Card className="border-0 shadow-sm text-center py-3">
              <Card.Body>
-                <h2 className="fw-bold text-success mb-0">${stats.totalRevenue.toFixed(2)}</h2>
+                <h2 className="fw-bold text-success mb-0">₹{stats.totalRevenue.toFixed(2)}</h2>
                 <div className="text-muted small fw-bold text-uppercase">Total Revenue</div>
              </Card.Body>
           </Card>

@@ -3,6 +3,8 @@ import Course from '@/models/Course';
 import Section from '@/models/Section';
 import Lesson from '@/models/Lesson';
 import Category from '@/models/Category';
+import Instrument from '@/models/Instrument';
+import Level from '@/models/Level';
 import mongoose from 'mongoose';
 import { notFound } from 'next/navigation';
 import { FaQuestionCircle, FaGraduationCap, FaClock, FaDesktop, FaMapMarkerAlt } from 'react-icons/fa';

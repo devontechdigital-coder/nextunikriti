@@ -2,7 +2,8 @@
 import { Container, Row, Col, Card, Spinner, Table, Badge } from 'react-bootstrap';
 import { useGetAdminDashboardStatsQuery } from '@/redux/api/apiSlice';
 import { useSelector } from 'react-redux';
-import { FiUsers, FiBook, FiDollarSign, FiActivity, FiArrowUpRight } from 'react-icons/fi';
+import { FiUsers, FiBook, FiActivity, FiArrowUpRight } from 'react-icons/fi';
+import { MdCurrencyRupee } from 'react-icons/md';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
   BarChart, Bar, Legend
@@ -32,7 +33,7 @@ export default function AdminDashboardPage() {
   const statCards = [
     { title: 'Total Users', value: stats?.totalUsers || 0, icon: <FiUsers />, color: 'primary', trend: '+12%' },
     { title: 'Total Courses', value: stats?.totalCourses || 0, icon: <FiBook />, color: 'success', trend: '+5%' },
-    { title: 'Total Revenue', value: `$${stats?.totalRevenue || 0}`, icon: <FiDollarSign />, color: 'warning', trend: '+18%' },
+    { title: 'Total Revenue', value: `₹${stats?.totalRevenue || 0}`, icon: <MdCurrencyRupee />, color: 'warning', trend: '+18%' },
     { title: 'Active Students', value: stats?.activeStudents || 0, icon: <FiActivity />, color: 'info', trend: '+8%' },
   ];
 
@@ -96,7 +97,7 @@ export default function AdminDashboardPage() {
         <Col lg={5}>
           <Card className="border-0 shadow-sm rounded-3">
             <Card.Body className="p-4">
-              <h6 className="fw-bold mb-4">Sales Revenue ($)</h6>
+              <h6 className="fw-bold mb-4">Sales Revenue (₹)</h6>
               <div style={{ width: '100%', height: 300 }}>
                 <ResponsiveContainer>
                   <BarChart data={charts?.salesGrowth}>
@@ -167,7 +168,7 @@ export default function AdminDashboardPage() {
                     <tr key={payment._id}>
                       <td className="fw-bold">{payment.userId?.name || 'Deleted User'}</td>
                       <td className="text-truncate" style={{ maxWidth: '150px' }}>{payment.courseId?.title || 'Deleted Course'}</td>
-                      <td className="text-success fw-bold">${payment.amount}</td>
+                      <td className="text-success fw-bold">₹{payment.amount}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -2,6 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout } from '@/redux/slices/authSlice';
+import { Dropdown } from 'react-bootstrap';
+import { FaUserCircle } from 'react-icons/fa';
 
 import TrialModal from './home/TrialModal';
 
@@ -19,7 +23,7 @@ const CoursesMega = ({ menu, submenus, getSubmenus }) => {
           <div className="row g-0">
             <div className="col-lg-3 courses-left">
               {submenus.map(cat => (
-                <button 
+                <button
                   key={cat._id}
                   className={`cat-btn ${activeCat === cat._id ? 'active' : ''}`}
                   onMouseEnter={() => setActiveCat(cat._id)}
@@ -124,8 +128,8 @@ const LabsMega = ({ menu, submenus, getSubmenus }) => {
               <div className="row g-3">
                 {submenus.map(school => (
                   <div className="col-md-6" key={school._id}>
-                    <div 
-                      className="mega-card p-3 border rounded-3 cursor-pointer" 
+                    <div
+                      className="mega-card p-3 border rounded-3 cursor-pointer"
                       onClick={() => setOpenSchool(openSchool === school._id ? null : school._id)}
                     >
                       <div className="d-flex gap-3 align-items-center mb-2">
@@ -153,11 +157,18 @@ const LabsMega = ({ menu, submenus, getSubmenus }) => {
 };
 
 const Navbar = ({ initialMenus = [], theme = {} }) => {
+  const dispatch = useDispatch();
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const [mounted, setMounted] = useState(false);
   const [dynamicMenus, setDynamicMenus] = useState(initialMenus.filter(m => m.isActive && m.type === 'header'));
 
   useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  useEffect(() => {
     if (initialMenus.length > 0) return;
-    
+
     const fetchMenus = async () => {
       try {
         const res = await fetch('/api/admin/menus');
@@ -175,8 +186,20 @@ const Navbar = ({ initialMenus = [], theme = {} }) => {
 
   // Helper to get children for a menu item
   const getSubmenus = (parentId) => {
-    return dynamicMenus.filter(m => m.parentId === parentId).sort((a,b) => a.order - b.order);
+    return dynamicMenus.filter(m => m.parentId === parentId).sort((a, b) => a.order - b.order);
   };
+
+  // Helper to get dashboard URL based on role
+  const getDashboardUrl = (role) => {
+    switch (role) {
+      case 'admin': return '/admin';
+      case 'instructor': return '/instructor';
+      case 'school_admin': return '/school/dashboard';
+      default: return '/student/dashboard';
+    }
+  };
+
+  if (!mounted) return null;
 
   return (
     <>
@@ -203,7 +226,7 @@ const Navbar = ({ initialMenus = [], theme = {} }) => {
               {(() => {
                 const renderMenuItem = (menu, isSub = false) => {
                   const submenus = getSubmenus(menu._id);
-                  
+
                   if (submenus.length > 0) {
                     // Check for Special Mega Menus
                     if (menu.title.toLowerCase() === 'courses') {
@@ -274,13 +297,38 @@ const Navbar = ({ initialMenus = [], theme = {} }) => {
 
                 return dynamicMenus
                   .filter(m => m.parentId === null)
-                  .sort((a,b) => a.order - b.order)
+                  .sort((a, b) => a.order - b.order)
                   .map(menu => renderMenuItem(menu));
               })()}
 
-              <li className="nav-item ms-lg-3 mt-3 mt-lg-0">
+              {isAuthenticated ? (
+                <li className="nav-item dropdown ms-lg-3 mt-3 mt-lg-0">
+                  <Dropdown>
+                    <Dropdown.Toggle variant="dark" className="rounded-pill px-4 fw-bold d-flex align-items-center gap-2">
+                      <FaUserCircle size={18} /> {user?.name || 'My Account'}
+                    </Dropdown.Toggle>
+                    <Dropdown.Menu align="end" className="shadow border-0 mt-2">
+                      <Dropdown.Item as={Link} href={getDashboardUrl(user?.role)} className="fw-bold py-2">
+                        🚀 Go to Dashboard
+                      </Dropdown.Item>
+                      <Dropdown.Divider />
+                      <Dropdown.Item onClick={() => dispatch(logout())} className="text-danger py-2">
+                        Log Out
+                      </Dropdown.Item>
+                    </Dropdown.Menu>
+                  </Dropdown>
+                </li>
+              ) : (
+                <li className="nav-item ms-lg-3 mt-3 mt-lg-0">
+                  <Link href="/login" className="btn btn-outline-dark text-white rounded-pill px-4 fw-bold">
+                    Login / Signup
+                  </Link>
+                </li>
+              )}
+
+              <li className="nav-item ms-lg-2 mt-2 mt-lg-0">
                 <button
-                  className="btn btn-light px-4"
+                  className="btn btn-light rounded-pill px-4 shadow-sm fw-bold"
                   data-bs-toggle="modal"
                   data-bs-target="#trialModal"
                 >

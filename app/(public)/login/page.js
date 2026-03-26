@@ -52,7 +52,7 @@ export default function LoginPage() {
     try {
       const res = await axios.post('/api/auth/verify-otp', { phone, hash, otp });
       if (res.data.success) {
-        window.location.href = '/learning';
+        window.location.href = '/student/dashboard';
       }
     } catch (err) {
       setError(err.response?.data?.error || 'Invalid OTP');

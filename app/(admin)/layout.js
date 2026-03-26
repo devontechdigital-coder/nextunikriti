@@ -42,6 +42,7 @@ export default function AdminLayout({ children }) {
     { name: 'Banners', href: `${basePath}/banners`, icon: <FiImage /> },
     { name: 'Pages', href: `${basePath}/pages`, icon: <FiFileText /> },
     { name: 'Gallery', href: `${basePath}/gallery`, icon: <FiImage /> },
+    { name: 'Orders', href: `${basePath}/orders`, icon: <FiList /> },
     { name: 'Payments', href: `${basePath}/payments`, icon: <FiCreditCard /> },
     { name: 'Settings', href: `${basePath}/settings`, icon: <FiSettings /> },
     { name: 'Analytics', href: `${basePath}/analytics`, icon: <FiBarChart2 /> },
