@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Category from '@/models/Category';
 import Course from '@/models/Course';
+import '@/models/Instrument';
+import '@/models/Level';
+import '@/models/User';
 
 export async function GET(req, { params }) {
   try {

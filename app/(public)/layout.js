@@ -4,8 +4,12 @@ import dbConnect from '@/lib/db';
 import Menu from '@/models/Menu';
 import Setting from '@/models/Setting';
 import BootstrapClient from '@/components/BootstrapClient';
+import { unstable_noStore as noStore } from 'next/cache';
+
+export const dynamic = 'force-dynamic';
 
 export default async function PublicLayout({ children }) {
+  noStore();
   await dbConnect();
   const menus = await Menu.find({ isActive: true }).sort({ order: 1 }).lean();
   const themeSetting = await Setting.findOne({ key: 'hp_theme' });

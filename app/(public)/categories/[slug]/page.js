@@ -1,6 +1,9 @@
 import connectDB from '@/lib/db';
 import Category from '@/models/Category';
 import Course from '@/models/Course';
+import '@/models/Instrument';
+import '@/models/Level';
+import '@/models/User';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { FaCheckCircle, FaChevronRight, FaStar } from 'react-icons/fa';

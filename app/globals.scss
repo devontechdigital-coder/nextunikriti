@@ -34,6 +34,27 @@ body {
 
 }
 
+.page-transition-loader {
+  z-index: 2000;
+  overflow: hidden;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.page-transition-loader.is-visible {
+  opacity: 1;
+  visibility: visible;
+}
+
+.page-transition-loader--global {
+  z-index: 5000;
+}
+
 h1,
 h2,
 h3,

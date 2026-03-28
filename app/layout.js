@@ -4,6 +4,7 @@ import './globals.scss';
 import StoreProvider from './StoreProvider';
 import { Inter } from 'next/font/google';
 import ToasterProvider from '@/components/ToasterProvider';
+import NavigationLoader from '@/components/NavigationLoader';
 
 const inter = Inter({ 
   subsets: ['latin'],
@@ -39,6 +40,7 @@ export default async function RootLayout({ children }) {
       </head>
       <body className={`${inter.variable} ${inter.className}`}>
         <StoreProvider>
+          <NavigationLoader />
           <main style={{ minHeight: '80vh' }}>
             {children}
           </main>
