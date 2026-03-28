@@ -5,7 +5,7 @@ import { Container, Table, Spinner, Alert, Form, Button, Modal, Badge, Card, Row
 import { 
   useGetAdminInstructorsQuery, 
   useUpdateAdminUserMutation, 
-  useCreateAdminUserMutation,
+  useCreateAdminInstructorMutation,
   useGetInstructorStatsQuery,
   useGetInstructorCoursesQuery
 } from '@/redux/api/apiSlice';
@@ -23,7 +23,7 @@ export default function SchoolInstructorsPage() {
   });
 
   const [updateUser, { isLoading: isUpdating }] = useUpdateAdminUserMutation();
-  const [createUser, { isLoading: isCreating }] = useCreateAdminUserMutation();
+  const [createInstructor, { isLoading: isCreating }] = useCreateAdminInstructorMutation();
   
   const { user } = useSelector((state) => state.auth);
   const schoolId = user?.schoolId || user?._id;
@@ -72,7 +72,7 @@ export default function SchoolInstructorsPage() {
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     try {
-      await createUser(formData).unwrap();
+      await createInstructor(formData).unwrap();
       setSuccessMsg('Instructor created successfully!');
       setShowCreateModal(false);
       setTimeout(() => setSuccessMsg(''), 3000);

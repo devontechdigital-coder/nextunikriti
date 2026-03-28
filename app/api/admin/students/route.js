@@ -2,8 +2,68 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Student from '@/models/Student';
 import User from '@/models/User';
+import Counter from '@/models/Counter';
 import { getUserFromCookie } from '@/utils/auth';
 import bcrypt from 'bcryptjs';
+
+const STUDENT_COUNTER_KEY = 'student_enrolment_number';
+const ENROLMENT_PREFIX = 'STU';
+
+async function generateStudentEnrolmentNumber() {
+  const counter = await Counter.findOneAndUpdate(
+    { name: STUDENT_COUNTER_KEY },
+    {
+      $inc: { seq: 1 },
+      $setOnInsert: { name: STUDENT_COUNTER_KEY }
+    },
+    {
+      new: true,
+      upsert: true,
+      setDefaultsOnInsert: true
+    }
+  );
+
+  return `${ENROLMENT_PREFIX}-${String(counter.seq).padStart(5, '0')}`;
+}
+
+function buildStudentPayload(body) {
+  return {
+    schoolId: body.schoolId,
+    enrolmentNumber: body.enrolmentNumber,
+    joiningYear: body.joiningYear || '',
+    dob: body.dateOfBirth || body.dob || undefined,
+    joiningDate: body.dateOfJoining || body.joiningDate || undefined,
+    leavingDate: body.dateOfLeaving || body.leavingDate || undefined,
+    studentName: body.studentName || body.name || '',
+    onBoard: typeof body.onBoard === 'boolean' ? body.onBoard : false,
+    time: body.time || '',
+    enrolledFor: body.enrolledFor || '',
+    location: body.location || '',
+    gender: body.gender,
+    bloodGroup: body.bloodGroup,
+    nationality: body.nationality,
+    addressLine1: body.address1 || body.addressLine1 || '',
+    addressLine2: body.address2 || body.addressLine2 || '',
+    street: body.street || '',
+    city: body.cityDistrict || body.city || '',
+    state: body.state || '',
+    pinCode: body.pinCode || '',
+    motherName: body.motherName || '',
+    motherMobile: body.motherMobile || '',
+    motherEmail: body.motherEmail || '',
+    fatherName: body.fatherName || '',
+    fatherMobile: body.fatherMobile || '',
+    fatherEmail: body.fatherEmail || '',
+    homePhone: body.homePhone || '',
+    emergencyDetails: body.emergencyDetails || '',
+    relationship: body.relationship || '',
+    emergencyPhoneNo: body.emergencyPhoneNo || '',
+    allergies: body.allergies || '',
+    medicalCondition: body.medicalCondition || '',
+    status: body.status,
+    profilePhoto: body.profilePhoto || '',
+  };
+}
 
 export async function GET(req) {
   try {
@@ -15,12 +75,14 @@ export async function GET(req) {
     await dbConnect();
     const { searchParams } = new URL(req.url);
     const schoolId = searchParams.get('schoolId');
+    const userId = searchParams.get('userId');
     const status = searchParams.get('status');
     const gender = searchParams.get('gender');
     const search = searchParams.get('search');
 
     const query = {};
     if (schoolId) query.schoolId = schoolId;
+    if (userId) query.userId = userId;
     if (status) query.status = status;
     if (gender) query.gender = gender;
     
@@ -56,12 +118,8 @@ export async function POST(req) {
 
     await dbConnect();
     const body = await req.json();
-    const { 
-      name, email, phone, password, 
-      schoolId, enrolmentNumber, dob, gender, 
-      bloodGroup, nationality, addressLine1, 
-      addressLine2, city, state, pinCode, 
-      status, joiningDate, leavingDate 
+    const {
+      name, email, phone, password, schoolId
     } = body;
 
     // 1. Create User
@@ -93,25 +151,23 @@ export async function POST(req) {
     }
 
     try {
+      const studentPayload = buildStudentPayload({ ...body, schoolId: finalSchoolId });
+
+      if (!studentPayload.enrolmentNumber || !String(studentPayload.enrolmentNumber).trim()) {
+        studentPayload.enrolmentNumber = await generateStudentEnrolmentNumber();
+      }
+
       const newStudent = await Student.create({
         userId: newUser._id,
         schoolId: finalSchoolId,
-        enrolmentNumber,
-        dob,
-        gender,
-        bloodGroup,
-        nationality,
-        addressLine1,
-        addressLine2,
-        city,
-        state,
-        pinCode,
-        status,
-        joiningDate,
-        leavingDate
+        ...studentPayload
       });
 
-      return NextResponse.json({ success: true, student: newStudent });
+      return NextResponse.json({
+        success: true,
+        student: newStudent,
+        enrolmentNumber: newStudent.enrolmentNumber
+      });
     } catch (studentError) {
       // Rollback user creation if student creation fails
       await User.findByIdAndDelete(newUser._id);

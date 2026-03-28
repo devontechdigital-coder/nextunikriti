@@ -5,13 +5,67 @@ import { Container, Table, Spinner, Alert, Form, Button, Modal, Badge, Card, Row
 import { 
   useGetAdminInstructorsQuery, 
   useUpdateAdminUserMutation, 
-  useCreateAdminUserMutation,
+  useCreateAdminInstructorMutation,
   useGetInstructorStatsQuery,
   useGetInstructorCoursesQuery,
   useGetAdminSchoolsQuery
 } from '@/redux/api/apiSlice';
-import { FaCheck, FaTimes, FaBan, FaEye, FaChartLine, FaCheckCircle, FaPlus, FaUserTie } from 'react-icons/fa';
+import { FaCheck, FaTimes, FaBan, FaChartLine, FaCheckCircle, FaPlus, FaTrash } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
+
+const createEducationEntry = () => ({
+  level: 'graduation',
+  courseName: '',
+  instituteName: '',
+  boardOrUniversity: '',
+  yearOfPassing: '',
+  percentageOrGPA: '',
+  stream: '',
+});
+
+const createInitialFormData = (schoolId = '') => ({
+  name: '',
+  email: '',
+  phone: '',
+  password: '',
+  role: 'instructor',
+  schoolId,
+  bio: '',
+  avatar: '',
+  status: 'active',
+  dateOfBirth: '',
+  landlineOrAlternateNumber: '',
+  gender: 'prefer_not_to_say',
+  nationality: 'Indian',
+  addressLine1: '',
+  addressLine2: '',
+  landmark: '',
+  state: '',
+  pinCode: '',
+  permanentAddress: '',
+  fatherFullName: '',
+  fatherContactNumber: '',
+  fatherOccupation: '',
+  motherFullName: '',
+  motherContactNumber: '',
+  motherOccupation: '',
+  education: [createEducationEntry()],
+  nameAsPerBankRecord: '',
+  bankName: '',
+  accountNumber: '',
+  typeOfAccount: '',
+  ifscCode: '',
+  latestPhotograph: '',
+  aadhaarCard: '',
+  panCard: '',
+  votersIdCard: '',
+  drivingLicense: '',
+  otherPhotoIdCard: '',
+  chequeImage: '',
+  educationExperienceTestimonials: '',
+  declarationAccuracy: false,
+  declarationVerificationConsent: false,
+});
 
 export default function AdminInstructorsPage() {
   const [page, setPage] = useState(1);
@@ -24,7 +78,7 @@ export default function AdminInstructorsPage() {
   });
 
   const [updateUser, { isLoading: isUpdating }] = useUpdateAdminUserMutation();
-  const [createUser, { isLoading: isCreating }] = useCreateAdminUserMutation();
+  const [createInstructor, { isLoading: isCreating }] = useCreateAdminInstructorMutation();
   const { data: schoolData } = useGetAdminSchoolsQuery();
   const schools = schoolData?.schools || [];
   
@@ -36,9 +90,7 @@ export default function AdminInstructorsPage() {
 
   // Creation Modal State
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '', email: '', phone: '', password: '', role: 'instructor', schoolId: ''
-  });
+  const [formData, setFormData] = useState(createInitialFormData());
 
   // Stats Modal State
   const [showStatsModal, setShowStatsModal] = useState(false);
@@ -66,17 +118,48 @@ export default function AdminInstructorsPage() {
   };
 
   const handleOpenCreateModal = () => {
-    setFormData({
-      name: '', email: '', phone: '', password: '', role: 'instructor', 
-      schoolId: isSchoolAdmin ? schoolId : ''
-    });
+    setFormData(createInitialFormData(isSchoolAdmin ? schoolId : ''));
     setShowCreateModal(true);
+  };
+
+  const handleFieldChange = (field, value) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleEducationChange = (index, field, value) => {
+    setFormData((prev) => ({
+      ...prev,
+      education: prev.education.map((item, itemIndex) =>
+        itemIndex === index ? { ...item, [field]: value } : item
+      ),
+    }));
+  };
+
+  const handleAddEducation = () => {
+    setFormData((prev) => ({
+      ...prev,
+      education: [...prev.education, createEducationEntry()],
+    }));
+  };
+
+  const handleRemoveEducation = (index) => {
+    setFormData((prev) => ({
+      ...prev,
+      education: prev.education.length === 1
+        ? [createEducationEntry()]
+        : prev.education.filter((_, itemIndex) => itemIndex !== index),
+    }));
   };
 
   const handleCreateSubmit = async (e) => {
     e.preventDefault();
     try {
-      await createUser(formData).unwrap();
+      const payload = {
+        ...formData,
+        education: formData.education.filter((item) => item.level || item.courseName || item.instituteName || item.boardOrUniversity || item.yearOfPassing || item.percentageOrGPA || item.stream),
+      };
+
+      await createInstructor(payload).unwrap();
       setSuccessMsg('Instructor created successfully!');
       setShowCreateModal(false);
       setTimeout(() => setSuccessMsg(''), 3000);
@@ -200,61 +283,388 @@ export default function AdminInstructorsPage() {
       )}
 
       {/* Create Instructor Modal */}
-      <Modal show={showCreateModal} onHide={() => setShowCreateModal(false)} centered>
+      <Modal show={showCreateModal} onHide={() => setShowCreateModal(false)} size="xl" centered scrollable dialogClassName="instructor-create-modal">
         <Modal.Header closeButton className="bg-light">
           <Modal.Title className="fw-bold fs-5">Add New Instructor</Modal.Title>
         </Modal.Header>
         <Form onSubmit={handleCreateSubmit}>
-          <Modal.Body className="p-4">
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-bold">Full Name</Form.Label>
-              <Form.Control 
-                required 
-                placeholder="Enter name"
-                value={formData.name} 
-                onChange={(e) => setFormData({...formData, name: e.target.value})} 
+          <Modal.Body className="p-4" style={{ maxHeight: '70vh', overflowY: 'auto' }}>
+            <div className="border rounded-3 p-3 mb-4 bg-light-subtle">
+              <h6 className="fw-bold mb-3">User Account</h6>
+              <Row className="g-3">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Name</Form.Label>
+                    <Form.Control
+                      required
+                      placeholder="Enter account name"
+                      value={formData.name}
+                      onChange={(e) => handleFieldChange('name', e.target.value)}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Email Address</Form.Label>
+                    <Form.Control
+                      type="email"
+                      required
+                      placeholder="name@example.com"
+                      value={formData.email}
+                      onChange={(e) => handleFieldChange('email', e.target.value)}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Phone Number</Form.Label>
+                    <Form.Control
+                      placeholder="10-digit phone"
+                      value={formData.phone}
+                      onChange={(e) => handleFieldChange('phone', e.target.value)}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Password</Form.Label>
+                    <Form.Control
+                      type="password"
+                      required
+                      placeholder="Minimum 6 characters"
+                      value={formData.password}
+                      onChange={(e) => handleFieldChange('password', e.target.value)}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={3}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Status</Form.Label>
+                    <Form.Select
+                      value={formData.status}
+                      onChange={(e) => handleFieldChange('status', e.target.value)}
+                    >
+                      <option value="active">Active</option>
+                      <option value="pending_approval">Pending Approval</option>
+                      <option value="suspended">Suspended</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={3}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Avatar URL</Form.Label>
+                    <Form.Control
+                      placeholder="https://..."
+                      value={formData.avatar}
+                      onChange={(e) => handleFieldChange('avatar', e.target.value)}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={12}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Bio</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={2}
+                      placeholder="Short bio"
+                      value={formData.bio}
+                      onChange={(e) => handleFieldChange('bio', e.target.value)}
+                    />
+                  </Form.Group>
+                </Col>
+                {!isSchoolAdmin && (
+                  <Col md={6}>
+                    <Form.Group>
+                      <Form.Label className="small fw-bold">Assign to School</Form.Label>
+                      <Form.Select
+                        value={formData.schoolId}
+                        onChange={(e) => handleFieldChange('schoolId', e.target.value)}
+                      >
+                        <option value="">No School (Independent)</option>
+                        {schools.map((s) => (
+                          <option key={s._id} value={s._id}>{s.schoolName}</option>
+                        ))}
+                      </Form.Select>
+                    </Form.Group>
+                  </Col>
+                )}
+              </Row>
+            </div>
+
+            <div className="border rounded-3 p-3 mb-4">
+              <h6 className="fw-bold mb-3">Personal Details</h6>
+              <Row className="g-3">
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Date of Birth</Form.Label>
+                    <Form.Control
+                      type="date"
+                      value={formData.dateOfBirth}
+                      onChange={(e) => handleFieldChange('dateOfBirth', e.target.value)}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Alternate Number</Form.Label>
+                    <Form.Control
+                      value={formData.landlineOrAlternateNumber}
+                      onChange={(e) => handleFieldChange('landlineOrAlternateNumber', e.target.value)}
+                    />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Gender</Form.Label>
+                    <Form.Select
+                      value={formData.gender}
+                      onChange={(e) => handleFieldChange('gender', e.target.value)}
+                    >
+                      <option value="prefer_not_to_say">Prefer not to say</option>
+                      <option value="male">Male</option>
+                      <option value="female">Female</option>
+                      <option value="other">Other</option>
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Nationality</Form.Label>
+                    <Form.Control
+                      value={formData.nationality}
+                      onChange={(e) => handleFieldChange('nationality', e.target.value)}
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+            </div>
+
+            <div className="border rounded-3 p-3 mb-4">
+              <h6 className="fw-bold mb-3">Address Details</h6>
+              <Row className="g-3">
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Address Line 1</Form.Label>
+                    <Form.Control value={formData.addressLine1} onChange={(e) => handleFieldChange('addressLine1', e.target.value)} />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Address Line 2</Form.Label>
+                    <Form.Control value={formData.addressLine2} onChange={(e) => handleFieldChange('addressLine2', e.target.value)} />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Landmark</Form.Label>
+                    <Form.Control value={formData.landmark} onChange={(e) => handleFieldChange('landmark', e.target.value)} />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">State</Form.Label>
+                    <Form.Control value={formData.state} onChange={(e) => handleFieldChange('state', e.target.value)} />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">PIN Code</Form.Label>
+                    <Form.Control value={formData.pinCode} onChange={(e) => handleFieldChange('pinCode', e.target.value)} />
+                  </Form.Group>
+                </Col>
+                <Col md={12}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Permanent Address</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={2}
+                      value={formData.permanentAddress}
+                      onChange={(e) => handleFieldChange('permanentAddress', e.target.value)}
+                    />
+                  </Form.Group>
+                </Col>
+              </Row>
+            </div>
+
+            <div className="border rounded-3 p-3 mb-4">
+              <h6 className="fw-bold mb-3">Family Details</h6>
+              <Row className="g-3">
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Father Full Name</Form.Label>
+                    <Form.Control value={formData.fatherFullName} onChange={(e) => handleFieldChange('fatherFullName', e.target.value)} />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Father Contact Number</Form.Label>
+                    <Form.Control value={formData.fatherContactNumber} onChange={(e) => handleFieldChange('fatherContactNumber', e.target.value)} />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Father Occupation</Form.Label>
+                    <Form.Control value={formData.fatherOccupation} onChange={(e) => handleFieldChange('fatherOccupation', e.target.value)} />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Mother Full Name</Form.Label>
+                    <Form.Control value={formData.motherFullName} onChange={(e) => handleFieldChange('motherFullName', e.target.value)} />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Mother Contact Number</Form.Label>
+                    <Form.Control value={formData.motherContactNumber} onChange={(e) => handleFieldChange('motherContactNumber', e.target.value)} />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Mother Occupation</Form.Label>
+                    <Form.Control value={formData.motherOccupation} onChange={(e) => handleFieldChange('motherOccupation', e.target.value)} />
+                  </Form.Group>
+                </Col>
+              </Row>
+            </div>
+
+            <div className="border rounded-3 p-3 mb-4">
+              <div className="d-flex justify-content-between align-items-center mb-3">
+                <h6 className="fw-bold mb-0">Education</h6>
+                <Button type="button" variant="outline-primary" size="sm" onClick={handleAddEducation}>
+                  Add Education
+                </Button>
+              </div>
+              {formData.education.map((item, index) => (
+                <div key={index} className="border rounded-3 p-3 mb-3 bg-light-subtle">
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <span className="fw-semibold">Education #{index + 1}</span>
+                    <Button type="button" variant="outline-danger" size="sm" onClick={() => handleRemoveEducation(index)}>
+                      <FaTrash />
+                    </Button>
+                  </div>
+                  <Row className="g-3">
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label className="small fw-bold">Level</Form.Label>
+                        <Form.Select value={item.level} onChange={(e) => handleEducationChange(index, 'level', e.target.value)}>
+                          <option value="school">School</option>
+                          <option value="diploma">Diploma</option>
+                          <option value="graduation">Graduation</option>
+                          <option value="post_graduation">Post Graduation</option>
+                          <option value="masters">Masters</option>
+                          <option value="phd">PhD</option>
+                          <option value="other">Other</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label className="small fw-bold">Course Name</Form.Label>
+                        <Form.Control value={item.courseName} onChange={(e) => handleEducationChange(index, 'courseName', e.target.value)} />
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label className="small fw-bold">Institute Name</Form.Label>
+                        <Form.Control value={item.instituteName} onChange={(e) => handleEducationChange(index, 'instituteName', e.target.value)} />
+                      </Form.Group>
+                    </Col>
+                    <Col md={3}>
+                      <Form.Group>
+                        <Form.Label className="small fw-bold">Board/University</Form.Label>
+                        <Form.Control value={item.boardOrUniversity} onChange={(e) => handleEducationChange(index, 'boardOrUniversity', e.target.value)} />
+                      </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label className="small fw-bold">Year of Passing</Form.Label>
+                        <Form.Control value={item.yearOfPassing} onChange={(e) => handleEducationChange(index, 'yearOfPassing', e.target.value)} />
+                      </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label className="small fw-bold">Percentage / GPA</Form.Label>
+                        <Form.Control value={item.percentageOrGPA} onChange={(e) => handleEducationChange(index, 'percentageOrGPA', e.target.value)} />
+                      </Form.Group>
+                    </Col>
+                    <Col md={4}>
+                      <Form.Group>
+                        <Form.Label className="small fw-bold">Stream</Form.Label>
+                        <Form.Control value={item.stream} onChange={(e) => handleEducationChange(index, 'stream', e.target.value)} />
+                      </Form.Group>
+                    </Col>
+                  </Row>
+                </div>
+              ))}
+            </div>
+
+            <div className="border rounded-3 p-3 mb-4">
+              <h6 className="fw-bold mb-3">Bank Details</h6>
+              <Row className="g-3">
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Name as Per Bank Record</Form.Label>
+                    <Form.Control value={formData.nameAsPerBankRecord} onChange={(e) => handleFieldChange('nameAsPerBankRecord', e.target.value)} />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Bank Name</Form.Label>
+                    <Form.Control value={formData.bankName} onChange={(e) => handleFieldChange('bankName', e.target.value)} />
+                  </Form.Group>
+                </Col>
+                <Col md={4}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Account Number</Form.Label>
+                    <Form.Control value={formData.accountNumber} onChange={(e) => handleFieldChange('accountNumber', e.target.value)} />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Type of Account</Form.Label>
+                    <Form.Control value={formData.typeOfAccount} onChange={(e) => handleFieldChange('typeOfAccount', e.target.value)} />
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">IFSC Code</Form.Label>
+                    <Form.Control value={formData.ifscCode} onChange={(e) => handleFieldChange('ifscCode', e.target.value)} />
+                  </Form.Group>
+                </Col>
+              </Row>
+            </div>
+
+            <div className="border rounded-3 p-3 mb-4">
+              <h6 className="fw-bold mb-3">Documents</h6>
+              <Row className="g-3">
+                <Col md={6}><Form.Group><Form.Label className="small fw-bold">Latest Photograph</Form.Label><Form.Control value={formData.latestPhotograph} onChange={(e) => handleFieldChange('latestPhotograph', e.target.value)} /></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label className="small fw-bold">Aadhaar Card</Form.Label><Form.Control value={formData.aadhaarCard} onChange={(e) => handleFieldChange('aadhaarCard', e.target.value)} /></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label className="small fw-bold">PAN Card</Form.Label><Form.Control value={formData.panCard} onChange={(e) => handleFieldChange('panCard', e.target.value)} /></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label className="small fw-bold">Voter&apos;s ID Card</Form.Label><Form.Control value={formData.votersIdCard} onChange={(e) => handleFieldChange('votersIdCard', e.target.value)} /></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label className="small fw-bold">Driving License</Form.Label><Form.Control value={formData.drivingLicense} onChange={(e) => handleFieldChange('drivingLicense', e.target.value)} /></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label className="small fw-bold">Other Photo ID Card</Form.Label><Form.Control value={formData.otherPhotoIdCard} onChange={(e) => handleFieldChange('otherPhotoIdCard', e.target.value)} /></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label className="small fw-bold">Cheque Image</Form.Label><Form.Control value={formData.chequeImage} onChange={(e) => handleFieldChange('chequeImage', e.target.value)} /></Form.Group></Col>
+                <Col md={6}><Form.Group><Form.Label className="small fw-bold">Education / Experience Testimonials</Form.Label><Form.Control value={formData.educationExperienceTestimonials} onChange={(e) => handleFieldChange('educationExperienceTestimonials', e.target.value)} /></Form.Group></Col>
+              </Row>
+            </div>
+
+            <div className="border rounded-3 p-3">
+              <h6 className="fw-bold mb-3">Declarations</h6>
+              <Form.Check
+                className="mb-2"
+                type="checkbox"
+                label="I confirm that the information provided is accurate."
+                checked={formData.declarationAccuracy}
+                onChange={(e) => handleFieldChange('declarationAccuracy', e.target.checked)}
               />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-bold">Email Address</Form.Label>
-              <Form.Control 
-                type="email" 
-                required 
-                placeholder="name@example.com"
-                value={formData.email} 
-                onChange={(e) => setFormData({...formData, email: e.target.value})} 
+              <Form.Check
+                type="checkbox"
+                label="I consent to verification of the submitted information and documents."
+                checked={formData.declarationVerificationConsent}
+                onChange={(e) => handleFieldChange('declarationVerificationConsent', e.target.checked)}
               />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-bold">Phone Number</Form.Label>
-              <Form.Control 
-                placeholder="10-digit phone"
-                value={formData.phone} 
-                onChange={(e) => setFormData({...formData, phone: e.target.value})} 
-              />
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-bold">Password</Form.Label>
-              <Form.Control 
-                type="password"
-                required 
-                placeholder="Minimum 6 characters"
-                value={formData.password} 
-                onChange={(e) => setFormData({...formData, password: e.target.value})} 
-              />
-            </Form.Group>
-            {!isSchoolAdmin && (
-              <Form.Group className="mb-3">
-                <Form.Label className="small fw-bold">Assign to School</Form.Label>
-                <Form.Select 
-                  value={formData.schoolId} 
-                  onChange={(e) => setFormData({...formData, schoolId: e.target.value})}
-                >
-                  <option value="">No School (Independent)</option>
-                  {schools.map(s => <option key={s._id} value={s._id}>{s.schoolName}</option>)}
-                </Form.Select>
-              </Form.Group>
-            )}
+            </div>
           </Modal.Body>
           <Modal.Footer className="bg-light">
             <Button variant="link" onClick={() => setShowCreateModal(false)} className="text-secondary text-decoration-none">Cancel</Button>

@@ -1,43 +1,43 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { usePathname, useSearchParams } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
-const MIN_VISIBLE_MS = 250;
+const MAX_LOADER_MS = 15000;
 
 export default function NavigationLoader() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [isVisible, setIsVisible] = useState(false);
   const [routeLoadingActive, setRouteLoadingActive] = useState(false);
-  const startedAtRef = useRef(0);
-  const hideTimerRef = useRef(null);
+  const targetPathRef = useRef(null);
+  const failSafeTimerRef = useRef(null);
 
   useEffect(() => {
-    const hideLoader = () => {
-      if (!startedAtRef.current) {
-        setIsVisible(false);
-        return;
-      }
+    if (!targetPathRef.current) return;
 
-      const elapsed = Date.now() - startedAtRef.current;
-      const remaining = Math.max(MIN_VISIBLE_MS - elapsed, 0);
+    if (pathname === targetPathRef.current) {
+      window.clearTimeout(failSafeTimerRef.current);
+      failSafeTimerRef.current = null;
+      targetPathRef.current = null;
+      setIsVisible(false);
+    }
+  }, [pathname]);
 
-      window.clearTimeout(hideTimerRef.current);
-      hideTimerRef.current = window.setTimeout(() => {
-        setIsVisible(false);
-        startedAtRef.current = 0;
-      }, remaining);
+  useEffect(() => {
+    const stopLoader = () => {
+      window.clearTimeout(failSafeTimerRef.current);
+      failSafeTimerRef.current = null;
+      targetPathRef.current = null;
+      setIsVisible(false);
     };
 
-    hideLoader();
-  }, [pathname, searchParams]);
-
-  useEffect(() => {
-    const startLoader = () => {
-      window.clearTimeout(hideTimerRef.current);
-      startedAtRef.current = Date.now();
+    const startLoader = (nextPathname) => {
+      window.clearTimeout(failSafeTimerRef.current);
+      targetPathRef.current = nextPathname;
       setIsVisible(true);
+      failSafeTimerRef.current = window.setTimeout(() => {
+        stopLoader();
+      }, MAX_LOADER_MS);
     };
 
     const isModifiedEvent = (event) =>
@@ -51,11 +51,10 @@ export default function NavigationLoader() {
 
       const url = new URL(anchor.href, window.location.href);
       if (url.origin !== window.location.origin) return false;
-      if (url.hash && url.pathname === window.location.pathname && url.search === window.location.search) {
-        return false;
-      }
+      if (url.hash) return false;
+      if (url.pathname === window.location.pathname) return false;
 
-      return url.pathname !== window.location.pathname || url.search !== window.location.search;
+      return true;
     };
 
     const handleClick = (event) => {
@@ -67,37 +66,15 @@ export default function NavigationLoader() {
       const anchor = target.closest('a');
       if (!shouldHandleAnchor(anchor)) return;
 
-      startLoader();
-    };
-
-    const handleSubmit = () => {
-      startLoader();
-    };
-
-    const handlePopState = () => {
-      startLoader();
-    };
-
-    const originalPushState = window.history.pushState.bind(window.history);
-    const originalReplaceState = window.history.replaceState.bind(window.history);
-
-    window.history.pushState = function pushState(...args) {
-      startLoader();
-      return originalPushState(...args);
-    };
-
-    window.history.replaceState = function replaceState(...args) {
-      startLoader();
-      return originalReplaceState(...args);
+      const nextUrl = new URL(anchor.href, window.location.href);
+      startLoader(nextUrl.pathname);
     };
 
     document.addEventListener('click', handleClick, true);
-    window.addEventListener('submit', handleSubmit, true);
-    window.addEventListener('popstate', handlePopState);
 
     const handleRouteLoadingStart = () => {
-      window.clearTimeout(hideTimerRef.current);
-      startedAtRef.current = 0;
+      window.clearTimeout(failSafeTimerRef.current);
+      failSafeTimerRef.current = null;
       setIsVisible(false);
       setRouteLoadingActive(true);
     };
@@ -110,14 +87,10 @@ export default function NavigationLoader() {
     window.addEventListener('route-loading-end', handleRouteLoadingEnd);
 
     return () => {
-      window.clearTimeout(hideTimerRef.current);
+      window.clearTimeout(failSafeTimerRef.current);
       document.removeEventListener('click', handleClick, true);
-      window.removeEventListener('submit', handleSubmit, true);
-      window.removeEventListener('popstate', handlePopState);
       window.removeEventListener('route-loading-start', handleRouteLoadingStart);
       window.removeEventListener('route-loading-end', handleRouteLoadingEnd);
-      window.history.pushState = originalPushState;
-      window.history.replaceState = originalReplaceState;
     };
   }, []);
 

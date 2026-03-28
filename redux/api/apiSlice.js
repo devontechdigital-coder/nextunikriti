@@ -99,6 +99,29 @@ export const apiSlice = createApi({
       }),
       providesTags: ['User'],
     }),
+    getAdminInstructorById: builder.query({
+      query: (id) => ({
+        url: `/admin/instructors/${id}`,
+        method: 'GET',
+      }),
+      providesTags: ['User'],
+    }),
+    createAdminInstructor: builder.mutation({
+      query: (data) => ({
+        url: '/admin/instructors',
+        method: 'POST',
+        data,
+      }),
+      invalidatesTags: ['User'],
+    }),
+    updateAdminInstructor: builder.mutation({
+      query: ({ id, ...data }) => ({
+        url: `/admin/instructors/${id}`,
+        method: 'PUT',
+        data,
+      }),
+      invalidatesTags: ['User'],
+    }),
     getInstructorStats: builder.query({
       query: (id) => ({ url: `/admin/instructors/${id}/stats` }),
     }),
@@ -616,6 +639,9 @@ export const {
   useGetAdminSettingsQuery,
   useUpdateAdminSettingsMutation,
   useGetAdminInstructorsQuery,
+  useGetAdminInstructorByIdQuery,
+  useCreateAdminInstructorMutation,
+  useUpdateAdminInstructorMutation,
   useGetInstructorStatsQuery,
   useGetInstructorCoursesQuery,
   useGetAdminDashboardStatsQuery,
