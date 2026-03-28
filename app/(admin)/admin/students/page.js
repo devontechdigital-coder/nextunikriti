@@ -327,10 +327,7 @@ export default function StudentsPage() {
                   </Form.Select>
                 </Col>
               )}
-              <Col md={isSchoolAdminPath ? 4 : 4}>
-                <Form.Label className="small fw-bold">Enrolment Number</Form.Label>
-                <Form.Control placeholder="Auto-generated if left blank" value={formData.enrolmentNumber} onChange={(e) => handleFieldChange('enrolmentNumber', e.target.value)} />
-              </Col>
+            
               <Col md={isSchoolAdminPath ? 4 : 4}>
                 <Form.Label className="small fw-bold">Student Name</Form.Label>
                 <Form.Control value={formData.studentName} onChange={(e) => handleFieldChange('studentName', e.target.value)} />

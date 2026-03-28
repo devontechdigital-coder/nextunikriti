@@ -105,6 +105,7 @@ const createInstructorFields = () => ({
 });
 
 const createInitialFormData = (defaultRole = 'student') => ({
+  studentProfileId: '',
   name: '',
   email: '',
   phone: '',
@@ -252,6 +253,7 @@ export default function AdminUsersPage() {
 
     setFormData((prev) => ({
       ...prev,
+      studentProfileId: student._id || '',
       name: student.userId?.name || '',
       email: student.userId?.email || '',
       phone: student.userId?.phone || '',
@@ -424,7 +426,7 @@ export default function AdminUsersPage() {
         await updateInstructor({ id: editingUser._id, ...payload }).unwrap();
         setSuccessMsg('Instructor updated successfully!');
       } else if (editingUser && formData.role === 'student') {
-        await updateStudent({ id: editingUser._id, ...payload }).unwrap();
+        await updateStudent({ id: formData.studentProfileId || editingUser._id, ...payload }).unwrap();
         setSuccessMsg('Student updated successfully!');
       } else if (editingUser) {
         await updateUser({ userId: editingUser._id, ...payload }).unwrap();

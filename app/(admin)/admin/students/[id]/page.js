@@ -48,18 +48,38 @@ export default function StudentProfilePage() {
         phone: student.userId?.phone || '',
         schoolId: student.schoolId?._id || '',
         enrolmentNumber: student.enrolmentNumber || '',
-        dob: student.dob ? new Date(student.dob).toISOString().split('T')[0] : '',
+        joiningYear: student.joiningYear || '',
+        studentName: student.studentName || student.userId?.name || '',
+        onBoard: Boolean(student.onBoard),
+        time: student.time || '',
+        enrolledFor: student.enrolledFor || '',
+        location: student.location || '',
+        dateOfBirth: student.dateOfBirth ? new Date(student.dateOfBirth).toISOString().split('T')[0] : student.dob ? new Date(student.dob).toISOString().split('T')[0] : '',
         gender: student.gender || 'male',
         bloodGroup: student.bloodGroup || '',
         nationality: student.nationality || 'Indian',
-        addressLine1: student.addressLine1 || '',
-        addressLine2: student.addressLine2 || '',
-        city: student.city || '',
+        address1: student.address1 || student.addressLine1 || '',
+        address2: student.address2 || student.addressLine2 || '',
+        street: student.street || '',
+        cityDistrict: student.cityDistrict || student.city || '',
         state: student.state || '',
         pinCode: student.pinCode || '',
+        motherName: student.motherName || '',
+        motherMobile: student.motherMobile || '',
+        motherEmail: student.motherEmail || '',
+        fatherName: student.fatherName || '',
+        fatherMobile: student.fatherMobile || '',
+        fatherEmail: student.fatherEmail || '',
+        homePhone: student.homePhone || '',
+        emergencyDetails: student.emergencyDetails || '',
+        relationship: student.relationship || '',
+        emergencyPhoneNo: student.emergencyPhoneNo || '',
+        allergies: student.allergies || '',
+        medicalCondition: student.medicalCondition || '',
         status: student.status || 'lead',
-        joiningDate: student.joiningDate ? new Date(student.joiningDate).toISOString().split('T')[0] : '',
-        leavingDate: student.leavingDate ? new Date(student.leavingDate).toISOString().split('T')[0] : ''
+        dateOfJoining: student.dateOfJoining ? new Date(student.dateOfJoining).toISOString().split('T')[0] : student.joiningDate ? new Date(student.joiningDate).toISOString().split('T')[0] : '',
+        dateOfLeaving: student.dateOfLeaving ? new Date(student.dateOfLeaving).toISOString().split('T')[0] : student.leavingDate ? new Date(student.leavingDate).toISOString().split('T')[0] : '',
+        profilePhoto: student.profilePhoto || ''
       });
     }
   }, [student]);
@@ -139,12 +159,17 @@ export default function StudentProfilePage() {
                   </Nav.Item>
                   <Nav.Item>
                     <Nav.Link eventKey="parents" className="d-flex align-items-center gap-2 py-3">
-                      <FaUsers /> Parent Details
+                      <FaUsers /> Parent & Contact
                     </Nav.Link>
                   </Nav.Item>
                   <Nav.Item>
                     <Nav.Link eventKey="address" className="d-flex align-items-center gap-2 py-3">
                       <FaMapMarkerAlt /> Address & Location
+                    </Nav.Link>
+                  </Nav.Item>
+                  <Nav.Item>
+                    <Nav.Link eventKey="medical" className="d-flex align-items-center gap-2 py-3">
+                      <FaUser /> Medical Details
                     </Nav.Link>
                   </Nav.Item>
                   <Nav.Item>
@@ -198,8 +223,23 @@ export default function StudentProfilePage() {
                         </Col>
                       )}
                       <Col md={4}>
+                        <Form.Label className="small fw-bold">Student Name</Form.Label>
+                        <Form.Control value={formData.studentName} onChange={(e) => setFormData({...formData, studentName: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">Joining Year</Form.Label>
+                        <Form.Control value={formData.joiningYear} onChange={(e) => setFormData({...formData, joiningYear: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
                         <Form.Label className="small fw-bold">Date of Birth</Form.Label>
-                        <Form.Control type="date" value={formData.dob} onChange={(e) => setFormData({...formData, dob: e.target.value})} />
+                        <Form.Control type="date" value={formData.dateOfBirth} onChange={(e) => setFormData({...formData, dateOfBirth: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">Date of Birth</Form.Label>
+                        <Form.Select value={formData.onBoard ? 'yes' : 'no'} onChange={(e) => setFormData({...formData, onBoard: e.target.value === 'yes'})}>
+                          <option value="no">No</option>
+                          <option value="yes">Yes</option>
+                        </Form.Select>
                       </Col>
                       <Col md={4}>
                         <Form.Label className="small fw-bold">Gender</Form.Label>
@@ -213,6 +253,18 @@ export default function StudentProfilePage() {
                         <Form.Label className="small fw-bold">Blood Group</Form.Label>
                         <Form.Control value={formData.bloodGroup} onChange={(e) => setFormData({...formData, bloodGroup: e.target.value})} />
                       </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">Time</Form.Label>
+                        <Form.Control value={formData.time} onChange={(e) => setFormData({...formData, time: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">Enrolled For</Form.Label>
+                        <Form.Control value={formData.enrolledFor} onChange={(e) => setFormData({...formData, enrolledFor: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">Location</Form.Label>
+                        <Form.Control value={formData.location} onChange={(e) => setFormData({...formData, location: e.target.value})} />
+                      </Col>
                     </Row>
                   </Card.Body>
                 </Card>
@@ -221,10 +273,53 @@ export default function StudentProfilePage() {
               <Tab.Pane eventKey="parents">
                 <Card className="border-0 shadow-sm">
                   <Card.Header className="bg-white py-3 d-flex justify-content-between align-items-center border-bottom">
-                    <span className="fw-bold">Parents/Guardians</span>
+                    <span className="fw-bold">Parent, Guardian & Emergency Details</span>
                     <Button variant="primary" size="sm" onClick={() => setShowParentModal(true)}><FaPlus className="me-1" /> Add Parent</Button>
                   </Card.Header>
                   <Card.Body className="p-4">
+                    <Row className="g-3 mb-4">
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">Mother Name</Form.Label>
+                        <Form.Control value={formData.motherName} onChange={(e) => setFormData({...formData, motherName: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">Mother Mobile</Form.Label>
+                        <Form.Control value={formData.motherMobile} onChange={(e) => setFormData({...formData, motherMobile: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">Mother Email</Form.Label>
+                        <Form.Control type="email" value={formData.motherEmail} onChange={(e) => setFormData({...formData, motherEmail: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">Father Name</Form.Label>
+                        <Form.Control value={formData.fatherName} onChange={(e) => setFormData({...formData, fatherName: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">Father Mobile</Form.Label>
+                        <Form.Control value={formData.fatherMobile} onChange={(e) => setFormData({...formData, fatherMobile: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">Father Email</Form.Label>
+                        <Form.Control type="email" value={formData.fatherEmail} onChange={(e) => setFormData({...formData, fatherEmail: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">Home Phone</Form.Label>
+                        <Form.Control value={formData.homePhone} onChange={(e) => setFormData({...formData, homePhone: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">Emergency Details</Form.Label>
+                        <Form.Control value={formData.emergencyDetails} onChange={(e) => setFormData({...formData, emergencyDetails: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">Relationship</Form.Label>
+                        <Form.Control value={formData.relationship} onChange={(e) => setFormData({...formData, relationship: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">Emergency Phone No</Form.Label>
+                        <Form.Control value={formData.emergencyPhoneNo} onChange={(e) => setFormData({...formData, emergencyPhoneNo: e.target.value})} />
+                      </Col>
+                    </Row>
+                    <hr className="my-4" />
                     <Row className="g-3">
                       {parents.map((p, idx) => (
                         <Col md={6} key={idx}>
@@ -252,17 +347,21 @@ export default function StudentProfilePage() {
                   <Card.Header className="bg-white py-3 fw-bold border-bottom">Address Details</Card.Header>
                   <Card.Body className="p-4">
                     <Row className="g-3">
-                      <Col md={12}>
-                        <Form.Label className="small fw-bold">Address Line 1</Form.Label>
-                        <Form.Control value={formData.addressLine1} onChange={(e) => setFormData({...formData, addressLine1: e.target.value})} />
+                      <Col md={6}>
+                        <Form.Label className="small fw-bold">Address 1</Form.Label>
+                        <Form.Control value={formData.address1} onChange={(e) => setFormData({...formData, address1: e.target.value})} />
                       </Col>
-                      <Col md={12}>
-                        <Form.Label className="small fw-bold">Address Line 2 (Optional)</Form.Label>
-                        <Form.Control value={formData.addressLine2} onChange={(e) => setFormData({...formData, addressLine2: e.target.value})} />
+                      <Col md={6}>
+                        <Form.Label className="small fw-bold">Address 2</Form.Label>
+                        <Form.Control value={formData.address2} onChange={(e) => setFormData({...formData, address2: e.target.value})} />
                       </Col>
                       <Col md={4}>
-                        <Form.Label className="small fw-bold">City</Form.Label>
-                        <Form.Control value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} />
+                        <Form.Label className="small fw-bold">Street / Sector / Area</Form.Label>
+                        <Form.Control value={formData.street} onChange={(e) => setFormData({...formData, street: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
+                        <Form.Label className="small fw-bold">City / District</Form.Label>
+                        <Form.Control value={formData.cityDistrict} onChange={(e) => setFormData({...formData, cityDistrict: e.target.value})} />
                       </Col>
                       <Col md={4}>
                         <Form.Label className="small fw-bold">State</Form.Label>
@@ -271,6 +370,24 @@ export default function StudentProfilePage() {
                       <Col md={4}>
                         <Form.Label className="small fw-bold">Pin Code</Form.Label>
                         <Form.Control value={formData.pinCode} onChange={(e) => setFormData({...formData, pinCode: e.target.value})} />
+                      </Col>
+                    </Row>
+                  </Card.Body>
+                </Card>
+              </Tab.Pane>
+
+              <Tab.Pane eventKey="medical">
+                <Card className="border-0 shadow-sm">
+                  <Card.Header className="bg-white py-3 fw-bold border-bottom">Medical Details</Card.Header>
+                  <Card.Body className="p-4">
+                    <Row className="g-3">
+                      <Col md={6}>
+                        <Form.Label className="small fw-bold">Allergies</Form.Label>
+                        <Form.Control as="textarea" rows={4} value={formData.allergies} onChange={(e) => setFormData({...formData, allergies: e.target.value})} />
+                      </Col>
+                      <Col md={6}>
+                        <Form.Label className="small fw-bold">Medical Condition</Form.Label>
+                        <Form.Control as="textarea" rows={4} value={formData.medicalCondition} onChange={(e) => setFormData({...formData, medicalCondition: e.target.value})} />
                       </Col>
                     </Row>
                   </Card.Body>
@@ -298,11 +415,15 @@ export default function StudentProfilePage() {
                       </Col>
                       <Col md={6}>
                         <Form.Label className="small fw-bold">Joining Date</Form.Label>
-                        <Form.Control type="date" value={formData.joiningDate} onChange={(e) => setFormData({...formData, joiningDate: e.target.value})} />
+                        <Form.Control type="date" value={formData.dateOfJoining} onChange={(e) => setFormData({...formData, dateOfJoining: e.target.value})} />
                       </Col>
                       <Col md={6}>
                         <Form.Label className="small fw-bold">Leaving Date</Form.Label>
-                        <Form.Control type="date" value={formData.leavingDate} onChange={(e) => setFormData({...formData, leavingDate: e.target.value})} />
+                        <Form.Control type="date" value={formData.dateOfLeaving} onChange={(e) => setFormData({...formData, dateOfLeaving: e.target.value})} />
+                      </Col>
+                      <Col md={6}>
+                        <Form.Label className="small fw-bold">Profile Photo URL</Form.Label>
+                        <Form.Control value={formData.profilePhoto} onChange={(e) => setFormData({...formData, profilePhoto: e.target.value})} />
                       </Col>
                     </Row>
                   </Card.Body>

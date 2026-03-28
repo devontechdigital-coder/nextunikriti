@@ -31,6 +31,94 @@ export async function GET(req) {
   }
 }
 
+// POST /api/admin/orders — create custom enrollment/payment from admin
+export async function POST(req) {
+  try {
+    const user = getUserFromCookie();
+    if (!user || user.role !== 'admin') {
+      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+    }
+
+    await connectDB();
+
+    const { userId, courseId, packageId, paymentMode = 'pay_later' } = await req.json();
+
+    if (!userId) {
+      return NextResponse.json({ success: false, error: 'Student is required' }, { status: 400 });
+    }
+
+    if (!packageId && !courseId) {
+      return NextResponse.json({ success: false, error: 'Course or package is required' }, { status: 400 });
+    }
+
+    const targetUser = await User.findById(userId).select('name email phone role');
+    if (!targetUser) {
+      return NextResponse.json({ success: false, error: 'Student user not found' }, { status: 404 });
+    }
+
+    let resolvedCourseId = courseId || null;
+    let resolvedPackageId = packageId || null;
+    let amount = 0;
+
+    if (packageId) {
+      const pkg = await Package.findById(packageId).populate('course_id', 'title price');
+      if (!pkg) {
+        return NextResponse.json({ success: false, error: 'Package not found' }, { status: 404 });
+      }
+
+      resolvedCourseId = pkg.course_id?._id?.toString();
+      resolvedPackageId = pkg._id.toString();
+      amount = Number(pkg.price || 0);
+    } else {
+      const course = await Course.findById(courseId).select('title price');
+      if (!course) {
+        return NextResponse.json({ success: false, error: 'Course not found' }, { status: 404 });
+      }
+
+      resolvedCourseId = course._id.toString();
+      amount = Number(course.price || 0);
+    }
+
+    const isManualPaid = paymentMode === 'manual_paid';
+    const paymentRecord = await Payment.create({
+      userId,
+      courseId: resolvedCourseId,
+      packageId: resolvedPackageId,
+      amount,
+      gateway: isManualPaid ? 'admin_manual' : 'pay_later',
+      status: isManualPaid ? 'completed' : 'pending',
+      transactionId: isManualPaid
+        ? `admin_manual_${Date.now()}`
+        : `admin_pay_later_${Date.now()}`
+    });
+
+    const enrollment = await Enrollment.findOneAndUpdate(
+      { userId, courseId: resolvedCourseId },
+      {
+        userId,
+        courseId: resolvedCourseId,
+        packageId: resolvedPackageId,
+        paymentId: paymentRecord._id,
+        paymentStatus: isManualPaid ? 'paid' : 'pending',
+        status: isManualPaid ? 'active' : 'pending_payment'
+      },
+      { upsert: true, new: true, setDefaultsOnInsert: true }
+    )
+      .populate('userId', 'name email phone')
+      .populate('courseId', 'title thumbnail')
+      .populate('packageId', 'name price')
+      .populate('paymentId');
+
+    return NextResponse.json({
+      success: true,
+      message: 'Custom order created successfully',
+      data: enrollment
+    });
+  } catch (error) {
+    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+  }
+}
+
 // PATCH /api/admin/orders — update enrollment/payment status
 export async function PATCH(req) {
   try {

@@ -3,6 +3,27 @@ import Counter from './Counter';
 
 const STUDENT_COUNTER_KEY = 'student_enrolment_number';
 const ENROLMENT_PREFIX = 'STU';
+const studentCompatibilityFields = {
+  joiningYear: { type: String, trim: true, default: '' },
+  studentName: { type: String, trim: true, default: '' },
+  onBoard: { type: Boolean, default: false },
+  time: { type: String, trim: true, default: '' },
+  enrolledFor: { type: String, trim: true, default: '' },
+  location: { type: String, trim: true, default: '' },
+  street: { type: String, trim: true, default: '' },
+  motherName: { type: String, trim: true, default: '' },
+  motherMobile: { type: String, trim: true, default: '' },
+  motherEmail: { type: String, trim: true, lowercase: true, default: '' },
+  fatherName: { type: String, trim: true, default: '' },
+  fatherMobile: { type: String, trim: true, default: '' },
+  fatherEmail: { type: String, trim: true, lowercase: true, default: '' },
+  homePhone: { type: String, trim: true, default: '' },
+  emergencyDetails: { type: String, trim: true, default: '' },
+  relationship: { type: String, trim: true, default: '' },
+  emergencyPhoneNo: { type: String, trim: true, default: '' },
+  allergies: { type: String, trim: true, default: '' },
+  medicalCondition: { type: String, trim: true, default: '' }
+};
 
 const studentSchema = new mongoose.Schema({
   userId: { 
@@ -120,4 +141,18 @@ studentSchema.pre('save', async function generateEnrolmentNumber(next) {
   }
 });
 
-export default mongoose.models.Student || mongoose.model('Student', studentSchema);
+const existingStudentModel = mongoose.models.Student;
+
+if (existingStudentModel) {
+  const missingFields = Object.fromEntries(
+    Object.entries(studentCompatibilityFields).filter(([field]) => !existingStudentModel.schema.path(field))
+  );
+
+  if (Object.keys(missingFields).length > 0) {
+    existingStudentModel.schema.add(missingFields);
+  }
+}
+
+const Student = existingStudentModel || mongoose.model('Student', studentSchema);
+
+export default Student;
