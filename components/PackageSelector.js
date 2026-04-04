@@ -10,12 +10,16 @@ import { FaCheckCircle, FaStar, FaBolt, FaCrown, FaCreditCard, FaClock, FaPhoneA
 
 const AUTH_STEP = { PHONE: 'phone', OTP: 'otp', DETAILS: 'details' };
 
-export default function PackageSelector({ courseId, initialPackages = [] }) {
+const normalizeModeLabel = (mode) => (mode || 'Online').trim();
+
+export default function PackageSelector({ courseId, courseMode = 'Online', initialPackages = [] }) {
     const dispatch = useDispatch();
     const { user } = useSelector((state) => state.auth);
 
     const [selectedPkgId, setSelectedPkgId] = useState(null);
     const [loading, setLoading] = useState(false);
+    const [activePackageMode, setActivePackageMode] = useState(null);
+    const [showModeSelectionError, setShowModeSelectionError] = useState(false);
 
     // Public settings (payment modes + showTestOtp)
     const [settings, setSettings] = useState({ payOnline: true, payLater: false, showTestOtp: false });
@@ -45,16 +49,43 @@ export default function PackageSelector({ courseId, initialPackages = [] }) {
         }).catch(() => {});
     }, []);
 
-    // Auto-select highest priced package
+    const packageModes = [...new Set(
+        (initialPackages || []).map((pkg) => normalizeModeLabel(pkg.mode))
+    )];
+    const defaultPackageMode = packageModes.includes(normalizeModeLabel(courseMode))
+        ? normalizeModeLabel(courseMode)
+        : (packageModes[0] || normalizeModeLabel(courseMode));
+    const shouldRequireModeSelection = packageModes.length > 1;
+    const displayedPackages = activePackageMode
+        ? (initialPackages || []).filter((pkg) => normalizeModeLabel(pkg.mode) === activePackageMode)
+        : (initialPackages || []);
+
     useEffect(() => {
-        if (initialPackages?.length > 0) {
-            const sorted = [...initialPackages].sort((a, b) => b.price - a.price);
+        setActivePackageMode(shouldRequireModeSelection ? null : defaultPackageMode);
+        setShowModeSelectionError(false);
+    }, [defaultPackageMode, shouldRequireModeSelection]);
+
+    // Auto-select highest priced package for the current view
+    useEffect(() => {
+        if (displayedPackages.length > 0) {
+            const hasSelectedVisiblePackage = displayedPackages.some((pkg) => pkg._id === selectedPkgId);
+            if (hasSelectedVisiblePackage) return;
+
+            const sorted = [...displayedPackages].sort((a, b) => b.price - a.price);
             setSelectedPkgId(sorted[0]._id);
+            return;
         }
-    }, [initialPackages]);
+
+        setSelectedPkgId(null);
+    }, [displayedPackages, selectedPkgId]);
 
     // Called when "Proceed to Enroll" is clicked
     const handleProceed = () => {
+        if (shouldRequireModeSelection && !activePackageMode) {
+            setShowModeSelectionError(true);
+            toast.error('Please choose a mode before enrolling');
+            return;
+        }
         if (!selectedPkgId) { toast.error('Please select a package first'); return; }
         if (!user) {
             setAuthStep(AUTH_STEP.PHONE);
@@ -239,8 +270,37 @@ export default function PackageSelector({ courseId, initialPackages = [] }) {
     return (
         <div className="package-selector-container mt-4">
             <h3 className="u-sec-title mb-4">Choose Your Plan</h3>
+            {packageModes.length > 1 && (
+                <div className="mb-4">
+                    <div className="fw-semibold mb-2">Choose your mode</div>
+                    <div className="d-flex flex-wrap gap-2">
+                    {packageModes.map((mode) => {
+                        const isActive = activePackageMode === mode;
+                        return (
+                            <Button
+                                key={mode}
+                                type="button"
+                                variant={isActive ? 'dark' : 'outline-dark'}
+                                className="rounded-pill px-4 py-2 fw-semibold"
+                                onClick={() => {
+                                    setActivePackageMode(mode);
+                                    setShowModeSelectionError(false);
+                                }}
+                            >
+                                {mode}
+                            </Button>
+                        );
+                    })}
+                    </div>
+                    {showModeSelectionError && (
+                        <div className="text-danger small mt-2 fw-medium">
+                            Please choose a mode tab to continue with enrollment.
+                        </div>
+                    )}
+                </div>
+            )}
             <Row className="g-3">
-                {initialPackages.map((pkg) => {
+                {displayedPackages.map((pkg) => {
                     const isSelected = selectedPkgId === pkg._id;
                     return (
                         <Col lg={4} md={6} key={pkg._id}>
@@ -276,6 +336,12 @@ export default function PackageSelector({ courseId, initialPackages = [] }) {
                     );
                 })}
             </Row>
+
+            {displayedPackages.length === 0 && (
+                <div className="u-card mt-4 p-4 text-center bg-light border-dashed">
+                    <h5 className="text-muted mb-0 fw-bold">No packages available for {activePackageMode} mode.</h5>
+                </div>
+            )}
 
             <div className="mt-5 d-grid">
                 <Button variant="dark" size="lg" className="u-btn-purchase border-0 shadow-lg py-3" disabled={!selectedPkgId || loading} onClick={handleProceed}>

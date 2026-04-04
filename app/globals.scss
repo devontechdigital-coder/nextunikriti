@@ -1999,14 +1999,42 @@ span.u-kicker.u-badge {
 }
 
 /* ===== Desktop Horizontal Timeline ===== */
+// #timeline {
+//   position: relative;
+//   // display: grid;
+//     display: flex;
+//   // grid-template-columns: repeat(5, 1fr);
+//   gap: 22px;
+//   padding: 40px 10px;
+//   min-height: 362px;
+//   /* IMPORTANT: fixes desktop alignment */
+// }
+
+/* ===== Desktop Horizontal Timeline ===== */
+/* ===== Timeline Outer Wrapper ===== */
+.timeline-outer {
+  overflow: hidden;        /* clips horizontal scroll track */
+  padding: 150px 0;        /* ✅ space for translateY(±125px) cards */
+  margin: -150px 0;        /* ✅ cancel layout shift from padding */
+  position: relative;
+}
+
+/* ===== Desktop Horizontal Timeline ===== */
 #timeline {
   position: relative;
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  display: flex;
   gap: 22px;
-  padding: 40px 10px;
-  min-height: 362px;
-  /* IMPORTANT: fixes desktop alignment */
+  padding: 0 10px;         /* ✅ no top/bottom padding needed — outer handles it */
+  min-height: 100vh;
+  overflow-x: scroll;
+  overflow-y: visible;     /* browser may ignore — outer wrapper compensates */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+/* ✅ Hide scrollbar for Chrome/Safari */
+#timeline::-webkit-scrollbar {
+  display: none;
 }
 
 /* Center line */
@@ -2035,7 +2063,7 @@ span.u-kicker.u-badge {
 /* Card */
 .timeline-card {
   width: 100%;
-  max-width: 260px;
+  min-width: 260px;
   background: black;
   border: 1px solid rgba(0, 0, 0, .08);
   border-radius: 18px;
@@ -2131,6 +2159,25 @@ span.u-kicker.u-badge {
 
 .bg-5 {
   background: linear-gradient(135deg, #22c55e, #10b981);
+}
+
+ 
+section#timelineSection p.u-sub {
+  margin: auto;
+}
+
+@media (min-width: 991px) {
+
+/* ✅ Prevent page scroll while inside timeline section */
+#timelineSection {
+  position: relative;
+}
+
+/* ✅ Make timeline sticky so it stays in view while scrolling through it */
+#timelineSection .timeline-outer {
+  position: sticky;
+  top: 0;
+}
 }
 
 /* ===== Responsive: Mobile Vertical Timeline ===== */

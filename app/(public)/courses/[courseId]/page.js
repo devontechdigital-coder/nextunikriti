@@ -170,7 +170,11 @@ export default async function PublicCourseDetailPage({ params }) {
 
                             {/* PACKAGE SELECTOR SECTION (Interactive) */}
                             <div id="packages">
-                                <PackageSelector courseId={course._id.toString()} initialPackages={course.packages} />
+                                <PackageSelector
+                                    courseId={course._id.toString()}
+                                    courseMode={course.mode}
+                                    initialPackages={course.packages}
+                                />
                             </div>
 
 
