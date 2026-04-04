@@ -1,12 +1,21 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { razorpay } from '@/lib/razorpay';
+import {
+  buildIciciRedirectUrl,
+  generateIciciMerchantTxnNo,
+  getIciciResponseMessage,
+  initiateIciciSaleWithFallback,
+} from '@/lib/icici';
 import dbConnect from '@/lib/db';
+import '@/models/Course';
 import Batch from '@/models/Batch';
 import Payment from '@/models/Payment';
 import Setting from '@/models/Setting';
 import Enrollment from '@/models/Enrollment';
+import User from '@/models/User';
 import { getUserFromCookie } from '@/utils/auth';
+import { resolvePackagePriceOption } from '@/lib/packagePricing';
 
 export async function POST(req) {
   try {
@@ -17,7 +26,7 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: 'Unauthorized. Please login first.' }, { status: 401 });
     }
 
-    const { batch_id, package_id, payment_mode } = await req.json();
+    const { batch_id, package_id, package_price_key, payment_mode } = await req.json();
     
     let finalPrice = 0;
     let courseId = null;
@@ -31,7 +40,8 @@ export async function POST(req) {
       if (!pkg) {
         return NextResponse.json({ success: false, message: 'Package not found' }, { status: 404 });
       }
-      finalPrice = pkg.price;
+      const selectedPackagePrice = resolvePackagePriceOption(pkg, package_price_key);
+      finalPrice = selectedPackagePrice.price;
       courseId = pkg.course_id._id;
       courseSlugOrId = pkg.course_id.slug || pkg.course_id._id;
       name = `${pkg.course_id.title} - ${pkg.name}`;
@@ -89,7 +99,7 @@ export async function POST(req) {
     let activeGateway = 'stripe'; // Default
     const gatewaySetting = await Setting.findOne({ key: 'payment_gateway' });
     if (gatewaySetting) {
-      activeGateway = gatewaySetting.value;
+      activeGateway = String(gatewaySetting.value || '').toLowerCase();
     }
 
     const paymentRecord = await Payment.create({
@@ -148,6 +158,45 @@ export async function POST(req) {
       await paymentRecord.save();
 
       return NextResponse.json({ success: true, gateway: 'razorpay', order, key: process.env.RAZORPAY_KEY_ID });
+    }
+
+    if (activeGateway === 'icici') {
+      const currentUser = await User.findById(user.id).select('name email phone');
+
+      const merchantTxnNo = generateIciciMerchantTxnNo('UN');
+      const iciciPayloadInput = {
+        merchantTxnNo,
+        amount: finalPrice,
+        customerName: currentUser?.name || 'Student',
+        customerEmailID: currentUser?.email || process.env.ICICI_FALLBACK_EMAIL || 'no-reply@unikriti.local',
+        customerMobileNo: currentUser?.phone || process.env.ICICI_FALLBACK_MOBILE || '9999999999',
+        addlParam1: paymentRecord._id.toString(),
+        addlParam2: user.id.toString(),
+      };
+
+      const { response: iciciResponse, hashMode } = await initiateIciciSaleWithFallback(iciciPayloadInput);
+      const redirectUrl = buildIciciRedirectUrl(iciciResponse);
+
+      if (!redirectUrl) {
+        const responseMessage = getIciciResponseMessage(iciciResponse);
+        console.error('ICICI initiateSale response could not be converted to redirect URL:', {
+          hashMode,
+          iciciResponse,
+        });
+        throw new Error(responseMessage || 'ICICI response missing redirect URL');
+      }
+
+      paymentRecord.transactionId = merchantTxnNo;
+      await paymentRecord.save();
+
+      return NextResponse.json({
+        success: true,
+        gateway: 'icici',
+        redirectUrl,
+        merchantTxnNo,
+        hashMode,
+        iciciResponse,
+      });
     }
 
     return NextResponse.json({ success: false, message: 'Invalid Gateway' }, { status: 400 });

@@ -36,7 +36,7 @@ const AboutSection = ({ settings, isLoading }) => {
   };
 
   return (
-    <section className="u-about py-5 position-relative">
+    <section className="u-about py-5 position-relative mt-3">
       <div className="container">
         <div className="row g-5 align-items-center">
 

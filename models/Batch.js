@@ -14,7 +14,7 @@ const batchSchema = new mongoose.Schema({
   },
   instrument: { 
     type: String, 
-    enum: ['Keyboard', 'Guitar', 'Vocals', 'Drums'],
+    trim: true,
     required: true 
   },
   instrument_id: { 
@@ -23,7 +23,7 @@ const batchSchema = new mongoose.Schema({
   },
   level: { 
     type: String, 
-    enum: ['Foundation', 'Grade 1', 'Grade 2'],
+    trim: true,
     required: true 
   },
   level_id: { 
@@ -41,7 +41,7 @@ const batchSchema = new mongoose.Schema({
   course_id: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Course',
-    required: true
+    default: null
   },
   price: { type: Number, default: 0 },
   timetable: [{

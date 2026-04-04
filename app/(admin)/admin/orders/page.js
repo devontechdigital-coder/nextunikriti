@@ -194,6 +194,9 @@ export default function AdminOrdersPage() {
   const getGatewayLabel = (gateway) => {
     if (gateway === 'pay_later') return 'Pay Later';
     if (gateway === 'admin_manual') return 'Admin Manual';
+    if (gateway === 'razorpay') return 'Razorpay';
+    if (gateway === 'stripe') return 'Stripe';
+    if (gateway === 'icici') return 'ICICI';
     return gateway || 'N/A';
   };
 

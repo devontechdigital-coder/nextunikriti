@@ -38,6 +38,7 @@ export default function AdminSettingsPage() {
   });
   const [paymentModeOnline, setPaymentModeOnline] = useState(true);
   const [paymentModeLater, setPaymentModeLater] = useState(false);
+  const [paymentGateway, setPaymentGateway] = useState('stripe');
   const [showTestOtp, setShowTestOtp] = useState(false);
 
   const [successMsg, setSuccessMsg] = useState('');
@@ -75,6 +76,7 @@ export default function AdminSettingsPage() {
       }));
       setPaymentModeOnline(getVal('payment_mode_online', true));
       setPaymentModeLater(getVal('payment_mode_later', false));
+      setPaymentGateway(getVal('payment_gateway', 'stripe'));
       setShowTestOtp(getVal('show_test_otp', false));
     }
   }, [data]);
@@ -744,10 +746,26 @@ export default function AdminSettingsPage() {
                   onClick={async () => {
                     await handleSave('payment_mode_online', paymentModeOnline);
                     await handleSave('payment_mode_later', paymentModeLater);
+                    await handleSave('payment_gateway', paymentGateway);
                   }}
                 >
                   <FaSave className="me-1" /> Save Payment Settings
                 </Button>
+              </div>
+              <div className="mb-4 p-3 border rounded-3 bg-light shadow-sm">
+                <Form.Label className="fw-semibold mb-2">Online Payment Gateway</Form.Label>
+                <Form.Select
+                  value={paymentGateway}
+                  onChange={(e) => setPaymentGateway(e.target.value)}
+                  disabled={!paymentModeOnline}
+                >
+                  <option value="stripe">Stripe</option>
+                  <option value="razorpay">Razorpay</option>
+                  <option value="icici">ICICI Payment Gateway</option>
+                </Form.Select>
+                <p className="small text-muted mt-2 mb-0">
+                  This gateway is used when students choose online payment.
+                </p>
               </div>
               <div className="row g-4">
                 <div className="col-md-6">
@@ -755,7 +773,7 @@ export default function AdminSettingsPage() {
                     <div className="d-flex justify-content-between align-items-start mb-2">
                       <div>
                         <h6 className="fw-bold mb-1">💳 Pay Online</h6>
-                        <p className="small text-muted mb-0">Allow students to pay immediately via the configured payment gateway (Razorpay / Stripe).</p>
+                        <p className="small text-muted mb-0">Allow students to pay immediately via the configured payment gateway (Razorpay / Stripe / ICICI).</p>
                       </div>
                       <Form.Check
                         type="switch"

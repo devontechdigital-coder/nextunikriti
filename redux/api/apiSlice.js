@@ -7,6 +7,7 @@ export const apiSlice = createApi({
   tagTypes: [
     'User', 'Course', 'Lesson', 'Enrollment', 'Quiz', 'Assignment', 'Review', 'Coupon', 'Category', 'Banner', 'Section', 'Page', 'School', 'Student', 'StudentParent', 'Batch', 'BatchStudent', 'Instrument', 'Level', 'Timetable', 'ClassSession', 'Attendance',
     'BatchCourse', 'ClassProgress', 'StudentProgress', 'Package'
+    , 'Mode'
   ],
   endpoints: (builder) => ({
     // Shared endpoints can go here, expanded later
@@ -487,6 +488,22 @@ export const apiSlice = createApi({
       query: (id) => ({ url: `/admin/instruments/${id}`, method: 'DELETE' }),
       invalidatesTags: ['Instrument'],
     }),
+    getAdminModes: builder.query({
+      query: (params) => ({ url: '/admin/modes', method: 'GET', params }),
+      providesTags: ['Mode'],
+    }),
+    createAdminMode: builder.mutation({
+      query: (data) => ({ url: '/admin/modes', method: 'POST', data }),
+      invalidatesTags: ['Mode'],
+    }),
+    updateAdminMode: builder.mutation({
+      query: ({ id, ...data }) => ({ url: `/admin/modes/${id}`, method: 'PUT', data }),
+      invalidatesTags: ['Mode'],
+    }),
+    deleteAdminMode: builder.mutation({
+      query: (id) => ({ url: `/admin/modes/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Mode'],
+    }),
     getAdminLevels: builder.query({
       query: (params) => ({ url: '/admin/levels', method: 'GET', params }),
       providesTags: ['Level'],
@@ -716,6 +733,10 @@ export const {
   useCreateAdminInstrumentMutation,
   useUpdateAdminInstrumentMutation,
   useDeleteAdminInstrumentMutation,
+  useGetAdminModesQuery,
+  useCreateAdminModeMutation,
+  useUpdateAdminModeMutation,
+  useDeleteAdminModeMutation,
   useGetAdminLevelsQuery,
   useCreateAdminLevelMutation,
   useUpdateAdminLevelMutation,

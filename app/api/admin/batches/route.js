@@ -35,7 +35,6 @@ export async function GET(req) {
     const batches = await Batch.find(query)
       .populate('schoolId', 'schoolName')
       .populate('teacherId', 'name email')
-      .populate('course_id', 'title')
       .sort({ createdAt: -1 });
 
     return NextResponse.json({ success: true, batches });
@@ -53,6 +52,9 @@ export async function POST(req) {
 
     await dbConnect();
     const body = await req.json();
+    delete body.course_id;
+    delete body.price;
+    delete body.timetable;
     
     if (user.role === 'school_admin') {
        body.schoolId = user.schoolId;

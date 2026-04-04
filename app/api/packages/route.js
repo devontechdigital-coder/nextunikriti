@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Package from '@/models/Package';
+import { buildPackagePricingOptions } from '@/lib/packagePricing';
 
 export async function GET(req) {
   try {
@@ -19,7 +20,12 @@ export async function GET(req) {
     .sort({ price: 1 })
     .lean();
 
-    return NextResponse.json({ success: true, data: packages });
+    const data = packages.map((pkg) => ({
+      ...pkg,
+      pricingOptionsResolved: buildPackagePricingOptions(pkg),
+    }));
+
+    return NextResponse.json({ success: true, data });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

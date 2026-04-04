@@ -44,6 +44,9 @@ export async function PUT(req, { params }) {
 
     await dbConnect();
     const body = await req.json();
+    delete body.course_id;
+    delete body.price;
+    delete body.timetable;
 
     // Check ownership if school_admin
     if (user.role === 'school_admin') {

@@ -22,10 +22,12 @@ export default function BatchSelector({ courseId, initialBatches = [] }) {
             const res = await axios.post('/api/orders', { batch_id: selectedBatchId });
             
             if (res.data.success) {
-                const { gateway, order, url, id, key } = res.data;
+                const { gateway, order, url, key, redirectUrl } = res.data;
 
                 if (gateway === 'stripe' && url) {
                     window.location.href = url;
+                } else if (gateway === 'icici' && redirectUrl) {
+                    window.location.href = redirectUrl;
                 } else if (gateway === 'razorpay' && order) {
                     const options = {
                         key: key,

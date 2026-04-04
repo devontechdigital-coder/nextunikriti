@@ -155,7 +155,7 @@ export default function PackageSelector({ courseId, initialPackages = [] }) {
 
             const res = await axios.post('/api/orders', body);
             if (res.data.success) {
-                const { gateway, order, url, key } = res.data;
+                const { gateway, order, url, key, redirectUrl } = res.data;
 
                 if (gateway === 'pay_later') {
                     toast.success('✅ Enrollment request submitted! Our team will contact you for payment.');
@@ -166,6 +166,8 @@ export default function PackageSelector({ courseId, initialPackages = [] }) {
 
                 if (gateway === 'stripe' && url) {
                     window.location.href = url;
+                } else if (gateway === 'icici' && redirectUrl) {
+                    window.location.href = redirectUrl;
                 } else if (gateway === 'razorpay' && order) {
                     const options = {
                         key,

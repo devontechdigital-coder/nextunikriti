@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Package from '@/models/Package';
 import { getUserFromCookie } from '@/utils/auth';
+import { normalizePackagePricingInput } from '@/lib/packagePricing';
 
 export async function PUT(req, { params }) {
   try {
@@ -14,7 +15,7 @@ export async function PUT(req, { params }) {
     await dbConnect();
     const body = await req.json();
 
-    const pkg = await Package.findByIdAndUpdate(id, body, { new: true });
+    const pkg = await Package.findByIdAndUpdate(id, normalizePackagePricingInput(body, { partial: true }), { new: true });
     if (!pkg) {
       return NextResponse.json({ success: false, error: 'Package not found' }, { status: 404 });
     }

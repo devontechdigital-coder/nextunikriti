@@ -16,6 +16,24 @@ bun dev
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
+## ICICI Gateway Environment Variables
+
+To enable ICICI payment gateway integration, configure these environment variables:
+
+```bash
+ICICI_INITIATE_SALE_URL=https://pgpayuat.icicibank.com/tsp/pg/api/v2/initiateSale
+ICICI_MERCHANT_ID=your_merchant_id
+ICICI_AGGREGATOR_ID=your_aggregator_id
+ICICI_SECURE_KEY=your_secure_key
+ICICI_RETURN_URL=https://your-domain.com/api/payments/icici/return
+ICICI_HASH_MODE=sha256_append_key
+ICICI_TXN_TIMEZONE=Asia/Kolkata
+ICICI_FALLBACK_EMAIL=no-reply@your-domain.com
+ICICI_FALLBACK_MOBILE=9999999999
+```
+
+Set admin setting `payment_gateway` to `icici` (Admin Panel -> Settings -> Payments) to route online payments through ICICI.
+
 You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.

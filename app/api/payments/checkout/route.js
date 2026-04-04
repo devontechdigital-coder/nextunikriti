@@ -1,10 +1,17 @@
 import { NextResponse } from 'next/server';
 import { stripe } from '@/lib/stripe';
 import { razorpay } from '@/lib/razorpay';
+import {
+  buildIciciRedirectUrl,
+  generateIciciMerchantTxnNo,
+  getIciciResponseMessage,
+  initiateIciciSaleWithFallback,
+} from '@/lib/icici';
 import dbConnect from '@/lib/db';
 import Course from '@/models/Course';
 import Setting from '@/models/Setting';
 import Payment from '@/models/Payment';
+import User from '@/models/User';
 import { verifyToken } from '@/lib/jwt';
 
 export async function POST(req) {
@@ -31,7 +38,7 @@ export async function POST(req) {
     let activeGateway = 'stripe'; // Default
     const gatewaySetting = await Setting.findOne({ key: 'payment_gateway' });
     if (gatewaySetting) {
-      activeGateway = gatewaySetting.value;
+      activeGateway = String(gatewaySetting.value || '').toLowerCase();
     }
 
     const paymentRecord = await Payment.create({
@@ -74,6 +81,45 @@ export async function POST(req) {
       await paymentRecord.save();
 
       return NextResponse.json({ success: true, gateway: 'razorpay', order });
+    }
+
+    if (activeGateway === 'icici') {
+      const currentUser = await User.findById(decoded.id).select('name email phone');
+
+      const merchantTxnNo = generateIciciMerchantTxnNo('CHK');
+      const iciciPayloadInput = {
+        merchantTxnNo,
+        amount: finalPrice,
+        customerName: currentUser?.name || 'Student',
+        customerEmailID: currentUser?.email || process.env.ICICI_FALLBACK_EMAIL || 'no-reply@unikriti.local',
+        customerMobileNo: currentUser?.phone || process.env.ICICI_FALLBACK_MOBILE || '9999999999',
+        addlParam1: paymentRecord._id.toString(),
+        addlParam2: decoded.id.toString(),
+      };
+
+      const { response: iciciResponse, hashMode } = await initiateIciciSaleWithFallback(iciciPayloadInput);
+      const redirectUrl = buildIciciRedirectUrl(iciciResponse);
+
+      if (!redirectUrl) {
+        const responseMessage = getIciciResponseMessage(iciciResponse);
+        console.error('ICICI initiateSale response could not be converted to redirect URL:', {
+          hashMode,
+          iciciResponse,
+        });
+        throw new Error(responseMessage || 'ICICI response missing redirect URL');
+      }
+
+      paymentRecord.transactionId = merchantTxnNo;
+      await paymentRecord.save();
+
+      return NextResponse.json({
+        success: true,
+        gateway: 'icici',
+        redirectUrl,
+        merchantTxnNo,
+        hashMode,
+        iciciResponse,
+      });
     }
 
     return NextResponse.json({ success: false, message: 'Invalid Gateway' }, { status: 400 });

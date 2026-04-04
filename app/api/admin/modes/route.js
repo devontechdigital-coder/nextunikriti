@@ -1,28 +1,24 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
-import Package from '@/models/Package';
+import Mode from '@/models/Mode';
 import { getUserFromCookie } from '@/utils/auth';
-import { normalizePackagePricingInput } from '@/lib/packagePricing';
 
 export async function GET(req) {
   try {
     const user = getUserFromCookie();
-    if (!user || (!['admin', 'staff'].includes(user.role))) {
+    if (!user || !['admin', 'staff'].includes(user.role)) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     await dbConnect();
     const { searchParams } = new URL(req.url);
-    const course_id = searchParams.get('course_id');
+    const status = searchParams.get('status');
 
     const query = {};
-    if (course_id) query.course_id = course_id;
+    if (status) query.status = status;
 
-    const packages = await Package.find(query)
-      .populate('course_id', 'title')
-      .sort({ createdAt: -1 });
-
-    return NextResponse.json({ success: true, packages });
+    const modes = await Mode.find(query).sort({ name: 1 });
+    return NextResponse.json({ success: true, modes });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -31,16 +27,15 @@ export async function GET(req) {
 export async function POST(req) {
   try {
     const user = getUserFromCookie();
-    if (!user || (!['admin', 'staff'].includes(user.role))) {
+    if (!user || !['admin', 'staff'].includes(user.role)) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     await dbConnect();
     const body = await req.json();
-    
-    const pkg = await Package.create(normalizePackagePricingInput(body));
-    return NextResponse.json({ success: true, package: pkg });
+    const mode = await Mode.create(body);
+    return NextResponse.json({ success: true, mode });
   } catch (error) {
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: false, error: error.message }, { status: 400 });
   }
 }

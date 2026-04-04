@@ -33,6 +33,7 @@ export default function AdminLayout({ children }) {
     { name: 'Students', href: `${basePath}/students`, icon: <FiUserCheck /> },
     { name: 'Batches', href: `${basePath}/batches`, icon: <FiUserCheck /> },
     { name: 'Instruments', href: `${basePath}/instruments`, icon: <FiMusic /> },
+    { name: 'Modes', href: `${basePath}/modes`, icon: <FiSliders /> },
     { name: 'Timetable', href: `${basePath}/timetable`, icon: <FaCalendarAlt /> },
     { name: 'Attendance', href: `${basePath}/attendance`, icon: <FaCalendarAlt /> },
     { name: 'Courses', href: `${basePath}/courses`, icon: <FiLayers /> },

@@ -277,7 +277,6 @@ export default function AdminCoursesPage() {
               <th className="ps-4">Course Title</th>
               <th><FaMusic className="me-1"/> Instrument / <FaSignal className="me-1"/> Level</th>
               <th>Content Owner</th>
-              <th>Price</th>
               <th>Status</th>
               <th>Mode</th>
               <th>Cert.</th>
@@ -311,7 +310,6 @@ export default function AdminCoursesPage() {
                    <div className="small fw-bold">{course.course_creator?.name || 'Unknown'}</div>
                    <div className="text-muted x-small">{course.course_creator?.email}</div>
                 </td>
-                <td className="fw-semibold">${course.price}</td>
                 <td>
                    <Badge bg={course.moderationStatus === 'approved' ? 'success' : course.moderationStatus === 'rejected' ? 'danger' : 'warning'}>
                       {course.moderationStatus}
@@ -380,7 +378,6 @@ export default function AdminCoursesPage() {
                             )}
                         </div>
                         <div className="mt-3 text-center">
-                            <h4 className="fw-bold text-primary mb-1">${viewCourse.price}</h4>
                             <Badge bg={viewCourse.moderationStatus === 'approved' ? 'success' : 'warning'}>
                                 {viewCourse.moderationStatus.toUpperCase()}
                             </Badge>
@@ -609,18 +606,7 @@ export default function AdminCoursesPage() {
             </div>
 
             <div className="row">
-              <div className="col-md-4 mb-3">
-                <Form.Group>
-                  <Form.Label className="fw-bold small text-muted text-uppercase">Price ($)</Form.Label>
-                  <Form.Control 
-                    type="number" 
-                    required 
-                    value={formData.price}
-                    onChange={(e) => setFormData({...formData, price: e.target.value})}
-                  />
-                </Form.Group>
-              </div>
-              <div className="col-md-4 mb-3">
+              <div className="col-md-6 mb-3">
                 <Form.Group>
                   <Form.Label className="fw-bold small text-muted text-uppercase">Level</Form.Label>
                   <Form.Select 
@@ -634,7 +620,7 @@ export default function AdminCoursesPage() {
                   </Form.Select>
                 </Form.Group>
               </div>
-              <div className="col-md-4 mb-3">
+              <div className="col-md-6 mb-3">
                 <Form.Group>
                   <Form.Label className="fw-bold small text-muted text-uppercase">Status</Form.Label>
                   <Form.Select 
@@ -846,4 +832,3 @@ export default function AdminCoursesPage() {
     </Container>
   );
 }
-
