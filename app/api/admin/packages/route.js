@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Package from '@/models/Package';
 import { getUserFromCookie } from '@/utils/auth';
-import { normalizePackagePricingInput } from '@/lib/packagePricing';
+import { getPackageDisplayPrice, normalizePackagePricingInput } from '@/lib/packagePricing';
 
 export async function GET(req) {
   try {
@@ -20,9 +20,15 @@ export async function GET(req) {
 
     const packages = await Package.find(query)
       .populate('course_id', 'title')
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .lean();
 
-    return NextResponse.json({ success: true, packages });
+    const enrichedPackages = packages.map((pkg) => ({
+      ...pkg,
+      displayPrice: getPackageDisplayPrice(pkg),
+    }));
+
+    return NextResponse.json({ success: true, packages: enrichedPackages });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -37,9 +43,10 @@ export async function POST(req) {
 
     await dbConnect();
     const body = await req.json();
-    
-    const pkg = await Package.create(normalizePackagePricingInput(body));
-    return NextResponse.json({ success: true, package: pkg });
+    const payload = normalizePackagePricingInput(body);
+    const pkg = await Package.create(payload);
+    const populatedPackage = await Package.findById(pkg._id).populate('course_id', 'title');
+    return NextResponse.json({ success: true, package: populatedPackage });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

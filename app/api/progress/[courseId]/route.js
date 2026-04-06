@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Enrollment from '@/models/Enrollment';
 import { getUserFromCookie } from '@/utils/auth';
+import { findPreferredEnrollmentForCourse } from '@/lib/enrollmentLifecycle';
 
 // GET /api/progress/[courseId] - Fetch enrollment data including progress and lastLessonId
 export async function GET(req, { params }) {
@@ -14,8 +15,9 @@ export async function GET(req, { params }) {
     const { courseId } = await params;
     await connectDB();
 
-    const enrollment = await Enrollment.findOne({ userId: user.id, courseId })
+    const enrollment = await Enrollment.findOne(findPreferredEnrollmentForCourse({ userId: user.id, courseId }))
       .select('progress completed completedLessons lastLessonId')
+      .sort({ status: 1, updatedAt: -1 })
       .lean();
 
     if (!enrollment) {
@@ -46,9 +48,9 @@ export async function PATCH(req, { params }) {
     await connectDB();
 
     const enrollment = await Enrollment.findOneAndUpdate(
-      { userId: user.id, courseId },
+      findPreferredEnrollmentForCourse({ userId: user.id, courseId }),
       { lastLessonId },
-      { new: true }
+      { new: true, sort: { status: 1, updatedAt: -1 } }
     );
 
     if (!enrollment) {

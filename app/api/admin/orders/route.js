@@ -6,8 +6,10 @@ import Course from '@/models/Course';
 import Package from '@/models/Package';
 import Payment from '@/models/Payment';
 import { getUserFromCookie } from '@/utils/auth';
+import { getPackageDisplayPrice, resolvePackagePriceOption, resolvePackagePriceOptionById } from '@/lib/packagePricing';
+import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields, findPreferredEnrollmentForCourse } from '@/lib/enrollmentLifecycle';
 
-// GET /api/admin/orders — fetch all enrollments with populated details
+// GET /api/admin/orders — fetch all payment/order records
 export async function GET(req) {
   try {
     const user = getUserFromCookie();
@@ -17,15 +19,36 @@ export async function GET(req) {
 
     await connectDB();
     
-    // We fetch all Enrollments as they represent the primary purchase intent
-    const enrollments = await Enrollment.find({})
+    const payments = await Payment.find({})
       .populate('userId', 'name email phone')
       .populate('courseId', 'title thumbnail')
-      .populate('packageId', 'name price')
-      .populate('paymentId')
+      .populate('packageId', 'name pricingOptions')
       .sort({ createdAt: -1 });
 
-    return NextResponse.json({ success: true, data: enrollments });
+    const data = await Promise.all(payments.map(async (payment) => {
+      const enrollment = await Enrollment.findOne({ paymentId: payment._id }).lean()
+        || await Enrollment.findOne(findPreferredEnrollmentForCourse({ userId: payment.userId?._id || payment.userId, courseId: payment.courseId?._id || payment.courseId }))
+          .sort({ updatedAt: -1 })
+          .lean();
+
+      const plainPayment = payment.toObject();
+      if (plainPayment.packageId) {
+        const selectedOption = resolvePackagePriceOptionById(plainPayment.packageId, plainPayment.pricingOptionId || enrollment?.pricingOptionId);
+        plainPayment.packageId.displayPrice = selectedOption.price;
+        plainPayment.packageId.selectedOptionLabel = selectedOption.label;
+      }
+
+      return {
+        ...plainPayment,
+        enrollmentId: enrollment?._id || null,
+        paymentStatus: plainPayment.status === 'completed' ? 'paid' : plainPayment.status,
+        status: enrollment?.status || (plainPayment.status === 'completed' ? 'active' : 'pending_payment'),
+          startDate: enrollment?.startDate || null,
+        endDate: enrollment?.endDate || null
+      };
+    }));
+
+    return NextResponse.json({ success: true, data });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -41,7 +64,7 @@ export async function POST(req) {
 
     await connectDB();
 
-    const { userId, courseId, packageId, paymentMode = 'pay_later' } = await req.json();
+    const { userId, courseId, packageId, packagePriceKey, paymentMode = 'pay_later' } = await req.json();
 
     if (!userId) {
       return NextResponse.json({ success: false, error: 'Student is required' }, { status: 400 });
@@ -59,6 +82,8 @@ export async function POST(req) {
     let resolvedCourseId = courseId || null;
     let resolvedPackageId = packageId || null;
     let amount = 0;
+    let packageDoc = null;
+    let selectedOption = null;
 
     if (packageId) {
       const pkg = await Package.findById(packageId).populate('course_id', 'title price');
@@ -66,9 +91,11 @@ export async function POST(req) {
         return NextResponse.json({ success: false, error: 'Package not found' }, { status: 404 });
       }
 
+      packageDoc = pkg;
+      selectedOption = resolvePackagePriceOption(pkg, packagePriceKey);
       resolvedCourseId = pkg.course_id?._id?.toString();
       resolvedPackageId = pkg._id.toString();
-      amount = Number(pkg.price || 0);
+      amount = selectedOption.price;
     } else {
       const course = await Course.findById(courseId).select('title price');
       if (!course) {
@@ -84,6 +111,8 @@ export async function POST(req) {
       userId,
       courseId: resolvedCourseId,
       packageId: resolvedPackageId,
+      pricingOptionId: selectedOption?._id || null,
+      packagePriceKey: selectedOption?.key || packagePriceKey || '',
       amount,
       gateway: isManualPaid ? 'admin_manual' : 'pay_later',
       status: isManualPaid ? 'completed' : 'pending',
@@ -93,26 +122,38 @@ export async function POST(req) {
     });
 
     const enrollment = await Enrollment.findOneAndUpdate(
-      { userId, courseId: resolvedCourseId },
+      buildEnrollmentIdentityFilter({ userId, courseId: resolvedCourseId, packageId: resolvedPackageId || null }),
       {
         userId,
         courseId: resolvedCourseId,
         packageId: resolvedPackageId,
         paymentId: paymentRecord._id,
-        paymentStatus: isManualPaid ? 'paid' : 'pending',
-        status: isManualPaid ? 'active' : 'pending_payment'
+        ...buildEnrollmentLifecycleFields({
+          paymentStatus: isManualPaid ? 'paid' : 'pending',
+          status: isManualPaid ? 'active' : 'pending_payment',
+          packageDoc,
+          packagePriceKey: selectedOption?.key || packagePriceKey || '',
+          pricingOptionId: selectedOption?._id || null,
+        }),
       },
       { upsert: true, new: true, setDefaultsOnInsert: true }
     )
       .populate('userId', 'name email phone')
       .populate('courseId', 'title thumbnail')
-      .populate('packageId', 'name price')
+      .populate('packageId', 'name pricingOptions')
       .populate('paymentId');
+
+    const plainEnrollment = enrollment.toObject();
+    if (plainEnrollment.packageId) {
+      const resolvedOption = resolvePackagePriceOptionById(plainEnrollment.packageId, plainEnrollment.pricingOptionId);
+      plainEnrollment.packageId.displayPrice = resolvedOption.price;
+      plainEnrollment.packageId.selectedOptionLabel = resolvedOption.label;
+    }
 
     return NextResponse.json({
       success: true,
       message: 'Custom order created successfully',
-      data: enrollment
+      data: plainEnrollment
     });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -127,36 +168,76 @@ export async function PATCH(req) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { enrollmentId, action } = await req.json();
-    if (!enrollmentId || !action) {
+    const { orderId, action } = await req.json();
+    if (!orderId || !action) {
       return NextResponse.json({ success: false, error: 'Missing parameters' }, { status: 400 });
     }
 
     await connectDB();
-    const enrollment = await Enrollment.findById(enrollmentId);
-    if (!enrollment) return NextResponse.json({ success: false, error: 'Enrollment not found' }, { status: 404 });
+    const payment = await Payment.findById(orderId);
+    if (!payment) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+
+    let enrollment = await Enrollment.findOne({ paymentId: payment._id });
+    if (!enrollment) {
+      enrollment = await Enrollment.findOne(findPreferredEnrollmentForCourse({ userId: payment.userId, courseId: payment.courseId }))
+        .sort({ updatedAt: -1 });
+    }
 
     if (action === 'approve') {
-       // Mark as active and paid
-       enrollment.status = 'active';
-       enrollment.paymentStatus = 'paid';
-       if (enrollment.paymentId) {
-         await Payment.findByIdAndUpdate(enrollment.paymentId, { status: 'completed' });
-       }
+       payment.status = 'completed';
     } else if (action === 'mark_paid') {
-       enrollment.paymentStatus = 'paid';
-       if (enrollment.paymentId) {
-         await Payment.findByIdAndUpdate(enrollment.paymentId, { status: 'completed' });
-       }
+       payment.status = 'completed';
     } else if (action === 'reject') {
-       enrollment.status = 'suspended';
-       if (enrollment.paymentId) {
-         await Payment.findByIdAndUpdate(enrollment.paymentId, { status: 'failed' });
-       }
+       payment.status = 'failed';
+    }
+
+    await payment.save();
+
+    if (!enrollment) {
+      let packageDoc = null;
+      if (payment.packageId) {
+        packageDoc = await Package.findById(payment.packageId);
+      }
+
+      enrollment = await Enrollment.create({
+        userId: payment.userId,
+        courseId: payment.courseId,
+        batchId: payment.batchId || null,
+        packageId: payment.packageId || null,
+        paymentId: payment._id,
+        ...buildEnrollmentLifecycleFields({
+          paymentStatus: payment.status === 'completed' ? 'paid' : 'pending',
+          status: payment.status === 'completed' ? 'active' : action === 'reject' ? 'suspended' : 'pending_payment',
+          packageDoc,
+          packagePriceKey: payment.packagePriceKey || '',
+          pricingOptionId: payment.pricingOptionId || null,
+        }),
+      });
+    } else {
+      enrollment.paymentId = payment._id;
+      enrollment.paymentStatus = payment.status === 'completed' ? 'paid' : 'pending';
+      enrollment.status = action === 'reject' ? 'suspended' : (payment.status === 'completed' ? 'active' : 'pending_payment');
+    }
+
+    if (enrollment.status === 'active' && !enrollment.startDate) {
+      let packageDoc = null;
+      if (enrollment.packageId) {
+        packageDoc = await Package.findById(enrollment.packageId);
+      }
+      Object.assign(
+        enrollment,
+        buildEnrollmentLifecycleFields({
+          paymentStatus: enrollment.paymentStatus,
+          status: enrollment.status,
+          packageDoc,
+          pricingOptionId: enrollment.pricingOptionId || null,
+        })
+      );
+      enrollment.renewalCount = enrollment.renewalCount || 0;
     }
 
     await enrollment.save();
-    return NextResponse.json({ success: true, data: enrollment });
+    return NextResponse.json({ success: true, data: { payment, enrollment } });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

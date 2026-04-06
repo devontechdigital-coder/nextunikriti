@@ -2011,43 +2011,62 @@ span.u-kicker.u-badge {
 // }
 
 /* ===== Desktop Horizontal Timeline ===== */
-/* ===== Timeline Outer Wrapper ===== */
-.timeline-outer {
-  overflow: hidden;        /* clips horizontal scroll track */
-  padding: 150px 0;        /* ✅ space for translateY(±125px) cards */
-  margin: -150px 0;        /* ✅ cancel layout shift from padding */
+ 
+
+/* ===== Section — tall enough for full scroll travel ===== */
+#timelineSection {
+  height: 400vh; /* ✅ gives scroll room — adjust if more/fewer items */
   position: relative;
 }
 
-/* ===== Desktop Horizontal Timeline ===== */
+/* ===== Sticky wrapper — locks in viewport ===== */
+.timeline-sticky {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;          /* ✅ clips cards that go off-screen horizontally */
+  background: #fff;
+  padding: 32px 0 16px;
+}
+
+.timeline-heading {
+  margin-bottom: 12px;
+  flex-shrink: 0;
+}
+
+/* ===== Outer — allows vertical card overflow ===== */
+.timeline-outer {
+  overflow: hidden;
+  padding: 160px 0;
+  margin: -160px 0;
+  position: relative;
+  flex: 1;
+}
+
+/* ===== Timeline track — translateX moves it, NOT scrollLeft ===== */
 #timeline {
   position: relative;
   display: flex;
+  align-items: center;
   gap: 22px;
-  padding: 0 10px;         /* ✅ no top/bottom padding needed — outer handles it */
-  min-height: 100vh;
-  overflow-x: scroll;
-  overflow-y: visible;     /* browser may ignore — outer wrapper compensates */
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-}
-
-/* ✅ Hide scrollbar for Chrome/Safari */
-#timeline::-webkit-scrollbar {
-  display: none;
+  padding: 0 40px;
+  min-height: 360px;
+  overflow: visible;         /* ✅ critical — no scroll, translateX handles movement */
+  will-change: transform;
+  white-space: nowrap;
 }
 
 /* Center line */
 .timeline-center-line {
   position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
+  left: 0; right: 0; top: 50%;
   height: 8px;
   transform: translateY(-50%);
   border-radius: 999px;
-  background: rgba(13, 110, 253, .12);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, .08);
+  background: rgba(13,110,253,.12);
   z-index: 0;
 }
 
@@ -2055,178 +2074,214 @@ span.u-kicker.u-badge {
 .timeline-item {
   position: relative;
   z-index: 2;
-  display: flex;
+  display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 280px;
+  flex-shrink: 0;
+  white-space: normal;
+  vertical-align: middle;
 }
 
 /* Card */
 .timeline-card {
   width: 100%;
   min-width: 260px;
-  background: black;
-  border: 1px solid rgba(0, 0, 0, .08);
+  background: #000;
+  border: 1px solid rgba(255,255,255,.08);
   border-radius: 18px;
-  padding: 16px 16px 14px;
-  box-shadow: 0 16px 35px rgba(0, 0, 0, .08);
-  transition: .25s ease;
+  padding: 16px;
+  transition: transform .35s cubic-bezier(.25,.46,.45,.94),
+              box-shadow .35s ease, border-color .35s ease;
 }
 
 .timeline-year {
-  font-size: 34px;
-  font-weight: 900;
-  margin-bottom: 6px;
-  line-height: 1;
-  color: white;
+  font-size: 34px; font-weight: 900;
+  margin-bottom: 6px; line-height: 1; color: #fff;
 }
 
 .timeline-desc {
-  margin: 0;
-  font-size: 13px;
-  color: white !important;
-  line-height: 1.4;
+  margin: 0; font-size: 13px;
+  color: rgba(255,255,255,.85) !important; line-height: 1.4;
 }
 
-/* Pin (the circle on line) */
+/* Pin */
 .timeline-pin {
-  width: 18px;
-  height: 18px;
+  width: 18px; height: 18px;
   border-radius: 50%;
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%,-50%);
   border: 4px solid #fff;
-  box-shadow: 0 10px 20px rgba(0, 0, 0, .18);
+  box-shadow: 0 6px 16px rgba(0,0,0,.2);
+  z-index: 3;
+  transition: transform .3s cubic-bezier(.34,1.56,.64,1);
 }
 
-/* Connector line to card */
+.timeline-item:hover .timeline-pin {
+  transform: translate(-50%,-50%) scale(1.4);
+}
+
+/* Connector */
 .timeline-item::after {
   content: "";
-  position: absolute;
-  left: 50%;
-  width: 2px;
-  background: rgba(15, 23, 42, .20);
+  position: absolute; left: 50%;
+  width: 2px; background: rgba(15,23,42,.18);
   transform: translateX(-50%);
-  border-radius: 99px;
-  z-index: 1;
+  border-radius: 99px; z-index: 1;
 }
 
-/* Top items go above the center line */
-.timeline-item.top .timeline-card {
-  transform: translateY(-125px);
-  /* IMPORTANT: locks top cards */
-}
+.timeline-item.top .timeline-card        { transform: translateY(-125px); }
+.timeline-item.top::after                { top: 50%; height: 82px; }
+.timeline-item.top:hover .timeline-card  { transform: translateY(-133px); }
 
-.timeline-item.top::after {
-  top: 50%;
-  height: 80px;
-}
+.timeline-item.bottom .timeline-card       { transform: translateY(125px); }
+.timeline-item.bottom::after               { bottom: 50%; height: 82px; }
+.timeline-item.bottom:hover .timeline-card { transform: translateY(133px); }
 
-/* Bottom items go below the center line */
-.timeline-item.bottom .timeline-card {
-  transform: translateY(125px);
-  /* IMPORTANT: locks bottom cards */
-}
-
-.timeline-item.bottom::after {
-  bottom: 50%;
-  height: 80px;
-}
-
-/* Hover */
 .timeline-item:hover .timeline-card {
-  box-shadow: 0 22px 44px rgba(0, 0, 0, .12);
-  border-color: rgba(13, 110, 253, .25);
+  box-shadow: 0 24px 48px rgba(0,0,0,.22);
+  border-color: rgba(37,99,235,.4);
 }
 
-/* Color pins */
-.bg-1 {
-  background: linear-gradient(135deg, #6c757d, #4b5563);
+/* Progress bar */
+.timeline-scrollbar-track {
+  position: relative; width: 88%; margin: 0 auto 20px;
+  height: 4px; background: rgba(37,99,235,.1);
+  border-radius: 999px; overflow: visible; flex-shrink: 0;
 }
 
-.bg-2 {
-  background: linear-gradient(135deg, #0ea5e9, #2563eb);
+.timeline-scrollbar-thumb {
+  height: 4px;
+  background: linear-gradient(90deg,#2563eb,#0ea5e9);
+  border-radius: 999px; width: 0%;
+  transition: width .05s linear;
 }
 
-.bg-3 {
-  background: linear-gradient(135deg, #f59e0b, #f97316);
+.timeline-scrollbar-dot {
+  position: absolute; top: 50%;
+  width: 14px; height: 14px; background: #2563eb;
+  border-radius: 50%; transform: translate(-50%,-50%);
+  border: 3px solid #fff; left: 0%;
+  transition: left .05s linear;
+  animation: dotPulse 2s ease-in-out infinite;
 }
 
-.bg-4 {
-  background: linear-gradient(135deg, #ef4444, #f43f5e);
+@keyframes dotPulse {
+  0%,100% { box-shadow: 0 0 0 2px #2563eb, 0 4px 10px rgba(37,99,235,.35); }
+  50%      { box-shadow: 0 0 0 5px rgba(37,99,235,.18), 0 4px 16px rgba(37,99,235,.5); }
 }
 
-.bg-5 {
-  background: linear-gradient(135deg, #22c55e, #10b981);
+/* Hint */
+.timeline-hint {
+  display: flex; align-items: center; justify-content: center;
+  gap: 10px; flex-shrink: 0;
+  font-size: 12px; color: rgba(15,23,42,.38);
+  letter-spacing: .08em; text-transform: uppercase;
+  user-select: none; animation: hintFade 2.5s ease-in-out infinite;
+  padding-bottom: 8px;
 }
 
- 
-section#timelineSection p.u-sub {
-  margin: auto;
-}
+.timeline-hint-arrow { animation: bounce 1.4s ease-in-out infinite; }
 
-@media (min-width: 991px) {
+@keyframes bounce  { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(5px); } }
+@keyframes hintFade{ 0%,100%{ opacity:.35; } 50%{ opacity:1; } }
 
-/* ✅ Prevent page scroll while inside timeline section */
-#timelineSection {
-  position: relative;
-}
+/* Pins */
+.bg-1{background:linear-gradient(135deg,#6c757d,#4b5563)}
+.bg-2{background:linear-gradient(135deg,#0ea5e9,#2563eb)}
+.bg-3{background:linear-gradient(135deg,#f59e0b,#f97316)}
+.bg-4{background:linear-gradient(135deg,#ef4444,#f43f5e)}
+.bg-5{background:linear-gradient(135deg,#22c55e,#10b981)}
 
-/* ✅ Make timeline sticky so it stays in view while scrolling through it */
-#timelineSection .timeline-outer {
-  position: sticky;
-  top: 0;
-}
-}
-
-/* ===== Responsive: Mobile Vertical Timeline ===== */
+/* Mobile */
 @media (max-width: 991px) {
+  #timelineSection { height: auto; }
+
+  .timeline-sticky {
+    position: relative; height: auto;
+    overflow: visible; padding: 40px 0;
+  }
+
+  .timeline-outer { padding: 0; margin: 0; overflow: visible; }
+
   #timeline {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: flex-start;
+    overflow: visible;
     min-height: auto;
     padding: 10px 0;
     gap: 18px;
+    transform: none !important; /* ✅ disable translateX on mobile */
+    white-space: normal;
   }
 
+  .timeline-scrollbar-track,
+  .timeline-hint { display: none; }
+
   .timeline-center-line {
-    top: 0;
-    bottom: 0;
-    left: 18px;
-    right: auto;
-    width: 8px;
-    height: auto;
-    transform: none;
+    top: 0; bottom: 0; left: 18px; right: auto;
+    width: 8px; height: auto; transform: none;
   }
 
   .timeline-item {
-    justify-content: flex-start;
-    padding-left: 40px;
+    flex-direction: row; justify-content: flex-start;
+    padding-left: 40px; align-self: unset;
+    min-width: unset; width: 100%;
+    display: flex;
   }
 
-  .timeline-pin {
-    left: 18px;
-    top: 28px;
-    transform: translate(-50%, 0);
-  }
-
-  .timeline-item::after {
-    display: none;
-  }
+  .timeline-pin { left: 18px; top: 28px; transform: translate(-50%,0); }
+  .timeline-item::after { display: none; }
 
   .timeline-item.top .timeline-card,
-  .timeline-item.bottom .timeline-card {
-    transform: none;
-    max-width: 100%;
-  }
-
-  .timeline-year {
-    font-size: 26px;
-  }
+  .timeline-item.bottom .timeline-card { transform: none; max-width: 100%; }
+  .timeline-item.top:hover .timeline-card,
+  .timeline-item.bottom:hover .timeline-card { transform: none; }
+  .timeline-item:hover .timeline-pin { transform: translate(-50%,0) scale(1.2); }
+  .timeline-year { font-size: 26px; }
 }
 
-section#timelineSection p.u-sub {
-  margin: auto;
+section#timelineSection p.u-sub { margin: auto; }
+
+/* ===== Progress Scrollbar — bottom, line style ===== */
+.timeline-scrollbar-track {
+  position: relative;
+  width: 88%;
+  margin: 20px auto 0;      /* ✅ top margin — below timeline */
+  height: 3px;
+  background: rgba(13, 110, 253, 0.1);
+  border-radius: 999px;
+  overflow: visible;
+  flex-shrink: 0;
+}
+
+.timeline-scrollbar-thumb {
+  height: 3px;
+  background: linear-gradient(90deg, #2563eb, #0ea5e9);
+  border-radius: 999px;
+  width: 0%;
+  transition: width 0.05s linear;
+  position: relative;
+}
+
+/* ✅ Line handle — replaces dot */
+.timeline-scrollbar-thumb::after {
+  content: "";
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 24px;          /* handle width */
+  height: 3px;          /* same height as track */
+  background: #1d4ed8;  /* slightly darker than thumb */
+  border-radius: 999px;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+/* ✅ Remove dot — no longer needed */
+.timeline-scrollbar-dot {
+  display: none;
 }
 
 .awards-section {

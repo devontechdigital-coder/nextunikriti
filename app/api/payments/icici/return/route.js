@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Payment from '@/models/Payment';
 import Enrollment from '@/models/Enrollment';
+import Package from '@/models/Package';
+import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields } from '@/lib/enrollmentLifecycle';
 
 const pickFirst = (obj, keys) => {
   for (const key of keys) {
@@ -55,18 +57,32 @@ const handleCallback = async (req, payload) => {
         payment.transactionId = merchantTxnNo || payment.transactionId;
         await payment.save();
 
+        let packageDoc = null;
+        if (payment.packageId) {
+          packageDoc = await Package.findById(payment.packageId);
+        }
+
         await Enrollment.findOneAndUpdate(
-          { userId: payment.userId, courseId: payment.courseId },
+          buildEnrollmentIdentityFilter({
+            userId: payment.userId,
+            courseId: payment.courseId,
+            packageId: payment.packageId || null,
+          }),
           {
             userId: payment.userId,
             courseId: payment.courseId,
             batchId: payment.batchId || null,
             packageId: payment.packageId || null,
             paymentId: payment._id,
-            paymentStatus: 'paid',
-            status: 'active',
+            ...buildEnrollmentLifecycleFields({
+              paymentStatus: 'paid',
+              status: 'active',
+              packageDoc,
+              packagePriceKey: payment.packagePriceKey || '',
+              pricingOptionId: payment.pricingOptionId || null,
+            }),
           },
-          { upsert: true, new: true }
+          { upsert: true, new: true, setDefaultsOnInsert: true }
         );
       } else if (status === 'failed') {
         payment.status = 'failed';
@@ -94,4 +110,3 @@ export async function POST(req) {
   const body = await parseBody(req);
   return handleCallback(req, body);
 }
-

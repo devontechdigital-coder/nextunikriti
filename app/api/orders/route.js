@@ -16,6 +16,7 @@ import Enrollment from '@/models/Enrollment';
 import User from '@/models/User';
 import { getUserFromCookie } from '@/utils/auth';
 import { resolvePackagePriceOption } from '@/lib/packagePricing';
+import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields } from '@/lib/enrollmentLifecycle';
 
 export async function POST(req) {
   try {
@@ -33,6 +34,8 @@ export async function POST(req) {
     let name = '';
     let description = '';
     let courseSlugOrId = '';
+    let selectedPricingOption = null;
+    let selectedPackageDoc = null;
 
     if (package_id) {
       const Package = (await import('@/models/Package')).default;
@@ -41,6 +44,8 @@ export async function POST(req) {
         return NextResponse.json({ success: false, message: 'Package not found' }, { status: 404 });
       }
       const selectedPackagePrice = resolvePackagePriceOption(pkg, package_price_key);
+      selectedPricingOption = selectedPackagePrice;
+      selectedPackageDoc = pkg;
       finalPrice = selectedPackagePrice.price;
       courseId = pkg.course_id._id;
       courseSlugOrId = pkg.course_id.slug || pkg.course_id._id;
@@ -70,25 +75,31 @@ export async function POST(req) {
         courseId,
         batchId: batch_id || null,
         packageId: package_id || null,
+        pricingOptionId: selectedPricingOption?._id || null,
+        packagePriceKey: selectedPricingOption?.key || package_price_key || '',
         amount: finalPrice,
         gateway: 'pay_later',
         status: 'pending',
         transactionId: `pay_later_${Date.now()}`
       });
 
-      // Create enrollment with pending status
       await Enrollment.findOneAndUpdate(
-        { userId: user.id, courseId },
+        buildEnrollmentIdentityFilter({ userId: user.id, courseId, packageId: package_id || null }),
         {
           userId: user.id,
           courseId,
           packageId: package_id || null,
           batchId: batch_id || null,
           paymentId: paymentRecord._id,
-          paymentStatus: 'pending',
-          status: 'pending_payment'
+          ...buildEnrollmentLifecycleFields({
+            paymentStatus: 'pending',
+            status: 'pending_payment',
+            packageDoc: selectedPackageDoc,
+            packagePriceKey: selectedPricingOption?.key || package_price_key || '',
+            pricingOptionId: selectedPricingOption?._id || null,
+          }),
         },
-        { upsert: true, new: true }
+        { upsert: true, new: true, setDefaultsOnInsert: true }
       );
 
       return NextResponse.json({ success: true, gateway: 'pay_later' });
@@ -107,6 +118,8 @@ export async function POST(req) {
       courseId,
       batchId: batch_id || null,
       packageId: package_id || null,
+      pricingOptionId: selectedPricingOption?._id || null,
+      packagePriceKey: selectedPricingOption?.key || package_price_key || '',
       amount: finalPrice,
       gateway: activeGateway,
       transactionId: `pending_${Math.random()}`

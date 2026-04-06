@@ -4,6 +4,8 @@ import dbConnect from '@/lib/db';
 import Payment from '@/models/Payment';
 import Enrollment from '@/models/Enrollment';
 import { verifyToken } from '@/lib/jwt';
+import Package from '@/models/Package';
+import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields } from '@/lib/enrollmentLifecycle';
 
 export async function POST(req) {
   try {
@@ -40,14 +42,33 @@ export async function POST(req) {
       paymentRecord.status = 'completed';
       await paymentRecord.save();
 
-      // Create Enrollment
-      await Enrollment.create({
-        userId: paymentRecord.userId,
-        courseId: paymentRecord.courseId,
-        batchId: paymentRecord.batchId,
-        packageId: paymentRecord.packageId,
-        paymentId: paymentRecord._id
-      });
+      let packageDoc = null;
+      if (paymentRecord.packageId) {
+        packageDoc = await Package.findById(paymentRecord.packageId);
+      }
+
+      await Enrollment.findOneAndUpdate(
+        buildEnrollmentIdentityFilter({
+          userId: paymentRecord.userId,
+          courseId: paymentRecord.courseId,
+          packageId: paymentRecord.packageId || null,
+        }),
+        {
+          userId: paymentRecord.userId,
+          courseId: paymentRecord.courseId,
+          batchId: paymentRecord.batchId || null,
+          packageId: paymentRecord.packageId || null,
+          paymentId: paymentRecord._id,
+          ...buildEnrollmentLifecycleFields({
+            paymentStatus: 'paid',
+            status: 'active',
+            packageDoc,
+            packagePriceKey: paymentRecord.packagePriceKey || '',
+            pricingOptionId: paymentRecord.pricingOptionId || null,
+          }),
+        },
+        { upsert: true, new: true, setDefaultsOnInsert: true }
+      );
 
       return NextResponse.json({ success: true, message: 'Payment verified successfully' });
     }

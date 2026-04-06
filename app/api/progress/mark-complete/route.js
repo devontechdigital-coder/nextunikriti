@@ -4,6 +4,7 @@ import Enrollment from '@/models/Enrollment';
 import Section from '@/models/Section';
 import Lesson from '@/models/Lesson';
 import { getUserFromCookie } from '@/utils/auth';
+import { findPreferredEnrollmentForCourse } from '@/lib/enrollmentLifecycle';
 
 export async function POST(req) {
   try {
@@ -19,7 +20,8 @@ export async function POST(req) {
 
     await connectDB();
 
-    const enrollment = await Enrollment.findOne({ userId: user.id, courseId });
+    const enrollment = await Enrollment.findOne(findPreferredEnrollmentForCourse({ userId: user.id, courseId }))
+      .sort({ status: 1, updatedAt: -1 });
     if (!enrollment) {
       return NextResponse.json({ success: false, error: 'Enrollment not found' }, { status: 404 });
     }

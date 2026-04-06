@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Package from '@/models/Package';
-import { buildPackagePricingOptions } from '@/lib/packagePricing';
+import { buildPackagePricingOptions, getPackageDisplayPrice, getPackageDisplayDurationDays } from '@/lib/packagePricing';
 
 export async function GET(req) {
   try {
@@ -13,17 +13,20 @@ export async function GET(req) {
       return NextResponse.json({ success: false, error: 'Course ID is required' }, { status: 400 });
     }
 
-    const packages = await Package.find({ 
+    const packages = await Package.find({
       course_id, 
       is_active: true 
     })
-    .sort({ price: 1 })
     .lean();
 
-    const data = packages.map((pkg) => ({
+    const data = packages
+      .map((pkg) => ({
       ...pkg,
       pricingOptionsResolved: buildPackagePricingOptions(pkg),
-    }));
+      price: getPackageDisplayPrice(pkg),
+      days: getPackageDisplayDurationDays(pkg),
+    }))
+      .sort((a, b) => a.price - b.price);
 
     return NextResponse.json({ success: true, data });
   } catch (error) {

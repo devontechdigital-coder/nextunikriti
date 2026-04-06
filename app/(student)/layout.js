@@ -1,6 +1,6 @@
 'use client';
 import { Container, Row, Col, Nav } from 'react-bootstrap';
-import { FiBook, FiAward, FiSettings, FiLogOut } from 'react-icons/fi';
+import { FiBook, FiAward, FiSettings, FiLogOut, FiUser } from 'react-icons/fi';
 import { useDispatch, useSelector } from 'react-redux';
 import { logout as logoutAction } from '@/redux/slices/authSlice';
 import { useRouter } from 'next/navigation';
@@ -48,6 +48,7 @@ export default function StudentLayout({ children }) {
             </div>
             <Nav className="flex-column p-3">
               <Nav.Link as={Link} href="/student/dashboard" className="text-white mb-2"><FiBook className="me-2"/> My Learning</Nav.Link>
+              <Nav.Link as={Link} href="/student/profile" className="text-white mb-2"><FiUser className="me-2"/> My Profile</Nav.Link>
               <Nav.Link as={Link} href="/student/certificates" className="text-white mb-2"><FiAward className="me-2"/> Certificates</Nav.Link>
               <Nav.Link as={Link} href="/student/settings" className="text-white mb-2"><FiSettings className="me-2"/> Settings</Nav.Link>
               <hr className="bg-secondary" />

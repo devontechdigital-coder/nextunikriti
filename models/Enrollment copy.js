@@ -6,33 +6,17 @@ const enrollmentSchema = new mongoose.Schema({
   batchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Batch' },
   packageId: { type: mongoose.Schema.Types.ObjectId, ref: 'Package' },
   paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },
-
-  pricingOptionId: { type: mongoose.Schema.Types.ObjectId },
-
   paymentStatus: { type: String, enum: ['paid', 'pending', 'free'], default: 'paid' },
   status: { type: String, enum: ['active', 'pending_payment', 'suspended'], default: 'active' },
-
-  // 👉 NEW IMPORTANT FIELDS
-  startDate: { type: Date },
-  endDate: { type: Date },
-
-  billingCycleStart: { type: Date },
-  billingCycleEnd: { type: Date },
-
-  adminFeeChargedInCycle: { type: Boolean, default: false },
-
-  renewalCount: { type: Number, default: 0 },
-
-  // existing learning fields
-  progress: { type: Number, default: 0 },
+  progress: { type: Number, default: 0 }, // percentage 0-100
   completed: { type: Boolean, default: false },
   completedLessons: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Lesson' }],
   lastLessonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Lesson' }
-
 }, { timestamps: true });
 
-// ❗ change this index (important)
-enrollmentSchema.index({ userId: 1, courseId: 1, packageId: 1 }, { unique: true });
+// Prevent duplicate enrollments
+enrollmentSchema.index({ userId: 1, courseId: 1 }, { unique: true });
 
+// Always delete cached model to pick up schema changes on hot-reload
 delete mongoose.models['Enrollment'];
 export default mongoose.model('Enrollment', enrollmentSchema);

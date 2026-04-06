@@ -14,8 +14,13 @@ export async function PUT(req, { params }) {
     const { id } = params;
     await dbConnect();
     const body = await req.json();
+    const payload = normalizePackagePricingInput(body, { partial: true });
 
-    const pkg = await Package.findByIdAndUpdate(id, normalizePackagePricingInput(body, { partial: true }), { new: true });
+    const pkg = await Package.findByIdAndUpdate(
+      id,
+      { $set: payload },
+      { new: true, runValidators: true, context: 'query' }
+    ).populate('course_id', 'title');
     if (!pkg) {
       return NextResponse.json({ success: false, error: 'Package not found' }, { status: 404 });
     }

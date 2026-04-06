@@ -1,13 +1,33 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Enrollment from '@/models/Enrollment';
-import Course from '@/models/Course'; // Required for population
-import Package from '@/models/Package'; // Required for population
+import Payment from '@/models/Payment';
 import Section from '@/models/Section';
 import Lesson from '@/models/Lesson';
 import { getUserFromCookie } from '@/utils/auth';
+import { resolvePackagePriceOptionById } from '@/lib/packagePricing';
+import { findPreferredEnrollmentForCourse } from '@/lib/enrollmentLifecycle';
 
-// GET /api/my-courses — Returns all enrollments for the logged-in student
+const MS_PER_DAY = 1000 * 60 * 60 * 24;
+
+const diffDaysCeil = (from, to) => {
+  if (!from || !to) return null;
+  return Math.max(0, Math.ceil((new Date(to).getTime() - new Date(from).getTime()) / MS_PER_DAY));
+};
+
+const diffDaysFloor = (from, to) => {
+  if (!from || !to) return null;
+  return Math.max(0, Math.floor((new Date(to).getTime() - new Date(from).getTime()) / MS_PER_DAY));
+};
+
+const toStudentPaymentStatus = (status) => {
+  if (status === 'completed') return 'paid';
+  if (status === 'pending') return 'pending';
+  if (status === 'refunded') return 'refunded';
+  return 'failed';
+};
+
+// GET /api/my-courses — Returns all course purchase records for the logged-in student
 export async function GET(req) {
   try {
     const user = getUserFromCookie();
@@ -17,40 +37,65 @@ export async function GET(req) {
 
     await connectDB();
     
-    // Fetch all enrollments for this user
-    const enrollments = await Enrollment.find({ 
+    const payments = await Payment.find({
       userId: user.id
     })
       .populate('courseId', 'title thumbnail')
-      .populate('packageId', 'name price')
-      .sort({ updatedAt: -1 });
+      .populate('packageId', 'name pricingOptions')
+      .sort({ createdAt: -1 });
 
-    // For each enrollment, we might want the total lesson count
-    // To keep it efficient, we can fetch all relevant sections in one go or just skip for now if not critical
-    // Let's add the count properly
+    const data = await Promise.all(payments.map(async (payment) => {
+        const enrollment = await Enrollment.findOne({ paymentId: payment._id })
+          .populate('packageId', 'name pricingOptions')
+          .sort({ updatedAt: -1 })
+          .lean()
+          || await Enrollment.findOne(findPreferredEnrollmentForCourse({ userId: user.id, courseId: payment.courseId?._id || payment.courseId }))
+            .populate('packageId', 'name pricingOptions')
+            .sort({ updatedAt: -1 })
+            .lean();
 
-    const data = await Promise.all(enrollments.map(async (e) => {
         let lessonsCount = 0;
-        if (e.courseId?._id) {
-            const sections = await Section.find({ courseId: e.courseId._id }).select('_id');
+        if (payment.courseId?._id) {
+            const sections = await Section.find({ courseId: payment.courseId._id }).select('_id');
             const sectionIds = sections.map(s => s._id);
             lessonsCount = await Lesson.countDocuments({ 
                 sectionId: { $in: sectionIds } 
             });
         }
 
+        const packageDoc = payment.packageId || enrollment?.packageId || null;
+        const pricingOptionId = payment.pricingOptionId || enrollment?.pricingOptionId || null;
+        const pricingOption = packageDoc ? resolvePackagePriceOptionById(packageDoc, pricingOptionId) : null;
+        const totalDurationDays = pricingOption?.durationDays ?? diffDaysCeil(enrollment?.startDate, enrollment?.endDate);
+        const daysLeft = enrollment?.endDate ? diffDaysCeil(new Date(), enrollment.endDate) : null;
+        const daysUsed = enrollment?.startDate ? diffDaysFloor(enrollment.startDate, new Date()) : 0;
+        const requestedDaysAgo = diffDaysFloor(payment.createdAt, new Date());
+
         return {
-            enrollment_id: e._id,
-            course_id: e.courseId?._id,
-            course_title: e.courseId?.title || 'Unknown Course',
-            thumbnail: e.courseId?.thumbnail,
-            package_name: e.packageId?.name || 'Standard',
-            payment_status: e.paymentStatus,
-            status: e.status,
-            progress: e.progress,
+            payment_id: payment._id,
+            enrollment_id: enrollment?._id || payment._id,
+            course_id: payment.courseId?._id,
+            course_title: payment.courseId?.title || 'Unknown Course',
+            thumbnail: payment.courseId?.thumbnail,
+            package_name: packageDoc?.name || 'Standard',
+            pricing_option_label: packageDoc ? resolvePackagePriceOptionById(packageDoc, pricingOptionId).label : null,
+            pricing_option_price: pricingOption?.price ?? null,
+            payment_status: toStudentPaymentStatus(payment.status),
+            order_status: payment.status,
+            status: enrollment?.status || (payment.status === 'completed' ? 'active' : 'pending_payment'),
+            startDate: enrollment?.startDate || null,
+            endDate: enrollment?.endDate || null,
+            billingCycleStart: enrollment?.billingCycleStart || null,
+            billingCycleEnd: enrollment?.billingCycleEnd || null,
+            renewalCount: enrollment?.renewalCount || 0,
+            total_duration_days: totalDurationDays,
+            days_left: daysLeft,
+            days_used: daysUsed,
+            requested_days_ago: requestedDaysAgo,
+            progress: enrollment?.progress || 0,
             lessons_count: lessonsCount,
-            updatedAt: e.updatedAt,
-            createdAt: e.createdAt
+            updatedAt: payment.updatedAt,
+            createdAt: payment.createdAt
         };
     }));
 

@@ -11,6 +11,7 @@ import { FaQuestionCircle, FaGraduationCap, FaClock, FaDesktop, FaMapMarkerAlt }
 
 import PackageSelector from '@/components/PackageSelector';
 import Package from '@/models/Package';
+import { getPackageDisplayPrice } from '@/lib/packagePricing';
 
 async function getCourse(courseId) {
     try {
@@ -81,7 +82,7 @@ export default async function PublicCourseDetailPage({ params }) {
 
     // Find the highest priced package for the sidebar
     const maxPackagePrice = course.packages && course.packages.length > 0 
-        ? Math.max(...course.packages.map(p => p.price))
+        ? Math.max(...course.packages.map((p) => getPackageDisplayPrice(p)))
         : course.price;
 
     return (

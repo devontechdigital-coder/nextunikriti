@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Card, Badge, Spinner, Modal, Row, Col, Form, InputGroup } from 'react-bootstrap';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
 import { setCredentials } from '@/redux/slices/authSlice';
 import { FaCheckCircle, FaStar, FaBolt, FaCrown, FaCreditCard, FaClock, FaPhoneAlt, FaUser, FaEnvelope } from 'react-icons/fa';
+import { buildPackagePricingOptions, getPackageDisplayDurationDays, getPackageDisplayPrice, getPackageOriginalPrice, resolvePackagePriceOption } from '@/lib/packagePricing';
 
 const AUTH_STEP = { PHONE: 'phone', OTP: 'otp', DETAILS: 'details' };
 
@@ -17,6 +18,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
     const { user } = useSelector((state) => state.auth);
 
     const [selectedPkgId, setSelectedPkgId] = useState(null);
+    const [selectedPkgPriceKey, setSelectedPkgPriceKey] = useState('');
     const [loading, setLoading] = useState(false);
     const [activePackageMode, setActivePackageMode] = useState(null);
     const [showModeSelectionError, setShowModeSelectionError] = useState(false);
@@ -35,6 +37,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
     const [userName, setUserName] = useState('');
     const [userEmail, setUserEmail] = useState('');
     const [authLoading, setAuthLoading] = useState(false);
+    const modeSelectionRef = useRef(null);
 
     // Confirm modal
     const [showConfirm, setShowConfirm] = useState(false);
@@ -56,9 +59,11 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
         ? normalizeModeLabel(courseMode)
         : (packageModes[0] || normalizeModeLabel(courseMode));
     const shouldRequireModeSelection = packageModes.length > 1;
-    const displayedPackages = activePackageMode
-        ? (initialPackages || []).filter((pkg) => normalizeModeLabel(pkg.mode) === activePackageMode)
-        : (initialPackages || []);
+    const displayedPackages = useMemo(() => (
+        activePackageMode
+            ? (initialPackages || []).filter((pkg) => normalizeModeLabel(pkg.mode) === activePackageMode)
+            : (initialPackages || [])
+    ), [activePackageMode, initialPackages]);
 
     useEffect(() => {
         setActivePackageMode(shouldRequireModeSelection ? null : defaultPackageMode);
@@ -69,20 +74,29 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
     useEffect(() => {
         if (displayedPackages.length > 0) {
             const hasSelectedVisiblePackage = displayedPackages.some((pkg) => pkg._id === selectedPkgId);
-            if (hasSelectedVisiblePackage) return;
+            if (hasSelectedVisiblePackage) {
+                const activePackage = displayedPackages.find((pkg) => pkg._id === selectedPkgId);
+                const activeOption = resolvePackagePriceOption(activePackage, selectedPkgPriceKey);
+                if (activeOption?.key === selectedPkgPriceKey) return;
+                setSelectedPkgPriceKey(activeOption?.key || '');
+                return;
+            }
 
-            const sorted = [...displayedPackages].sort((a, b) => b.price - a.price);
+            const sorted = [...displayedPackages].sort((a, b) => getPackageDisplayPrice(b) - getPackageDisplayPrice(a));
             setSelectedPkgId(sorted[0]._id);
+            setSelectedPkgPriceKey(resolvePackagePriceOption(sorted[0])?.key || '');
             return;
         }
 
         setSelectedPkgId(null);
-    }, [displayedPackages, selectedPkgId]);
+        setSelectedPkgPriceKey('');
+    }, [displayedPackages, selectedPkgId, selectedPkgPriceKey]);
 
     // Called when "Proceed to Enroll" is clicked
     const handleProceed = () => {
         if (shouldRequireModeSelection && !activePackageMode) {
             setShowModeSelectionError(true);
+            modeSelectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             toast.error('Please choose a mode before enrolling');
             return;
         }
@@ -182,6 +196,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
         setLoading(true);
         try {
             const body = { package_id: selectedPkgId };
+            if (selectedPkgPriceKey) body.package_price_key = selectedPkgPriceKey;
             if (selectedMode === 'pay_later') body.payment_mode = 'pay_later';
 
             const res = await axios.post('/api/orders', body);
@@ -266,12 +281,13 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
 
     const bothModesEnabled = settings.payOnline && settings.payLater;
     const selectedPkg = selectedPkgId ? initialPackages.find(x => x._id === selectedPkgId) : null;
+    const selectedPkgOption = selectedPkg ? resolvePackagePriceOption(selectedPkg, selectedPkgPriceKey) : null;
 
     return (
         <div className="package-selector-container mt-4">
             <h3 className="u-sec-title mb-4">Choose Your Plan</h3>
             {packageModes.length > 1 && (
-                <div className="mb-4">
+                <div className="mb-4" ref={modeSelectionRef}>
                     <div className="fw-semibold mb-2">Choose your mode</div>
                     <div className="d-flex flex-wrap gap-2">
                     {packageModes.map((mode) => {
@@ -302,20 +318,66 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
             <Row className="g-3">
                 {displayedPackages.map((pkg) => {
                     const isSelected = selectedPkgId === pkg._id;
+                    const pricingOptions = buildPackagePricingOptions(pkg).filter((option) => option.isActive);
+                    const visiblePricingOptions = pricingOptions.length ? pricingOptions : buildPackagePricingOptions(pkg);
+                    const selectedOption = resolvePackagePriceOption(pkg, isSelected ? selectedPkgPriceKey : '');
+                    const originalPrice = getPackageOriginalPrice(pkg, isSelected ? selectedPkgPriceKey : selectedOption?.key);
                     return (
                         <Col lg={4} md={6} key={pkg._id}>
-                            <Card className={`u-package-card h-100 ${isSelected ? 'active' : ''}`} onClick={() => setSelectedPkgId(pkg._id)}>
+                            <Card
+                                className={`u-package-card h-100 ${isSelected ? 'active' : ''}`}
+                                onClick={() => {
+                                    setSelectedPkgId(pkg._id);
+                                    setSelectedPkgPriceKey(selectedOption?.key || '');
+                                }}
+                            >
                                 <Card.Body className="p-4 d-flex flex-column text-center">
                                     <div className="pkg-icon-wrapper">{getIcon(pkg.name)}</div>
                                     <h4 className="fw-bold mb-1">{pkg.name}</h4>
-                                    {formatDuration(pkg.days) && (
-                                        <div className="text-muted small mb-2 fw-medium text-uppercase">{formatDuration(pkg.days)} Program</div>
+                                    {formatDuration(selectedOption?.durationDays || getPackageDisplayDurationDays(pkg)) && (
+                                        <div className="text-muted small mb-2 fw-medium text-uppercase">{formatDuration(selectedOption?.durationDays || getPackageDisplayDurationDays(pkg))} Program</div>
                                     )}
                                     <div className="pkg-price mb-3">
+                                        {originalPrice > Number(selectedOption?.price || getPackageDisplayPrice(pkg)) && (
+                                            <div className="pkg-original-price">₹{originalPrice.toLocaleString()}</div>
+                                        )}
                                         <span className="currency">₹</span>
-                                        <span className="amount">{pkg.price.toLocaleString()}</span>
+                                        <span className="amount">{Number(selectedOption?.price || getPackageDisplayPrice(pkg)).toLocaleString()}</span>
                                     </div>
                                     <p className="small text-muted mb-4 flex-grow-1">{pkg.description}</p>
+                                    {visiblePricingOptions.length > 0 && (
+                                        <div className="mb-3 text-start">
+                                            <div className="small fw-semibold mb-2">Pricing options</div>
+                                            <div className="d-flex flex-column gap-2">
+                                                {visiblePricingOptions.map((option) => {
+                                                    const isOptionSelected = isSelected && selectedPkgPriceKey === option.key;
+                                                    return (
+                                                        <button
+                                                            key={option.key}
+                                                            type="button"
+                                                            className={`pkg-option-btn text-start ${isOptionSelected ? 'active' : ''}`}
+                                                            onClick={(event) => {
+                                                                event.stopPropagation();
+                                                                setSelectedPkgId(pkg._id);
+                                                                setSelectedPkgPriceKey(option.key);
+                                                            }}
+                                                        >
+                                                            <div className="fw-semibold small">{option.label}</div>
+                                                            <div className="small text-muted">{option.paymentType} • {option.durationDays} days</div>
+                                                            <div className="small fw-bold text-dark">
+                                                                ₹{Number(option.price || 0).toLocaleString()}
+                                                                {Number(option.discountAmount || 0) > 0 && (
+                                                                    <span className="text-muted text-decoration-line-through ms-2">
+                                                                        ₹{Number((option.price || 0) + (option.discountAmount || 0)).toLocaleString()}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </button>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
                                     <div className="features-list text-start mb-4">
                                         {pkg.features?.map((feat, i) => (
                                             <div key={i} className="feature-item d-flex align-items-start gap-2 mb-2">
@@ -366,7 +428,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
 
                     {authStep === AUTH_STEP.PHONE && (
                         <>
-                            <p className="text-muted small mb-3">Enter your mobile number. We'll send a one-time password.</p>
+                            <p className="text-muted small mb-3">Enter your mobile number. We&apos;ll send a one-time password.</p>
                             <InputGroup className="mb-3">
                                 <InputGroup.Text className="fw-bold bg-light">+91</InputGroup.Text>
                                 <Form.Control
@@ -450,7 +512,13 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
                     {selectedPkg && (
                         <div className="bg-light p-4 rounded-4 border text-center mb-3">
                             <div className="text-uppercase small fw-bold text-muted mb-1">{selectedPkg.name}</div>
-                            <h3 className="fw-bold text-dark mb-1">₹{selectedPkg.price.toLocaleString()}</h3>
+                            {selectedPkgOption?.label && <div className="small text-muted mb-1">{selectedPkgOption.label}</div>}
+                            {getPackageOriginalPrice(selectedPkg, selectedPkgPriceKey) > Number(selectedPkgOption?.price || getPackageDisplayPrice(selectedPkg)) && (
+                                <div className="small text-muted text-decoration-line-through mb-1">
+                                    ₹{getPackageOriginalPrice(selectedPkg, selectedPkgPriceKey).toLocaleString()}
+                                </div>
+                            )}
+                            <h3 className="fw-bold text-dark mb-1">₹{Number(selectedPkgOption?.price || getPackageDisplayPrice(selectedPkg)).toLocaleString()}</h3>
                             {selectedPkg.description && <div className="small text-muted">{selectedPkg.description}</div>}
                         </div>
                     )}
@@ -486,7 +554,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
                     {!bothModesEnabled && settings.payLater && !settings.payOnline && (
                         <div className="p-3 bg-warning bg-opacity-10 border border-warning rounded-3 d-flex align-items-center gap-2">
                             <FaClock className="text-warning flex-shrink-0" />
-                            <small>You'll reserve this course now. Our team will contact you to arrange payment.</small>
+                            <small>You&apos;ll reserve this course now. Our team will contact you to arrange payment.</small>
                         </div>
                     )}
                 </Modal.Body>
@@ -506,7 +574,10 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
                 .pkg-icon-wrapper { height: 60px; display: flex; align-items: center; justify-content: center; }
                 .pkg-price .currency { font-size: 1.25rem; font-weight: 600; vertical-align: top; margin-right: 2px; }
                 .pkg-price .amount { font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; }
+                .pkg-original-price { font-size: 0.95rem; color: #6c757d; text-decoration: line-through; margin-bottom: 2px; }
                 .feature-item { line-height: 1.4; }
+                .pkg-option-btn { border: 1px solid #e0e0e0; border-radius: 12px; background: #fff; padding: 10px 12px; width: 100%; transition: all 0.2s ease; }
+                .pkg-option-btn.active { border-color: #000; background: #f8f9fa; }
                 .u-btn-purchase { font-weight: 700; font-size: 1.1rem; border-radius: 14px; transition: all 0.2s ease; }
                 .u-btn-purchase:active { transform: scale(0.98); }
                 .border-dashed { border: 2px dashed #ddd !important; }

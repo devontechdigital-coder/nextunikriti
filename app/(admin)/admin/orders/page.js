@@ -5,11 +5,13 @@ import { Container, Table, Badge, Button, Form, Spinner, Row, Col, Card, Modal }
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { MdSearch, MdCheckCircle, MdCancel, MdPayment, MdAdd } from 'react-icons/md';
+import { buildPackagePricingOptions, getPackageDisplayPrice, resolvePackagePriceOption } from '@/lib/packagePricing';
 
 const createInitialOrderForm = () => ({
   userId: '',
   courseId: '',
   packageId: '',
+  packagePriceKey: '',
   paymentMode: 'pay_later',
 });
 
@@ -28,12 +30,17 @@ export default function AdminOrdersPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
   const [courseFilter, setCourseFilter] = useState('');
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
 
   const fetchOrders = async () => {
     try {
       const res = await axios.get('/api/admin/orders');
       if (res.data.success) {
-        setOrders(res.data.data);
+        const sortedOrders = [...(res.data.data || [])].sort(
+          (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        );
+        setOrders(sortedOrders);
       }
     } catch (error) {
       toast.error('Failed to fetch orders');
@@ -76,7 +83,7 @@ export default function AdminOrdersPage() {
   useEffect(() => {
     if (!formData.courseId) {
       setPackages([]);
-      setFormData((prev) => ({ ...prev, packageId: '' }));
+      setFormData((prev) => ({ ...prev, packageId: '', packagePriceKey: '' }));
       return;
     }
 
@@ -90,10 +97,11 @@ export default function AdminOrdersPage() {
         setFormData((prev) => ({
           ...prev,
           packageId: nextPackages[0]?._id || '',
+          packagePriceKey: nextPackages[0] ? resolvePackagePriceOption(nextPackages[0])?.key || '' : '',
         }));
       } catch (error) {
         setPackages([]);
-        setFormData((prev) => ({ ...prev, packageId: '' }));
+        setFormData((prev) => ({ ...prev, packageId: '', packagePriceKey: '' }));
         toast.error('Failed to load packages for selected course');
       }
     };
@@ -104,7 +112,7 @@ export default function AdminOrdersPage() {
   const handleAction = async (id, action) => {
     setActionLoading(id);
     try {
-      const res = await axios.patch('/api/admin/orders', { enrollmentId: id, action });
+      const res = await axios.patch('/api/admin/orders', { orderId: id, action });
       if (res.data.success) {
         toast.success(`Successfully performed: ${action}`);
         fetchOrders();
@@ -140,6 +148,9 @@ export default function AdminOrdersPage() {
 
       if (formData.packageId) {
         payload.packageId = formData.packageId;
+        if (formData.packagePriceKey) {
+          payload.packagePriceKey = formData.packagePriceKey;
+        }
       }
 
       const res = await axios.post('/api/admin/orders', payload);
@@ -155,17 +166,24 @@ export default function AdminOrdersPage() {
     }
   };
 
-  const filteredOrders = orders.filter((order) => {
-    const matchesSearch =
-      order.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.userId?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.courseId?.title?.toLowerCase().includes(searchTerm.toLowerCase());
+  const filteredOrders = orders
+    .filter((order) => {
+      const matchesSearch =
+        order.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.userId?.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.courseId?.title?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesStatus = statusFilter === '' || order.status === statusFilter;
-    const matchesCourse = courseFilter === '' || order.courseId?._id === courseFilter;
+      const matchesStatus = statusFilter === '' || order.status === statusFilter;
+      const matchesCourse = courseFilter === '' || order.courseId?._id === courseFilter;
+      const orderDate = order.createdAt ? new Date(order.createdAt) : null;
+      const fromDate = dateFrom ? new Date(`${dateFrom}T00:00:00`) : null;
+      const toDate = dateTo ? new Date(`${dateTo}T23:59:59.999`) : null;
+      const matchesDateFrom = !fromDate || (orderDate && orderDate >= fromDate);
+      const matchesDateTo = !toDate || (orderDate && orderDate <= toDate);
 
-    return matchesSearch && matchesStatus && matchesCourse;
-  });
+      return matchesSearch && matchesStatus && matchesCourse && matchesDateFrom && matchesDateTo;
+    })
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const getStatusBadge = (status) => {
     switch (status) {
@@ -200,6 +218,15 @@ export default function AdminOrdersPage() {
     return gateway || 'N/A';
   };
 
+  const formatDate = (value) => {
+    if (!value) return 'N/A';
+    return new Date(value).toLocaleDateString('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+    });
+  };
+
   const uniqueCourses = [...new Set(
     orders
       .map((order) => order.courseId)
@@ -209,7 +236,8 @@ export default function AdminOrdersPage() {
 
   const selectedPackage = packages.find((pkg) => pkg._id === formData.packageId);
   const selectedCourse = courses.find((course) => course._id === formData.courseId);
-  const displayAmount = selectedPackage?.price ?? selectedCourse?.price ?? 0;
+  const selectedPackageOption = selectedPackage ? resolvePackagePriceOption(selectedPackage, formData.packagePriceKey) : null;
+  const displayAmount = selectedPackage ? Number(selectedPackageOption?.price || getPackageDisplayPrice(selectedPackage)) : (selectedCourse?.price ?? 0);
 
   if (loading) {
     return <div className="p-5 text-center"><Spinner animation="border" variant="primary" /></div>;
@@ -244,7 +272,7 @@ export default function AdminOrdersPage() {
                 </div>
               </Form.Group>
             </Col>
-            <Col md={3}>
+            <Col md={2}>
               <Form.Group>
                 <Form.Label className="small fw-bold">Enrollment Status</Form.Label>
                 <Form.Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
@@ -255,7 +283,7 @@ export default function AdminOrdersPage() {
                 </Form.Select>
               </Form.Group>
             </Col>
-            <Col md={3}>
+            <Col md={2}>
               <Form.Group>
                 <Form.Label className="small fw-bold">Filter by Course</Form.Label>
                 <Form.Select value={courseFilter} onChange={(e) => setCourseFilter(e.target.value)}>
@@ -267,6 +295,26 @@ export default function AdminOrdersPage() {
               </Form.Group>
             </Col>
             <Col md={2}>
+              <Form.Group>
+                <Form.Label className="small fw-bold">Date From</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={2}>
+              <Form.Group>
+                <Form.Label className="small fw-bold">Date To</Form.Label>
+                <Form.Control
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                />
+              </Form.Group>
+            </Col>
+            <Col md={2}>
               <Button
                 variant="light"
                 className="w-100 fw-bold border"
@@ -274,6 +322,8 @@ export default function AdminOrdersPage() {
                   setSearchTerm('');
                   setStatusFilter('');
                   setCourseFilter('');
+                  setDateFrom('');
+                  setDateTo('');
                 }}
               >
                 Reset
@@ -292,6 +342,8 @@ export default function AdminOrdersPage() {
               <th>Status (Enroll)</th>
               <th>Payment</th>
               <th>Purchase Date</th>
+              <th>Renewal Date</th>
+
               <th className="text-end px-4">Actions</th>
             </tr>
           </thead>
@@ -305,17 +357,22 @@ export default function AdminOrdersPage() {
                 <td>
                   <div className="fw-semibold">{order.courseId?.title || 'Unknown Course'}</div>
                   <div className="small text-primary">
-                    {order.packageId?.name || 'No Plan'} - Rs.{order.packageId?.price?.toLocaleString() || 0}
+                    {order.packageId?.name || 'No Plan'} - Rs.{Number(order.packageId?.displayPrice || 0).toLocaleString()}
                   </div>
+                  {order.packageId?.selectedOptionLabel && (
+                    <div className="small text-muted">{order.packageId.selectedOptionLabel}</div>
+                  )}
                 </td>
                 <td>{getStatusBadge(order.status)}</td>
                 <td>
                   {getPaymentBadge(order.paymentStatus)}
-                  <div className="x-small text-muted mt-1">Mode: {getGatewayLabel(order.paymentId?.gateway)}</div>
+                  <div className="x-small text-muted mt-1">Mode: {getGatewayLabel(order.gateway)}</div>
                 </td>
                 <td>
-                  <div className="small">{new Date(order.createdAt).toLocaleDateString()}</div>
-                  <div className="very-small text-muted">{new Date(order.createdAt).toLocaleTimeString()}</div>
+                  <div className="small">{formatDate(order.createdAt)}</div>
+                  </td>
+                  <td>
+                <div className="small">{formatDate(order.endDate)}  </div> 
                 </td>
                 <td className="text-end px-4">
                   <div className="d-flex justify-content-end gap-2">
@@ -410,13 +467,37 @@ export default function AdminOrdersPage() {
                     <Form.Label className="small fw-bold">Plan / Package</Form.Label>
                     <Form.Select
                       value={formData.packageId}
-                      onChange={(e) => setFormData((prev) => ({ ...prev, packageId: e.target.value }))}
+                      onChange={(e) => {
+                        const nextPackage = packages.find((pkg) => pkg._id === e.target.value);
+                        setFormData((prev) => ({
+                          ...prev,
+                          packageId: e.target.value,
+                          packagePriceKey: nextPackage ? resolvePackagePriceOption(nextPackage)?.key || '' : '',
+                        }));
+                      }}
                       disabled={!formData.courseId}
                     >
                       <option value="">No package (use course price)</option>
                       {packages.map((pkg) => (
                         <option key={pkg._id} value={pkg._id}>
-                          {pkg.name} - Rs.{Number(pkg.price || 0).toLocaleString()}
+                          {pkg.name} - Rs.{Number(getPackageDisplayPrice(pkg) || 0).toLocaleString()}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </Form.Group>
+                </Col>
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Pricing Option</Form.Label>
+                    <Form.Select
+                      value={formData.packagePriceKey}
+                      onChange={(e) => setFormData((prev) => ({ ...prev, packagePriceKey: e.target.value }))}
+                      disabled={!selectedPackage}
+                    >
+                      {!selectedPackage && <option value="">Select package first</option>}
+                      {selectedPackage && buildPackagePricingOptions(selectedPackage).map((option) => (
+                        <option key={option.key} value={option.key}>
+                          {option.label} - Rs.{Number(option.price || 0).toLocaleString()}
                         </option>
                       ))}
                     </Form.Select>
@@ -440,6 +521,7 @@ export default function AdminOrdersPage() {
                       <div className="small text-uppercase text-muted fw-bold mb-2">Order Preview</div>
                       <div className="fw-semibold">{selectedCourse?.title || 'Select a course'}</div>
                       <div className="small text-muted">{selectedPackage?.name || 'Standard course pricing'}</div>
+                      {selectedPackageOption?.label && <div className="small text-muted">{selectedPackageOption.label}</div>}
                       <div className="mt-2 fw-bold">Amount: Rs.{Number(displayAmount || 0).toLocaleString()}</div>
                       <div className="small text-muted mt-1">
                         {formData.paymentMode === 'manual_paid'

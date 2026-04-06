@@ -5,6 +5,8 @@ const paymentSchema = new mongoose.Schema({
   courseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
   batchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Batch' },
   packageId: { type: mongoose.Schema.Types.ObjectId, ref: 'Package' },
+  pricingOptionId: { type: mongoose.Schema.Types.ObjectId },
+  packagePriceKey: { type: String, trim: true },
   amount: { type: Number, required: true },
   status: { type: String, enum: ['pending', 'completed', 'failed', 'refunded'], default: 'pending' },
   gateway: { type: String, enum: ['stripe', 'razorpay', 'icici', 'pay_later', 'admin_manual'], required: true },
