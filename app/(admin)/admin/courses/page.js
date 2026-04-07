@@ -552,6 +552,7 @@ export default function AdminCoursesPage() {
                   onChange={(e) => setFormData({...formData, brochureUrl: e.target.value})}
                 />
               </InputGroup>
+              <Form.Text className="text-muted extra-small">Optional. Leave blank if you do not want a brochure link.</Form.Text>
             </Form.Group>
 
             {/* Description with Text/Code tabs */}
