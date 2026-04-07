@@ -18,7 +18,7 @@ import toast from 'react-hot-toast';
 
 export default function AdminCoursesPage() {
   const { data, isLoading, isError, error } = useGetAdminCoursesQuery();
-  const { data: usersData } = useGetAdminUsersQuery();
+  const { data: usersData } = useGetAdminUsersQuery({ role: 'all', page: 1, limit: 500, search: '' });
   const { data: categoriesData } = useGetAdminCategoriesQuery();
   const { data: instrumentsData } = useGetAdminInstrumentsQuery();
   
@@ -44,6 +44,7 @@ export default function AdminCoursesPage() {
     level_id: '',
     moderationStatus: 'approved',
     thumbnail: '',
+    brochureUrl: '',
     slug: '',
     metaTitle: '',
     metaDescription: '',
@@ -117,6 +118,7 @@ export default function AdminCoursesPage() {
         level_id: course.level_id?._id || course.level_id || '',
         moderationStatus: course.moderationStatus || 'approved',
         thumbnail: course.thumbnail || '',
+        brochureUrl: course.brochureUrl || '',
         slug: course.slug || '',
         metaTitle: course.metaTitle || '',
         metaDescription: course.metaDescription || '',
@@ -140,6 +142,7 @@ export default function AdminCoursesPage() {
         level_id: '',
         moderationStatus: 'approved',
         thumbnail: '',
+        brochureUrl: '',
         slug: '',
         metaTitle: '',
         metaDescription: '',
@@ -307,8 +310,8 @@ export default function AdminCoursesPage() {
                    <div className="text-muted x-small">{course.level_id?.levelName || '-'}</div>
                 </td>
                 <td>
-                   <div className="small fw-bold">{course.course_creator?.name || 'Unknown'}</div>
-                   <div className="text-muted x-small">{course.course_creator?.email}</div>
+                   <div className="small fw-bold">{course.course_creator?.name || course.instructor?.name || 'Unknown'}</div>
+                   <div className="text-muted x-small">{course.course_creator?.email || course.instructor?.email || ''}</div>
                 </td>
                 <td>
                    <Badge bg={course.moderationStatus === 'approved' ? 'success' : course.moderationStatus === 'rejected' ? 'danger' : 'warning'}>
@@ -401,6 +404,14 @@ export default function AdminCoursesPage() {
                             <h6 className="fw-bold text-muted text-uppercase x-small">Description</h6>
                             <p className="small mb-0 text-secondary" style={{ whiteSpace: 'pre-wrap' }}>{viewCourse.description}</p>
                         </div>
+
+                        {viewCourse.brochureUrl && (
+                            <div className="mb-4">
+                                <a href={viewCourse.brochureUrl} target="_blank" rel="noreferrer" className="btn btn-outline-dark btn-sm">
+                                    Download Brochure
+                                </a>
+                            </div>
+                        )}
 
                         <div className="bg-light p-3 rounded d-flex align-items-center gap-3">
                             <div className="bg-white rounded-circle p-2 border shadow-sm">
@@ -523,6 +534,19 @@ export default function AdminCoursesPage() {
                   <img src={formData.thumbnail} alt="preview" style={{ maxHeight: '80px', borderRadius: '6px', border: '1px solid #dee2e6' }} />
                 </div>
               )}
+            </Form.Group>
+
+            <Form.Group className="mb-3">
+              <Form.Label className="fw-bold small text-muted text-uppercase">Download Brochure URL</Form.Label>
+              <InputGroup>
+                <InputGroup.Text className="bg-white"><FaLink className="text-muted" /></InputGroup.Text>
+                <Form.Control 
+                  type="url"
+                  placeholder="https://example.com/brochure.pdf"
+                  value={formData.brochureUrl}
+                  onChange={(e) => setFormData({...formData, brochureUrl: e.target.value})}
+                />
+              </InputGroup>
             </Form.Group>
 
             {/* Description with Text/Code tabs */}
@@ -712,6 +736,7 @@ export default function AdminCoursesPage() {
                       value={formData.mode}
                       onChange={(e) => setFormData({...formData, mode: e.target.value})}
                     >
+                      <option value="Online/Offline">Online/Offline</option>
                       <option value="Online">Online</option>
                       <option value="Offline">Offline</option>
                     </Form.Select>
@@ -764,7 +789,7 @@ export default function AdminCoursesPage() {
                 </Button>
               </div>
               {formData.faq.length === 0 && (
-                <p className="text-muted small mb-0">No FAQ items yet. Click "Add Question" to add one.</p>
+                <p className="text-muted small mb-0">No FAQ items yet. Click &quot;Add Question&quot; to add one.</p>
               )}
               {formData.faq.map((item, idx) => (
                 <div key={idx} className="bg-white border rounded p-2 mb-2">

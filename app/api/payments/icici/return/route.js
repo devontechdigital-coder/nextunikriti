@@ -5,6 +5,7 @@ import Enrollment from '@/models/Enrollment';
 import Package from '@/models/Package';
 import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields } from '@/lib/enrollmentLifecycle';
 import { normalizeGradeName } from '@/lib/gradeUtils';
+import { upsertStudentProfile } from '@/lib/studentProfile';
 
 const pickFirst = (obj, keys) => {
   for (const key of keys) {
@@ -75,6 +76,8 @@ const handleCallback = async (req, payload) => {
             batchId: payment.batchId || null,
             packageId: payment.packageId || null,
             gradeName: normalizeGradeName(payment.gradeName || packageDoc?.gradeName),
+            preferredDays: payment.preferredDays || [],
+            preferredTimes: payment.preferredTimes || [],
             paymentId: payment._id,
             ...buildEnrollmentLifecycleFields({
               paymentStatus: 'paid',
@@ -84,8 +87,16 @@ const handleCallback = async (req, payload) => {
               pricingOptionId: payment.pricingOptionId || null,
             }),
           },
-          { upsert: true, new: true, setDefaultsOnInsert: true }
+          { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
         );
+
+        await upsertStudentProfile({
+          userId: payment.userId,
+          studentFields: {
+            time: Array.isArray(payment.preferredTimes) ? payment.preferredTimes.join(', ') : '',
+            status: 'active',
+          },
+        });
       } else if (status === 'failed') {
         payment.status = 'failed';
         payment.transactionId = merchantTxnNo || payment.transactionId;

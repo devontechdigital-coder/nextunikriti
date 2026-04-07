@@ -23,6 +23,13 @@ export async function generateMetadata() {
     title: theme.metaTitle || theme.siteName || 'NextLMS | Premium Online Courses',
     description: theme.metaDescription || 'The best place to learn anything, anytime.',
     keywords: theme.metaKeywords || '',
+    icons: theme.faviconUrl
+      ? {
+          icon: [{ url: theme.faviconUrl }],
+          shortcut: [{ url: theme.faviconUrl }],
+          apple: [{ url: theme.faviconUrl }],
+        }
+      : undefined,
   };
 }
 
@@ -34,6 +41,9 @@ export default async function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        {theme.faviconUrl ? <link rel="icon" href={theme.faviconUrl} /> : null}
+        {theme.faviconUrl ? <link rel="shortcut icon" href={theme.faviconUrl} /> : null}
+        {theme.faviconUrl ? <link rel="apple-touch-icon" href={theme.faviconUrl} /> : null}
         {theme.customHeadScripts ? (
           <script dangerouslySetInnerHTML={{ __html: theme.customHeadScripts }} />
         ) : null}

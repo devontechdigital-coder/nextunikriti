@@ -11,8 +11,45 @@ import { buildPackagePricingOptions, getPackageDisplayDurationDays, getPackageDi
 import { mergeGradeOptions, normalizeGradeName, packageMatchesGrade } from '@/lib/gradeUtils';
 
 const AUTH_STEP = { PHONE: 'phone', OTP: 'otp', DETAILS: 'details' };
+const DETAIL_STEP = { BASIC: 0, ADDRESS: 1, FAMILY: 2 };
+const ENROLLMENT_DAY_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const ENROLLMENT_TIME_SUGGESTIONS = ['7:00 AM - 9:00 AM', '10:00 AM - 12:00 PM', '1:00 PM - 3:00 PM', '4:00 PM - 6:00 PM', '6:00 PM - 8:00 PM'];
 
 const normalizeModeLabel = (mode) => (mode || 'Online').trim();
+const createInitialStudentProfile = () => ({
+    joiningYear: '',
+    dateOfJoining: '',
+    studentName: '',
+    onBoard: false,
+    time: '',
+    enrolledFor: '',
+    location: '',
+    dateOfBirth: '',
+    gender: 'male',
+    address1: '',
+    address2: '',
+    street: '',
+    pinCode: '',
+    cityDistrict: '',
+    state: '',
+    nationality: 'Indian',
+    motherName: '',
+    motherMobile: '',
+    motherEmail: '',
+    fatherName: '',
+    fatherMobile: '',
+    fatherEmail: '',
+    homePhone: '',
+    emergencyDetails: '',
+    relationship: '',
+    emergencyPhoneNo: '',
+    bloodGroup: '',
+    allergies: '',
+    medicalCondition: '',
+    dateOfLeaving: '',
+    status: 'lead',
+    profilePhoto: '',
+});
 
 export default function PackageSelector({ courseId, courseMode = 'Online', courseLevelName = '', availableGrades = [], initialPackages = [] }) {
     const dispatch = useDispatch();
@@ -39,11 +76,16 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
     const [pendingUser, setPendingUser] = useState(null); // stores user from OTP verify
     const [userName, setUserName] = useState('');
     const [userEmail, setUserEmail] = useState('');
+    const [studentProfile, setStudentProfile] = useState(createInitialStudentProfile());
+    const [detailStep, setDetailStep] = useState(DETAIL_STEP.BASIC);
     const [authLoading, setAuthLoading] = useState(false);
     const modeSelectionRef = useRef(null);
 
     // Confirm modal
     const [showConfirm, setShowConfirm] = useState(false);
+    const [preferredDays, setPreferredDays] = useState([]);
+    const [preferredTimes, setPreferredTimes] = useState([]);
+    const [preferredTimeInput, setPreferredTimeInput] = useState('');
 
     // Fetch public settings once
     useEffect(() => {
@@ -111,6 +153,58 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
         setSelectedPkgPriceKey('');
     }, [displayedPackages, selectedPkgId, selectedPkgPriceKey]);
 
+    const updateStudentProfileField = (field, value) => {
+        setStudentProfile((prev) => ({ ...prev, [field]: value }));
+    };
+
+    const togglePreferredDay = (day) => {
+        setPreferredDays((prev) => (
+            prev.includes(day)
+                ? prev.filter((item) => item !== day)
+                : [...prev, day]
+        ));
+    };
+
+    const addPreferredTime = (rawValue = preferredTimeInput) => {
+        const value = rawValue.trim();
+        if (!value) return;
+        setPreferredTimes((prev) => (
+            prev.some((item) => item.toLowerCase() === value.toLowerCase())
+                ? prev
+                : [...prev, value]
+        ));
+        setPreferredTimeInput('');
+    };
+
+    const removePreferredTime = (value) => {
+        setPreferredTimes((prev) => prev.filter((item) => item !== value));
+    };
+
+    const validateDetailStep = () => {
+        if (detailStep === DETAIL_STEP.BASIC) {
+            if (!userName.trim()) {
+                toast.error('Please enter your full name');
+                return false;
+            }
+            if (!studentProfile.gender) {
+                toast.error('Please select gender');
+                return false;
+            }
+        }
+        return true;
+    };
+
+    const handleDetailStepContinue = async () => {
+        if (!validateDetailStep()) return;
+
+        if (detailStep < DETAIL_STEP.FAMILY) {
+            setDetailStep((prev) => prev + 1);
+            return;
+        }
+
+        await handleSaveDetails();
+    };
+
     // Called when "Proceed to Enroll" is clicked
     const handleProceed = () => {
         if (shouldRequireModeSelection && !activePackageMode) {
@@ -128,6 +222,8 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
         if (!user) {
             setAuthStep(AUTH_STEP.PHONE);
             setPhone(''); setOtp(''); setOtpHash(''); setPendingUser(null); setUserName(''); setUserEmail('');
+            setStudentProfile(createInitialStudentProfile());
+            setDetailStep(DETAIL_STEP.BASIC);
             setShowAuthModal(true);
         } else {
             setShowConfirm(true);
@@ -168,6 +264,14 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                 setPendingUser(userData); // store for use in details step
                 if (!userData.name || userData.name === 'Student') {
                     // New user — collect name
+                    setUserName('');
+                    setUserEmail(userData.email || '');
+                    setStudentProfile((prev) => ({
+                        ...createInitialStudentProfile(),
+                        ...prev,
+                        studentName: prev.studentName || '',
+                    }));
+                    setDetailStep(DETAIL_STEP.BASIC);
                     setAuthStep(AUTH_STEP.DETAILS);
                 } else {
                     // Returning user — login & proceed
@@ -189,11 +293,16 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
         if (!userName.trim()) { toast.error('Please enter your full name'); return; }
         setAuthLoading(true);
         try {
+            const studentPayload = {
+                ...studentProfile,
+                studentName: studentProfile.studentName.trim() || userName.trim(),
+            };
             // Update name + email in DB
             await axios.post('/api/auth/update-profile', {
                 phone: `+91${phone}`,
                 name: userName.trim(),
                 email: userEmail.trim() || undefined,
+                studentProfile: studentPayload,
             });
             // Use the pendingUser we already have (cookie already set from step 2)
             const updatedUser = { ...pendingUser, name: userName.trim(), email: userEmail.trim() || pendingUser?.email };
@@ -217,12 +326,25 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
     // Final purchase — cookie already set server-side from OTP verify
     const handlePurchase = async () => {
         if (!selectedPkgId) { toast.error('Please select a package first'); return; }
+        if (!preferredDays.length) { toast.error('Please choose at least one preferred day'); return; }
+        if (!preferredTimes.length) { toast.error('Please add at least one preferred time'); return; }
         setLoading(true);
         try {
             const body = { package_id: selectedPkgId };
             if (selectedPkgPriceKey) body.package_price_key = selectedPkgPriceKey;
             if (activeGrade) body.selected_grade_name = activeGrade;
             if (selectedMode === 'pay_later') body.payment_mode = 'pay_later';
+            body.preferred_days = preferredDays;
+            body.preferred_times = preferredTimes;
+            if (pendingUser || userName.trim() || studentProfile.studentName.trim()) {
+                body.student_profile = {
+                    ...studentProfile,
+                    studentName: studentProfile.studentName.trim() || user?.name || userName.trim(),
+                    enrolledFor: studentProfile.enrolledFor.trim() || selectedPkg?.name || '',
+                    time: preferredTimes.join(', '),
+                    location: studentProfile.location.trim() || activePackageMode || courseMode || '',
+                };
+            }
 
             const res = await axios.post('/api/orders', body);
             if (res.data.success) {
@@ -415,7 +537,6 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                                                                 setSelectedPkgPriceKey(option.key);
                                                             }}
                                                         >
-                                                            <div className="fw-semibold small">{option.label}</div>
                                                             <div className="small text-muted">{option.paymentType} • {option.durationDays} days</div>
                                                             <div className="small fw-bold text-dark">
                                                                 ₹{Number(option.price || 0).toLocaleString()}
@@ -425,6 +546,10 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                                                                     </span>
                                                                 )}
                                                             </div>
+<div className="fw-semibold small">
+  Admission Fee: {option.adminFee > 0 ? `₹${option.adminFee}` : "Free"}{" "}
+  <span>(one time per year)</span>
+</div>
                                                         </button>
                                                     );
                                                 })}
@@ -471,7 +596,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
             </div>
 
             {/* ===== AUTH GATE MODAL ===== */}
-            <Modal show={showAuthModal} onHide={() => setShowAuthModal(false)} centered size="sm">
+            <Modal show={showAuthModal} onHide={() => setShowAuthModal(false)} centered size={authStep === AUTH_STEP.DETAILS ? 'lg' : 'sm'}>
                 <Modal.Header closeButton className="border-0 pb-0">
                     <Modal.Title className="fw-bold fs-6">
                         {authStep === AUTH_STEP.PHONE && '📱 Login to Enroll'}
@@ -529,7 +654,186 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
 
                     {authStep === AUTH_STEP.DETAILS && (
                         <>
-                            <p className="text-muted small mb-3">Just a few details to set up your account.</p>
+                            <div className="d-flex align-items-center justify-content-between gap-3 mb-3">
+                                <p className="text-muted small mb-0">Complete your student profile before enrollment.</p>
+                                <Badge bg="dark" pill>Step {detailStep + 1} of 3</Badge>
+                            </div>
+
+                            {detailStep === DETAIL_STEP.BASIC && (
+                                <Row className="g-3">
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">Full Name</Form.Label>
+                                        <InputGroup>
+                                            <InputGroup.Text className="bg-light"><FaUser size={12} /></InputGroup.Text>
+                                            <Form.Control
+                                                type="text"
+                                                placeholder="Your full name *"
+                                                value={userName}
+                                                onChange={e => setUserName(e.target.value)}
+                                                autoFocus
+                                            />
+                                        </InputGroup>
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">Email Address</Form.Label>
+                                        <InputGroup>
+                                            <InputGroup.Text className="bg-light"><FaEnvelope size={12} /></InputGroup.Text>
+                                            <Form.Control
+                                                type="email"
+                                                placeholder="Email address"
+                                                value={userEmail}
+                                                onChange={e => setUserEmail(e.target.value)}
+                                            />
+                                        </InputGroup>
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">Student Name</Form.Label>
+                                        <Form.Control value={studentProfile.studentName} onChange={(e) => updateStudentProfileField('studentName', e.target.value)} />
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">Gender</Form.Label>
+                                        <Form.Select value={studentProfile.gender} onChange={(e) => updateStudentProfileField('gender', e.target.value)}>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                            <option value="other">Other</option>
+                                        </Form.Select>
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">Date of Birth</Form.Label>
+                                        <Form.Control type="date" value={studentProfile.dateOfBirth} onChange={(e) => updateStudentProfileField('dateOfBirth', e.target.value)} />
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">Joining Year</Form.Label>
+                                        <Form.Control value={studentProfile.joiningYear} onChange={(e) => updateStudentProfileField('joiningYear', e.target.value)} placeholder="2026" />
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">Date of Joining</Form.Label>
+                                        <Form.Control type="date" value={studentProfile.dateOfJoining} onChange={(e) => updateStudentProfileField('dateOfJoining', e.target.value)} />
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">Blood Group</Form.Label>
+                                        <Form.Control value={studentProfile.bloodGroup} onChange={(e) => updateStudentProfileField('bloodGroup', e.target.value)} />
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">Nationality</Form.Label>
+                                        <Form.Control value={studentProfile.nationality} onChange={(e) => updateStudentProfileField('nationality', e.target.value)} />
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">Profile Photo URL</Form.Label>
+                                        <Form.Control value={studentProfile.profilePhoto} onChange={(e) => updateStudentProfileField('profilePhoto', e.target.value)} />
+                                    </Col>
+                                </Row>
+                            )}
+
+                            {detailStep === DETAIL_STEP.ADDRESS && (
+                                <Row className="g-3">
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">Address 1</Form.Label>
+                                        <Form.Control value={studentProfile.address1} onChange={(e) => updateStudentProfileField('address1', e.target.value)} />
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">Address 2</Form.Label>
+                                        <Form.Control value={studentProfile.address2} onChange={(e) => updateStudentProfileField('address2', e.target.value)} />
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">Street / Area</Form.Label>
+                                        <Form.Control value={studentProfile.street} onChange={(e) => updateStudentProfileField('street', e.target.value)} />
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">City / District</Form.Label>
+                                        <Form.Control value={studentProfile.cityDistrict} onChange={(e) => updateStudentProfileField('cityDistrict', e.target.value)} />
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Label className="small fw-semibold">State</Form.Label>
+                                        <Form.Control value={studentProfile.state} onChange={(e) => updateStudentProfileField('state', e.target.value)} />
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Label className="small fw-semibold">PIN Code</Form.Label>
+                                        <Form.Control value={studentProfile.pinCode} onChange={(e) => updateStudentProfileField('pinCode', e.target.value)} />
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Label className="small fw-semibold">Location</Form.Label>
+                                        <Form.Control value={studentProfile.location} onChange={(e) => updateStudentProfileField('location', e.target.value)} placeholder="Online / City" />
+                                    </Col>
+                                </Row>
+                            )}
+
+                            {detailStep === DETAIL_STEP.FAMILY && (
+                                <Row className="g-3">
+                                    <Col md={4}>
+                                        <Form.Label className="small fw-semibold">Mother Name</Form.Label>
+                                        <Form.Control value={studentProfile.motherName} onChange={(e) => updateStudentProfileField('motherName', e.target.value)} />
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Label className="small fw-semibold">Mother Mobile</Form.Label>
+                                        <Form.Control value={studentProfile.motherMobile} onChange={(e) => updateStudentProfileField('motherMobile', e.target.value)} />
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Label className="small fw-semibold">Mother Email</Form.Label>
+                                        <Form.Control type="email" value={studentProfile.motherEmail} onChange={(e) => updateStudentProfileField('motherEmail', e.target.value)} />
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Label className="small fw-semibold">Father Name</Form.Label>
+                                        <Form.Control value={studentProfile.fatherName} onChange={(e) => updateStudentProfileField('fatherName', e.target.value)} />
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Label className="small fw-semibold">Father Mobile</Form.Label>
+                                        <Form.Control value={studentProfile.fatherMobile} onChange={(e) => updateStudentProfileField('fatherMobile', e.target.value)} />
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Label className="small fw-semibold">Father Email</Form.Label>
+                                        <Form.Control type="email" value={studentProfile.fatherEmail} onChange={(e) => updateStudentProfileField('fatherEmail', e.target.value)} />
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Label className="small fw-semibold">Home Phone</Form.Label>
+                                        <Form.Control value={studentProfile.homePhone} onChange={(e) => updateStudentProfileField('homePhone', e.target.value)} />
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Label className="small fw-semibold">Emergency Contact</Form.Label>
+                                        <Form.Control value={studentProfile.emergencyDetails} onChange={(e) => updateStudentProfileField('emergencyDetails', e.target.value)} />
+                                    </Col>
+                                    <Col md={4}>
+                                        <Form.Label className="small fw-semibold">Relationship</Form.Label>
+                                        <Form.Control value={studentProfile.relationship} onChange={(e) => updateStudentProfileField('relationship', e.target.value)} />
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">Emergency Phone No</Form.Label>
+                                        <Form.Control value={studentProfile.emergencyPhoneNo} onChange={(e) => updateStudentProfileField('emergencyPhoneNo', e.target.value)} />
+                                    </Col>
+                                    <Col md={6}>
+                                        <Form.Label className="small fw-semibold">Allergies</Form.Label>
+                                        <Form.Control value={studentProfile.allergies} onChange={(e) => updateStudentProfileField('allergies', e.target.value)} />
+                                    </Col>
+                                    <Col xs={12}>
+                                        <Form.Label className="small fw-semibold">Medical Condition</Form.Label>
+                                        <Form.Control as="textarea" rows={2} value={studentProfile.medicalCondition} onChange={(e) => updateStudentProfileField('medicalCondition', e.target.value)} />
+                                    </Col>
+                                </Row>
+                            )}
+
+                            <div className="d-flex justify-content-between gap-2 mt-4">
+                                <Button
+                                    variant="outline-secondary"
+                                    className="rounded-pill px-4"
+                                    onClick={() => {
+                                        if (detailStep === DETAIL_STEP.BASIC) {
+                                            setAuthStep(AUTH_STEP.OTP);
+                                            return;
+                                        }
+                                        setDetailStep((prev) => Math.max(DETAIL_STEP.BASIC, prev - 1));
+                                    }}
+                                    disabled={authLoading}
+                                >
+                                    Back
+                                </Button>
+                                <Button variant="dark" className="rounded-pill fw-bold px-4" onClick={handleDetailStepContinue} disabled={authLoading || !userName.trim()}>
+                                    {authLoading ? <Spinner size="sm" /> : (detailStep === DETAIL_STEP.FAMILY ? 'Continue to Enrollment ->' : 'Next ->')}
+                                </Button>
+                            </div>
+
+                            {false && (
+                                <>
+                                    <p className="text-muted small mb-3">Just a few details to set up your account.</p>
                             <InputGroup className="mb-3">
                                 <InputGroup.Text className="bg-light"><FaUser size={12} /></InputGroup.Text>
                                 <Form.Control
@@ -553,6 +857,8 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                             <Button variant="dark" className="w-100 rounded-pill fw-bold" onClick={handleSaveDetails} disabled={authLoading || !userName.trim()}>
                                 {authLoading ? <Spinner size="sm" /> : 'Continue to Payment →'}
                             </Button>
+                        </>
+                            )}
                         </>
                     )}
                 </Modal.Body>
@@ -580,6 +886,60 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                     )}
 
                     {/* Both modes — show choice */}
+                    <div className="border rounded-4 p-3 mb-3">
+                        <div className="fw-semibold mb-2">Preferred Day</div>
+                        <div className="d-flex flex-wrap gap-2 mb-2">
+                            {ENROLLMENT_DAY_OPTIONS.map((day) => (
+                                <Button
+                                    key={day}
+                                    type="button"
+                                    size="sm"
+                                    variant={preferredDays.includes(day) ? 'dark' : 'outline-dark'}
+                                    className="rounded-pill"
+                                    onClick={() => togglePreferredDay(day)}
+                                >
+                                    {day}
+                                </Button>
+                            ))}
+                        </div>
+                        <div className="text-muted small">Select one or more days for your preferred class schedule.</div>
+                    </div>
+
+                    <div className="border rounded-4 p-3 mb-3">
+                        <div className="fw-semibold mb-2">Preferred Time</div>
+                        <InputGroup className="mb-2">
+                            <Form.Control
+                                placeholder="Add preferred time slot"
+                                value={preferredTimeInput}
+                                onChange={(e) => setPreferredTimeInput(e.target.value)}
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        addPreferredTime();
+                                    }
+                                }}
+                            />
+                            <Button variant="dark" onClick={() => addPreferredTime()}>Add</Button>
+                        </InputGroup>
+                        <div className="d-flex flex-wrap gap-2 mb-2">
+                            {ENROLLMENT_TIME_SUGGESTIONS.map((slot) => (
+                                <Button key={slot} type="button" size="sm" variant="outline-secondary" className="rounded-pill" onClick={() => addPreferredTime(slot)}>
+                                    {slot}
+                                </Button>
+                            ))}
+                        </div>
+                        {preferredTimes.length > 0 && (
+                            <div className="d-flex flex-wrap gap-2">
+                                {preferredTimes.map((slot) => (
+                                    <Badge key={slot} bg="dark" pill className="d-inline-flex align-items-center gap-2 px-3 py-2">
+                                        <span>{slot}</span>
+                                        <button type="button" className="pref-chip-remove" onClick={() => removePreferredTime(slot)}>x</button>
+                                    </Badge>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+
                     {bothModesEnabled && (
                         <div>
                             <p className="fw-semibold small mb-2">How would you like to pay?</p>
@@ -639,6 +999,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                 .border-dashed { border: 2px dashed #ddd !important; }
                 .x-small { font-size: 0.75rem; }
                 .otp-input { letter-spacing: 0.5rem; font-size: 1.5rem !important; }
+                .pref-chip-remove { border: 0; background: transparent; color: inherit; line-height: 1; font-size: 0.85rem; padding: 0; }
             `}</style>
         </div>
     );

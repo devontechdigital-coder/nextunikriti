@@ -7,6 +7,7 @@ import { verifyToken } from '@/lib/jwt';
 import Package from '@/models/Package';
 import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields } from '@/lib/enrollmentLifecycle';
 import { normalizeGradeName } from '@/lib/gradeUtils';
+import { upsertStudentProfile } from '@/lib/studentProfile';
 
 export async function POST(req) {
   try {
@@ -60,6 +61,8 @@ export async function POST(req) {
           batchId: paymentRecord.batchId || null,
           packageId: paymentRecord.packageId || null,
           gradeName: normalizeGradeName(paymentRecord.gradeName || packageDoc?.gradeName),
+          preferredDays: paymentRecord.preferredDays || [],
+          preferredTimes: paymentRecord.preferredTimes || [],
           paymentId: paymentRecord._id,
           ...buildEnrollmentLifecycleFields({
             paymentStatus: 'paid',
@@ -69,8 +72,16 @@ export async function POST(req) {
             pricingOptionId: paymentRecord.pricingOptionId || null,
           }),
         },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
+        { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
       );
+
+      await upsertStudentProfile({
+        userId: paymentRecord.userId,
+        studentFields: {
+          time: Array.isArray(paymentRecord.preferredTimes) ? paymentRecord.preferredTimes.join(', ') : '',
+          status: 'active',
+        },
+      });
 
       return NextResponse.json({ success: true, message: 'Payment verified successfully' });
     }

@@ -255,11 +255,13 @@ export default async function PublicCourseDetailPage({ params }) {
                                         <div>✔ {course.mode || 'Online'} sessions</div>
                                         {course.certification && <div>✔ Certification included</div>}
                                     </div>
-                                    <div className="d-grid mt-3">
-                                        <button className="u-btn-outline">
-                                            Download Brochure
-                                        </button>
-                                    </div>
+                                    {course.brochureUrl && (
+                                        <div className="d-grid mt-3">
+                                            <a href={course.brochureUrl} target="_blank" rel="noreferrer" className="u-btn-outline text-decoration-none text-center">
+                                                Download Brochure
+                                            </a>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="u-card mt-4">
                                     <h3 className="u-sec-title mb-3" style={{ fontSize: 24 }}>

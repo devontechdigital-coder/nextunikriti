@@ -363,6 +363,12 @@ export default function AdminOrdersPage() {
                   {order.packageId?.selectedOptionLabel && (
                     <div className="small text-muted">{order.packageId.selectedOptionLabel}</div>
                   )}
+                  {Array.isArray(order.preferredDays) && order.preferredDays.length > 0 && (
+                    <div className="x-small text-muted mt-1">Days: {order.preferredDays.join(', ')}</div>
+                  )}
+                  {Array.isArray(order.preferredTimes) && order.preferredTimes.length > 0 && (
+                    <div className="x-small text-muted">Time: {order.preferredTimes.join(', ')}</div>
+                  )}
                 </td>
                 <td>{order.gradeName ? <Badge bg="secondary">{order.gradeName}</Badge> : <span className="text-muted small">-</span>}</td>
                 <td>{getStatusBadge(order.status)}</td>
@@ -371,7 +377,7 @@ export default function AdminOrdersPage() {
                   <div className="x-small text-muted mt-1">Mode: {getGatewayLabel(order.gateway)}</div>
                 </td>
                 <td>
-                  <div className="small">{formatDate(order.createdAt)}</div>
+                  <div className="small">{formatDate(order.startDate)}</div>
                   </td>
                   <td>
                 <div className="small">{formatDate(order.endDate)}  </div> 

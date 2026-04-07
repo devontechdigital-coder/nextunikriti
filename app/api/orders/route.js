@@ -18,6 +18,17 @@ import { getUserFromCookie } from '@/utils/auth';
 import { resolvePackagePriceOption } from '@/lib/packagePricing';
 import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields } from '@/lib/enrollmentLifecycle';
 import { normalizeGradeName } from '@/lib/gradeUtils';
+import { upsertStudentProfile } from '@/lib/studentProfile';
+
+const normalizeStringList = (value) => (
+  Array.isArray(value)
+    ? [...new Set(
+        value
+          .map((item) => String(item || '').trim())
+          .filter(Boolean)
+      )]
+    : []
+);
 
 export async function POST(req) {
   try {
@@ -28,7 +39,16 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: 'Unauthorized. Please login first.' }, { status: 401 });
     }
 
-    const { batch_id, package_id, package_price_key, payment_mode, selected_grade_name } = await req.json();
+    const {
+      batch_id,
+      package_id,
+      package_price_key,
+      payment_mode,
+      selected_grade_name,
+      preferred_days,
+      preferred_times,
+      student_profile,
+    } = await req.json();
     
     let finalPrice = 0;
     let courseId = null;
@@ -38,6 +58,8 @@ export async function POST(req) {
     let selectedPricingOption = null;
     let selectedPackageDoc = null;
     let selectedGradeName = normalizeGradeName(selected_grade_name);
+    const preferredDays = normalizeStringList(preferred_days);
+    const preferredTimes = normalizeStringList(preferred_times);
 
     if (package_id) {
       const Package = (await import('@/models/Package')).default;
@@ -71,6 +93,24 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: 'Package ID or Batch ID is required' }, { status: 400 });
     }
 
+    if (!preferredDays.length) {
+      return NextResponse.json({ success: false, message: 'Please select at least one preferred day' }, { status: 400 });
+    }
+
+    if (!preferredTimes.length) {
+      return NextResponse.json({ success: false, message: 'Please add at least one preferred time' }, { status: 400 });
+    }
+
+    await upsertStudentProfile({
+      userId: user.id,
+      studentFields: {
+        ...(student_profile || {}),
+        enrolledFor: student_profile?.enrolledFor || name,
+        time: student_profile?.time || preferredTimes.join(', '),
+        location: student_profile?.location || selectedPackageDoc?.mode || undefined,
+      },
+    });
+
     // --- Pay Later Flow ---
     if (payment_mode === 'pay_later') {
       const paymentRecord = await Payment.create({
@@ -81,6 +121,8 @@ export async function POST(req) {
         gradeName: selectedGradeName,
         pricingOptionId: selectedPricingOption?._id || null,
         packagePriceKey: selectedPricingOption?.key || package_price_key || '',
+        preferredDays,
+        preferredTimes,
         amount: finalPrice,
         gateway: 'pay_later',
         status: 'pending',
@@ -95,6 +137,8 @@ export async function POST(req) {
           packageId: package_id || null,
           batchId: batch_id || null,
           gradeName: selectedGradeName,
+          preferredDays,
+          preferredTimes,
           paymentId: paymentRecord._id,
           ...buildEnrollmentLifecycleFields({
             paymentStatus: 'pending',
@@ -104,7 +148,7 @@ export async function POST(req) {
             pricingOptionId: selectedPricingOption?._id || null,
           }),
         },
-        { upsert: true, new: true, setDefaultsOnInsert: true }
+        { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
       );
 
       return NextResponse.json({ success: true, gateway: 'pay_later' });
@@ -126,6 +170,8 @@ export async function POST(req) {
       gradeName: selectedGradeName,
       pricingOptionId: selectedPricingOption?._id || null,
       packagePriceKey: selectedPricingOption?.key || package_price_key || '',
+      preferredDays,
+      preferredTimes,
       amount: finalPrice,
       gateway: activeGateway,
       transactionId: `pending_${Math.random()}`
@@ -154,7 +200,9 @@ export async function POST(req) {
             batchId: (batch_id || '').toString(),
             packageId: (package_id || '').toString(),
             userId: user.id.toString(),
-            gradeName: selectedGradeName
+            gradeName: selectedGradeName,
+            preferredDays: preferredDays.join(', '),
+            preferredTimes: preferredTimes.join(', ')
         }
       });
       return NextResponse.json({ success: true, gateway: 'stripe', id: session.id, url: session.url });
@@ -209,6 +257,12 @@ export async function POST(req) {
       paymentRecord.transactionId = merchantTxnNo;
       await paymentRecord.save();
 
+
+      console.log('ICICI Payment Initiation Success:', {
+         merchantTxnNo,
+         hashMode,
+         iciciResponse,
+      });
       return NextResponse.json({
         success: true,
         gateway: 'icici',

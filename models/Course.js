@@ -30,6 +30,7 @@ const courseSchema = new mongoose.Schema({
   shortDescription: { type: String },
   mode: { type: String, enum: ['Online', 'Offline'], default: 'Online' },
   duration: { type: String },
+  brochureUrl: { type: String, default: '' },
   certification: { type: Boolean, default: false },
   faq: [{ question: { type: String }, answer: { type: String } }]
 }, { timestamps: true });
@@ -46,7 +47,7 @@ courseSchema.index({ instrument_id: 1, level_id: 1 }, {
 if (mongoose.models.Course) {
   const model = mongoose.models.Course;
   // If the cached model doesn't have the new fields, delete it to force reload
-  if (!model.schema.paths.shortDescription || !model.schema.paths.course_creator || !model.schema.paths.instrument_id || !model.schema.paths.level_id) {
+  if (!model.schema.paths.shortDescription || !model.schema.paths.course_creator || !model.schema.paths.instrument_id || !model.schema.paths.level_id || !model.schema.paths.brochureUrl) {
     delete mongoose.models.Course;
   }
 }

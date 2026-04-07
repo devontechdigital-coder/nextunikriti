@@ -101,6 +101,9 @@ export async function POST(req) {
     });
     
     await newCourse.save();
+    await newCourse.populate('course_creator', 'name email');
+    await newCourse.populate({ path: 'instrument_id', select: 'name', strictPopulate: false });
+    await newCourse.populate({ path: 'level_id', select: 'levelName grades', strictPopulate: false });
 
     return NextResponse.json({ success: true, data: newCourse });
   } catch (error) {
@@ -169,6 +172,9 @@ export async function PATCH(req) {
     course.category = undefined;
 
     await course.save();
+    await course.populate('course_creator', 'name email');
+    await course.populate({ path: 'instrument_id', select: 'name', strictPopulate: false });
+    await course.populate({ path: 'level_id', select: 'levelName grades', strictPopulate: false });
 
     return NextResponse.json({ success: true, data: course });
   } catch (error) {

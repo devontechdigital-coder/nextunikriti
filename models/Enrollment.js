@@ -9,6 +9,8 @@ const enrollmentSchema = new mongoose.Schema({
   paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },
 
   pricingOptionId: { type: mongoose.Schema.Types.ObjectId },
+  preferredDays: [{ type: String, trim: true }],
+  preferredTimes: [{ type: String, trim: true }],
 
   paymentStatus: { type: String, enum: ['paid', 'pending', 'free'], default: 'paid' },
   status: { type: String, enum: ['active', 'pending_payment', 'suspended'], default: 'active' },

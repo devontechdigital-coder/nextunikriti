@@ -35,7 +35,7 @@ const studentSchema = new mongoose.Schema({
   schoolId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'School', 
-    required: true 
+    default: null,
   },
   enrolmentNumber: {
     type: String,
@@ -115,44 +115,26 @@ const studentSchema = new mongoose.Schema({
   profilePhoto: { type: String, default: '' }
 }, { timestamps: true });
 
-studentSchema.pre('save', async function generateEnrolmentNumber(next) {
+studentSchema.pre('save', async function generateEnrolmentNumber() {
   if (!this.isNew || this.enrolmentNumber) {
-    return next();
+    return;
   }
 
-  try {
-    const counter = await Counter.findOneAndUpdate(
-      { name: STUDENT_COUNTER_KEY },
-      {
-        $inc: { seq: 1 },
-        $setOnInsert: { name: STUDENT_COUNTER_KEY }
-      },
-      {
-        new: true,
-        upsert: true,
-        setDefaultsOnInsert: true
-      }
-    );
-
-    this.enrolmentNumber = `${ENROLMENT_PREFIX}-${String(counter.seq).padStart(5, '0')}`;
-    return next();
-  } catch (error) {
-    return next(error);
-  }
-});
-
-const existingStudentModel = mongoose.models.Student;
-
-if (existingStudentModel) {
-  const missingFields = Object.fromEntries(
-    Object.entries(studentCompatibilityFields).filter(([field]) => !existingStudentModel.schema.path(field))
+  const counter = await Counter.findOneAndUpdate(
+    { name: STUDENT_COUNTER_KEY },
+    {
+      $inc: { seq: 1 },
+      $setOnInsert: { name: STUDENT_COUNTER_KEY }
+    },
+    {
+      returnDocument: 'after',
+      upsert: true,
+      setDefaultsOnInsert: true
+    }
   );
 
-  if (Object.keys(missingFields).length > 0) {
-    existingStudentModel.schema.add(missingFields);
-  }
-}
+  this.enrolmentNumber = `${ENROLMENT_PREFIX}-${String(counter.seq).padStart(5, '0')}`;
+});
 
-const Student = existingStudentModel || mongoose.model('Student', studentSchema);
-
-export default Student;
+delete mongoose.models.Student;
+export default mongoose.model('Student', studentSchema);

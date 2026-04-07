@@ -30,6 +30,7 @@ export default function AdminSettingsPage() {
   const [theme, setTheme] = useState({
     siteName: '',
     siteLogo: '',
+    faviconUrl: '',
     metaTitle: '',
     metaDescription: '',
     metaKeywords: '',
@@ -68,6 +69,7 @@ export default function AdminSettingsPage() {
       setTheme(getVal('hp_theme', {
         siteName: '',
         siteLogo: '',
+        faviconUrl: '',
         metaTitle: '',
         metaDescription: '',
         metaKeywords: '',
@@ -664,6 +666,17 @@ export default function AdminSettingsPage() {
                           )}
                         </div>
                       </Form.Group>
+                      <Form.Group className="col-12">
+                        <Form.Label className="fw-semibold small">Favicon Image URL</Form.Label>
+                        <div className="d-flex gap-2 align-items-start">
+                          <Form.Control value={theme.faviconUrl} onChange={e => setTheme({ ...theme, faviconUrl: e.target.value })} placeholder="https://.../favicon.png" />
+                          {theme.faviconUrl && (
+                            <div className="border rounded p-1 bg-white d-flex align-items-center justify-content-center" style={{ width: '40px', height: '40px' }}>
+                              <img src={theme.faviconUrl} alt="Favicon preview" style={{ width: '20px', height: '20px', objectFit: 'contain' }} />
+                            </div>
+                          )}
+                        </div>
+                      </Form.Group>
                     </Form>
                   </div>
 
@@ -693,7 +706,7 @@ export default function AdminSettingsPage() {
                       <Form.Group className="col-12">
                         <Form.Label className="fw-semibold small">Global Meta Title</Form.Label>
                         <Form.Control value={theme.metaTitle} onChange={e => setTheme({ ...theme, metaTitle: e.target.value })} placeholder="Default title for the whole site" />
-                        <Form.Text className="text-muted small">This is used when a specific page doesn't have its own SEO title.</Form.Text>
+                        <Form.Text className="text-muted small">This is used when a specific page doesn&apos;t have its own SEO title.</Form.Text>
                       </Form.Group>
                       <Form.Group className="col-12">
                         <Form.Label className="fw-semibold small">Global Meta Description</Form.Label>
@@ -815,7 +828,7 @@ export default function AdminSettingsPage() {
               </div>
               {!paymentModeOnline && !paymentModeLater && (
                 <div className="alert alert-warning mt-4 small">
-                  ⚠️ Warning: At least one payment mode must be enabled, otherwise students won't be able to enroll.
+                  ⚠️ Warning: At least one payment mode must be enabled, otherwise students won&apos;t be able to enroll.
                 </div>
               )}
             </div>
