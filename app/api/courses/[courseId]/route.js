@@ -23,7 +23,7 @@ export async function GET(req, { params }) {
     if (course) {
       course = await course.populate('course_creator', 'name avatar')
       course = await course.populate('instrument_id', 'name')
-      course = await course.populate('level_id', 'levelName');
+      course = await course.populate('level_id', 'levelName grades');
     }
     
     if (!course) return NextResponse.json({ success: false, error: 'Course not found' }, { status: 404 });

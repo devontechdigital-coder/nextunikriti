@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Level from '@/models/Level';
+import { normalizeGradeList } from '@/lib/gradeUtils';
 
 export async function GET(req) {
   try {
@@ -24,7 +25,11 @@ export async function POST(req) {
   try {
     await dbConnect();
     const body = await req.json();
-    const level = await Level.create(body);
+    const payload = {
+      ...body,
+      grades: normalizeGradeList(body?.grades),
+    };
+    const level = await Level.create(payload);
     return NextResponse.json({ success: true, level });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });

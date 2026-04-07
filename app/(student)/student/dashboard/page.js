@@ -139,6 +139,7 @@ export default function StudentDashboardPage() {
                         )}
                         <div className="position-absolute bottom-0 start-0 p-3 w-100" style={{ background: 'linear-gradient(transparent, rgba(0,0,0,0.7))' }}>
                           <Badge bg="success" className="rounded-pill px-3">{course.package_name}</Badge>
+                          {course.grade_name && <Badge bg="light" text="dark" className="rounded-pill px-3 ms-2">{course.grade_name}</Badge>}
                         </div>
                       </div>
                       <Card.Body className="p-4 d-flex flex-column">
@@ -146,6 +147,7 @@ export default function StudentDashboardPage() {
                         {course.pricing_option_label && (
                           <div className="small text-muted mb-3">{course.pricing_option_label}</div>
                         )}
+                        {course.grade_name && <div className="small text-muted mb-3">Grade: {course.grade_name}</div>}
 
                         <div className="d-grid gap-2 mb-3">
                           <div className="small d-flex align-items-center gap-2 text-muted">
@@ -197,7 +199,7 @@ export default function StudentDashboardPage() {
                       <Card.Body className="p-4 d-flex flex-column">
                         <div className="d-flex justify-content-between mb-3">
                           <Badge bg="warning" text="dark" className="rounded-pill px-3">Pending Payment</Badge>
-                          <span className="small text-muted">{course.package_name}</span>
+                          <span className="small text-muted">{course.package_name}{course.grade_name ? ` • ${course.grade_name}` : ''}</span>
                         </div>
                         <h6 className="fw-bold mb-2 text-dark">{course.course_title}</h6>
                         {course.pricing_option_label && <div className="small text-muted mb-3">{course.pricing_option_label}</div>}

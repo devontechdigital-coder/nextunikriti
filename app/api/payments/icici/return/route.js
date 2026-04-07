@@ -4,6 +4,7 @@ import Payment from '@/models/Payment';
 import Enrollment from '@/models/Enrollment';
 import Package from '@/models/Package';
 import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields } from '@/lib/enrollmentLifecycle';
+import { normalizeGradeName } from '@/lib/gradeUtils';
 
 const pickFirst = (obj, keys) => {
   for (const key of keys) {
@@ -73,6 +74,7 @@ const handleCallback = async (req, payload) => {
             courseId: payment.courseId,
             batchId: payment.batchId || null,
             packageId: payment.packageId || null,
+            gradeName: normalizeGradeName(payment.gradeName || packageDoc?.gradeName),
             paymentId: payment._id,
             ...buildEnrollmentLifecycleFields({
               paymentStatus: 'paid',

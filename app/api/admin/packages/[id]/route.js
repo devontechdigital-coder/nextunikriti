@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import Package from '@/models/Package';
 import { getUserFromCookie } from '@/utils/auth';
 import { normalizePackagePricingInput } from '@/lib/packagePricing';
+import { normalizeGradeName } from '@/lib/gradeUtils';
 
 export async function PUT(req, { params }) {
   try {
@@ -14,7 +15,10 @@ export async function PUT(req, { params }) {
     const { id } = params;
     await dbConnect();
     const body = await req.json();
-    const payload = normalizePackagePricingInput(body, { partial: true });
+    const payload = {
+      ...normalizePackagePricingInput(body, { partial: true }),
+      ...(Object.prototype.hasOwnProperty.call(body, 'gradeName') ? { gradeName: normalizeGradeName(body?.gradeName) } : {}),
+    };
 
     const pkg = await Package.findByIdAndUpdate(
       id,

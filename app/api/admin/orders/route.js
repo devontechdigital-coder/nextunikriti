@@ -8,6 +8,7 @@ import Payment from '@/models/Payment';
 import { getUserFromCookie } from '@/utils/auth';
 import { getPackageDisplayPrice, resolvePackagePriceOption, resolvePackagePriceOptionById } from '@/lib/packagePricing';
 import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields, findPreferredEnrollmentForCourse } from '@/lib/enrollmentLifecycle';
+import { normalizeGradeName } from '@/lib/gradeUtils';
 
 // GET /api/admin/orders — fetch all payment/order records
 export async function GET(req) {
@@ -22,7 +23,7 @@ export async function GET(req) {
     const payments = await Payment.find({})
       .populate('userId', 'name email phone')
       .populate('courseId', 'title thumbnail')
-      .populate('packageId', 'name pricingOptions')
+      .populate('packageId', 'name pricingOptions gradeName')
       .sort({ createdAt: -1 });
 
     const data = await Promise.all(payments.map(async (payment) => {
@@ -41,6 +42,7 @@ export async function GET(req) {
       return {
         ...plainPayment,
         enrollmentId: enrollment?._id || null,
+        gradeName: normalizeGradeName(enrollment?.gradeName || plainPayment.gradeName || plainPayment.packageId?.gradeName),
         paymentStatus: plainPayment.status === 'completed' ? 'paid' : plainPayment.status,
         status: enrollment?.status || (plainPayment.status === 'completed' ? 'active' : 'pending_payment'),
           startDate: enrollment?.startDate || null,
@@ -84,6 +86,7 @@ export async function POST(req) {
     let amount = 0;
     let packageDoc = null;
     let selectedOption = null;
+    let gradeName = '';
 
     if (packageId) {
       const pkg = await Package.findById(packageId).populate('course_id', 'title price');
@@ -96,6 +99,7 @@ export async function POST(req) {
       resolvedCourseId = pkg.course_id?._id?.toString();
       resolvedPackageId = pkg._id.toString();
       amount = selectedOption.price;
+      gradeName = normalizeGradeName(pkg.gradeName);
     } else {
       const course = await Course.findById(courseId).select('title price');
       if (!course) {
@@ -111,6 +115,7 @@ export async function POST(req) {
       userId,
       courseId: resolvedCourseId,
       packageId: resolvedPackageId,
+      gradeName,
       pricingOptionId: selectedOption?._id || null,
       packagePriceKey: selectedOption?.key || packagePriceKey || '',
       amount,
@@ -127,6 +132,7 @@ export async function POST(req) {
         userId,
         courseId: resolvedCourseId,
         packageId: resolvedPackageId,
+        gradeName,
         paymentId: paymentRecord._id,
         ...buildEnrollmentLifecycleFields({
           paymentStatus: isManualPaid ? 'paid' : 'pending',
@@ -140,7 +146,7 @@ export async function POST(req) {
     )
       .populate('userId', 'name email phone')
       .populate('courseId', 'title thumbnail')
-      .populate('packageId', 'name pricingOptions')
+      .populate('packageId', 'name pricingOptions gradeName')
       .populate('paymentId');
 
     const plainEnrollment = enrollment.toObject();
@@ -149,6 +155,7 @@ export async function POST(req) {
       plainEnrollment.packageId.displayPrice = resolvedOption.price;
       plainEnrollment.packageId.selectedOptionLabel = resolvedOption.label;
     }
+    plainEnrollment.gradeName = normalizeGradeName(plainEnrollment.gradeName || plainEnrollment.packageId?.gradeName);
 
     return NextResponse.json({
       success: true,
@@ -204,6 +211,7 @@ export async function PATCH(req) {
         courseId: payment.courseId,
         batchId: payment.batchId || null,
         packageId: payment.packageId || null,
+        gradeName: normalizeGradeName(payment.gradeName || packageDoc?.gradeName),
         paymentId: payment._id,
         ...buildEnrollmentLifecycleFields({
           paymentStatus: payment.status === 'completed' ? 'paid' : 'pending',
@@ -215,6 +223,7 @@ export async function PATCH(req) {
       });
     } else {
       enrollment.paymentId = payment._id;
+      enrollment.gradeName = normalizeGradeName(enrollment.gradeName || payment.gradeName);
       enrollment.paymentStatus = payment.status === 'completed' ? 'paid' : 'pending';
       enrollment.status = action === 'reject' ? 'suspended' : (payment.status === 'completed' ? 'active' : 'pending_payment');
     }

@@ -17,6 +17,7 @@ import User from '@/models/User';
 import { getUserFromCookie } from '@/utils/auth';
 import { resolvePackagePriceOption } from '@/lib/packagePricing';
 import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields } from '@/lib/enrollmentLifecycle';
+import { normalizeGradeName } from '@/lib/gradeUtils';
 
 export async function POST(req) {
   try {
@@ -27,7 +28,7 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: 'Unauthorized. Please login first.' }, { status: 401 });
     }
 
-    const { batch_id, package_id, package_price_key, payment_mode } = await req.json();
+    const { batch_id, package_id, package_price_key, payment_mode, selected_grade_name } = await req.json();
     
     let finalPrice = 0;
     let courseId = null;
@@ -36,6 +37,7 @@ export async function POST(req) {
     let courseSlugOrId = '';
     let selectedPricingOption = null;
     let selectedPackageDoc = null;
+    let selectedGradeName = normalizeGradeName(selected_grade_name);
 
     if (package_id) {
       const Package = (await import('@/models/Package')).default;
@@ -46,6 +48,7 @@ export async function POST(req) {
       const selectedPackagePrice = resolvePackagePriceOption(pkg, package_price_key);
       selectedPricingOption = selectedPackagePrice;
       selectedPackageDoc = pkg;
+      selectedGradeName = normalizeGradeName(selected_grade_name || pkg.gradeName);
       finalPrice = selectedPackagePrice.price;
       courseId = pkg.course_id._id;
       courseSlugOrId = pkg.course_id.slug || pkg.course_id._id;
@@ -75,6 +78,7 @@ export async function POST(req) {
         courseId,
         batchId: batch_id || null,
         packageId: package_id || null,
+        gradeName: selectedGradeName,
         pricingOptionId: selectedPricingOption?._id || null,
         packagePriceKey: selectedPricingOption?.key || package_price_key || '',
         amount: finalPrice,
@@ -90,6 +94,7 @@ export async function POST(req) {
           courseId,
           packageId: package_id || null,
           batchId: batch_id || null,
+          gradeName: selectedGradeName,
           paymentId: paymentRecord._id,
           ...buildEnrollmentLifecycleFields({
             paymentStatus: 'pending',
@@ -118,6 +123,7 @@ export async function POST(req) {
       courseId,
       batchId: batch_id || null,
       packageId: package_id || null,
+      gradeName: selectedGradeName,
       pricingOptionId: selectedPricingOption?._id || null,
       packagePriceKey: selectedPricingOption?.key || package_price_key || '',
       amount: finalPrice,
@@ -147,7 +153,8 @@ export async function POST(req) {
             courseId: courseId.toString(),
             batchId: (batch_id || '').toString(),
             packageId: (package_id || '').toString(),
-            userId: user.id.toString()
+            userId: user.id.toString(),
+            gradeName: selectedGradeName
         }
       });
       return NextResponse.json({ success: true, gateway: 'stripe', id: session.id, url: session.url });

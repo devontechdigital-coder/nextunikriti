@@ -31,7 +31,7 @@ async function getCourse(courseId) {
         // Populate necessary fields
         await course.populate('course_creator', 'name avatar email bio');
         await course.populate('instrument_id', 'name');
-        await course.populate('level_id', 'levelName');
+        await course.populate('level_id', 'levelName grades');
         await course.populate('categoryIds');
 
         // Fetch packages directly from DB instead of internal API fetch
@@ -174,6 +174,8 @@ export default async function PublicCourseDetailPage({ params }) {
                                 <PackageSelector
                                     courseId={course._id.toString()}
                                     courseMode={course.mode}
+                                    courseLevelName={course.level_id?.levelName || course.level}
+                                    availableGrades={course.level_id?.grades || []}
                                     initialPackages={course.packages}
                                 />
                             </div>

@@ -12,6 +12,7 @@ import {
 } from '@/redux/api/apiSlice';
 import { FaEdit, FaTrash, FaPlus, FaCheckCircle, FaArrowLeft, FaSortNumericDown } from 'react-icons/fa';
 import Link from 'next/link';
+import { normalizeGradeList } from '@/lib/gradeUtils';
 
 export default function LevelsPage() {
   const { id: instrumentId } = useParams();
@@ -29,7 +30,7 @@ export default function LevelsPage() {
   const [editingLevel, setEditingLevel] = useState(null);
   const [levelToDelete, setLevelToDelete] = useState(null);
   
-  const [formData, setFormData] = useState({ levelName: '', orderNo: 0, description: '', status: 'active' });
+  const [formData, setFormData] = useState({ levelName: '', gradesText: '', orderNo: 0, description: '', status: 'active' });
   const [successMsg, setSuccessMsg] = useState('');
 
   const levels = data?.levels || [];
@@ -40,6 +41,7 @@ export default function LevelsPage() {
       setEditingLevel(level);
       setFormData({ 
         levelName: level.levelName, 
+        gradesText: (level.grades || []).join('\n'),
         orderNo: level.orderNo, 
         description: level.description || '', 
         status: level.status 
@@ -48,6 +50,7 @@ export default function LevelsPage() {
       setEditingLevel(null);
       setFormData({ 
         levelName: '', 
+        gradesText: '',
         orderNo: levels.length > 0 ? Math.max(...levels.map(l => l.orderNo)) + 1 : 1, 
         description: '', 
         status: 'active' 
@@ -59,11 +62,21 @@ export default function LevelsPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const payload = {
+        ...formData,
+        grades: normalizeGradeList(
+          formData.gradesText
+            .split(/\r?\n|,/)
+            .map((item) => item.trim())
+        ),
+      };
+      delete payload.gradesText;
+
       if (editingLevel) {
-        await updateLevel({ id: editingLevel._id, ...formData }).unwrap();
+        await updateLevel({ id: editingLevel._id, ...payload }).unwrap();
         setSuccessMsg('Level updated successfully!');
       } else {
-        await createLevel({ instrumentId, ...formData }).unwrap();
+        await createLevel({ instrumentId, ...payload }).unwrap();
         setSuccessMsg('Level created successfully!');
       }
       setShowModal(false);
@@ -129,6 +142,7 @@ export default function LevelsPage() {
             <tr>
               <th className="ps-4 py-3" style={{ width: '80px' }}>Order</th>
               <th className="py-3">Level Name</th>
+              <th className="py-3">Grades</th>
               <th className="py-3">Description</th>
               <th className="py-3">Status</th>
               <th className="text-end pe-4 py-3">Actions</th>
@@ -143,6 +157,17 @@ export default function LevelsPage() {
                    </Badge>
                 </td>
                 <td className="fw-bold">{item.levelName}</td>
+                <td>
+                  {item.grades?.length ? (
+                    <div className="d-flex flex-wrap gap-1">
+                      {item.grades.map((grade) => (
+                        <Badge key={grade} bg="info" text="dark">{grade}</Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <span className="text-muted small">No grades</span>
+                  )}
+                </td>
                 <td className="text-muted small">
                   {item.description || <em className="text-light">No description</em>}
                 </td>
@@ -163,7 +188,7 @@ export default function LevelsPage() {
             ))}
             {levels.length === 0 && (
               <tr>
-                <td colSpan="5" className="text-center py-5 text-muted">
+                <td colSpan="6" className="text-center py-5 text-muted">
                   No levels defined for this instrument yet.
                 </td>
               </tr>
@@ -187,6 +212,17 @@ export default function LevelsPage() {
                 value={formData.levelName} 
                 onChange={(e) => setFormData({...formData, levelName: e.target.value})} 
               />
+            </Form.Group>
+            <Form.Group className="mb-3">
+              <Form.Label className="small fw-bold">Grades</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                placeholder="Enter one grade per line or comma separated, e.g. Grade 1, Grade 2"
+                value={formData.gradesText}
+                onChange={(e) => setFormData({...formData, gradesText: e.target.value})}
+              />
+              <Form.Text className="text-muted">These grades will be available under this level for packages and enrollments.</Form.Text>
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label className="small fw-bold">Order Number (Sorting)</Form.Label>

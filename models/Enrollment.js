@@ -5,6 +5,7 @@ const enrollmentSchema = new mongoose.Schema({
   courseId: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
   batchId: { type: mongoose.Schema.Types.ObjectId, ref: 'Batch' },
   packageId: { type: mongoose.Schema.Types.ObjectId, ref: 'Package' },
+  gradeName: { type: String, trim: true, default: '' },
   paymentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Payment' },
 
   pricingOptionId: { type: mongoose.Schema.Types.ObjectId },

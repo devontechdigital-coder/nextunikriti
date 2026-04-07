@@ -25,7 +25,7 @@ export async function GET(req) {
     const courses = await Course.find(query)
       .populate('course_creator', 'name email')
       .populate({ path: 'instrument_id', select: 'name', strictPopulate: false })
-      .populate({ path: 'level_id', select: 'levelName', strictPopulate: false })
+      .populate({ path: 'level_id', select: 'levelName grades', strictPopulate: false })
       .sort({ createdAt: -1 });
 
     // Normalize categories: ensure categoryIds is an array and include legacy category if present

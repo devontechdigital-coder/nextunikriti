@@ -7,6 +7,7 @@ import Lesson from '@/models/Lesson';
 import { getUserFromCookie } from '@/utils/auth';
 import { resolvePackagePriceOptionById } from '@/lib/packagePricing';
 import { findPreferredEnrollmentForCourse } from '@/lib/enrollmentLifecycle';
+import { normalizeGradeName } from '@/lib/gradeUtils';
 
 const MS_PER_DAY = 1000 * 60 * 60 * 24;
 
@@ -41,16 +42,16 @@ export async function GET(req) {
       userId: user.id
     })
       .populate('courseId', 'title thumbnail')
-      .populate('packageId', 'name pricingOptions')
+      .populate('packageId', 'name pricingOptions gradeName')
       .sort({ createdAt: -1 });
 
     const data = await Promise.all(payments.map(async (payment) => {
         const enrollment = await Enrollment.findOne({ paymentId: payment._id })
-          .populate('packageId', 'name pricingOptions')
+          .populate('packageId', 'name pricingOptions gradeName')
           .sort({ updatedAt: -1 })
           .lean()
           || await Enrollment.findOne(findPreferredEnrollmentForCourse({ userId: user.id, courseId: payment.courseId?._id || payment.courseId }))
-            .populate('packageId', 'name pricingOptions')
+            .populate('packageId', 'name pricingOptions gradeName')
             .sort({ updatedAt: -1 })
             .lean();
 
@@ -78,6 +79,7 @@ export async function GET(req) {
             course_title: payment.courseId?.title || 'Unknown Course',
             thumbnail: payment.courseId?.thumbnail,
             package_name: packageDoc?.name || 'Standard',
+            grade_name: normalizeGradeName(enrollment?.gradeName || payment.gradeName || packageDoc?.gradeName),
             pricing_option_label: packageDoc ? resolvePackagePriceOptionById(packageDoc, pricingOptionId).label : null,
             pricing_option_price: pricingOption?.price ?? null,
             payment_status: toStudentPaymentStatus(payment.status),

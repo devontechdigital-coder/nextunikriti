@@ -11,6 +11,10 @@ const levelSchema = new mongoose.Schema({
     required: [true, 'Please provide a level name'],
     trim: true
   },
+  grades: [{
+    type: String,
+    trim: true
+  }],
   orderNo: {
     type: Number,
     required: true,
@@ -31,5 +35,12 @@ const levelSchema = new mongoose.Schema({
 
 // Compound index to ensure level names are unique per instrument (optional but good)
 levelSchema.index({ instrumentId: 1, levelName: 1 }, { unique: true });
+
+if (mongoose.models.Level) {
+  const model = mongoose.models.Level;
+  if (!model.schema.paths.grades) {
+    delete mongoose.models.Level;
+  }
+}
 
 export default mongoose.models.Level || mongoose.model('Level', levelSchema);

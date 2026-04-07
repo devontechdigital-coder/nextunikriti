@@ -339,6 +339,7 @@ export default function AdminOrdersPage() {
             <tr>
               <th className="px-4 py-3">Student</th>
               <th>Course / Plan</th>
+              <th>Grade</th>
               <th>Status (Enroll)</th>
               <th>Payment</th>
               <th>Purchase Date</th>
@@ -363,6 +364,7 @@ export default function AdminOrdersPage() {
                     <div className="small text-muted">{order.packageId.selectedOptionLabel}</div>
                   )}
                 </td>
+                <td>{order.gradeName ? <Badge bg="secondary">{order.gradeName}</Badge> : <span className="text-muted small">-</span>}</td>
                 <td>{getStatusBadge(order.status)}</td>
                 <td>
                   {getPaymentBadge(order.paymentStatus)}
@@ -412,7 +414,7 @@ export default function AdminOrdersPage() {
               </tr>
             )) : (
               <tr>
-                <td colSpan="6" className="text-center py-5 text-muted">No matching orders found.</td>
+                <td colSpan="7" className="text-center py-5 text-muted">No matching orders found.</td>
               </tr>
             )}
           </tbody>
@@ -480,7 +482,7 @@ export default function AdminOrdersPage() {
                       <option value="">No package (use course price)</option>
                       {packages.map((pkg) => (
                         <option key={pkg._id} value={pkg._id}>
-                          {pkg.name} - Rs.{Number(getPackageDisplayPrice(pkg) || 0).toLocaleString()}
+                          {pkg.name}{pkg.gradeName ? ` (${pkg.gradeName})` : ''} - Rs.{Number(getPackageDisplayPrice(pkg) || 0).toLocaleString()}
                         </option>
                       ))}
                     </Form.Select>
@@ -521,6 +523,7 @@ export default function AdminOrdersPage() {
                       <div className="small text-uppercase text-muted fw-bold mb-2">Order Preview</div>
                       <div className="fw-semibold">{selectedCourse?.title || 'Select a course'}</div>
                       <div className="small text-muted">{selectedPackage?.name || 'Standard course pricing'}</div>
+                      {selectedPackage?.gradeName && <div className="small text-muted">Grade: {selectedPackage.gradeName}</div>}
                       {selectedPackageOption?.label && <div className="small text-muted">{selectedPackageOption.label}</div>}
                       <div className="mt-2 fw-bold">Amount: Rs.{Number(displayAmount || 0).toLocaleString()}</div>
                       <div className="small text-muted mt-1">

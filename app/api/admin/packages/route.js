@@ -3,6 +3,7 @@ import dbConnect from '@/lib/db';
 import Package from '@/models/Package';
 import { getUserFromCookie } from '@/utils/auth';
 import { getPackageDisplayPrice, normalizePackagePricingInput } from '@/lib/packagePricing';
+import { normalizeGradeName } from '@/lib/gradeUtils';
 
 export async function GET(req) {
   try {
@@ -43,7 +44,10 @@ export async function POST(req) {
 
     await dbConnect();
     const body = await req.json();
-    const payload = normalizePackagePricingInput(body);
+    const payload = {
+      ...normalizePackagePricingInput(body),
+      gradeName: normalizeGradeName(body?.gradeName),
+    };
     const pkg = await Package.create(payload);
     const populatedPackage = await Package.findById(pkg._id).populate('course_id', 'title');
     return NextResponse.json({ success: true, package: populatedPackage });

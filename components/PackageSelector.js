@@ -8,12 +8,13 @@ import { useSelector, useDispatch } from 'react-redux';
 import { setCredentials } from '@/redux/slices/authSlice';
 import { FaCheckCircle, FaStar, FaBolt, FaCrown, FaCreditCard, FaClock, FaPhoneAlt, FaUser, FaEnvelope } from 'react-icons/fa';
 import { buildPackagePricingOptions, getPackageDisplayDurationDays, getPackageDisplayPrice, getPackageOriginalPrice, resolvePackagePriceOption } from '@/lib/packagePricing';
+import { mergeGradeOptions, normalizeGradeName, packageMatchesGrade } from '@/lib/gradeUtils';
 
 const AUTH_STEP = { PHONE: 'phone', OTP: 'otp', DETAILS: 'details' };
 
 const normalizeModeLabel = (mode) => (mode || 'Online').trim();
 
-export default function PackageSelector({ courseId, courseMode = 'Online', initialPackages = [] }) {
+export default function PackageSelector({ courseId, courseMode = 'Online', courseLevelName = '', availableGrades = [], initialPackages = [] }) {
     const dispatch = useDispatch();
     const { user } = useSelector((state) => state.auth);
 
@@ -21,7 +22,9 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
     const [selectedPkgPriceKey, setSelectedPkgPriceKey] = useState('');
     const [loading, setLoading] = useState(false);
     const [activePackageMode, setActivePackageMode] = useState(null);
+    const [activeGrade, setActiveGrade] = useState('');
     const [showModeSelectionError, setShowModeSelectionError] = useState(false);
+    const [showGradeSelectionError, setShowGradeSelectionError] = useState(false);
 
     // Public settings (payment modes + showTestOtp)
     const [settings, setSettings] = useState({ payOnline: true, payLater: false, showTestOtp: false });
@@ -55,20 +58,36 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
     const packageModes = [...new Set(
         (initialPackages || []).map((pkg) => normalizeModeLabel(pkg.mode))
     )];
+    const gradeOptions = useMemo(() => (
+        mergeGradeOptions(
+            availableGrades,
+            (initialPackages || []).map((pkg) => normalizeGradeName(pkg.gradeName))
+        )
+    ), [availableGrades, initialPackages]);
     const defaultPackageMode = packageModes.includes(normalizeModeLabel(courseMode))
         ? normalizeModeLabel(courseMode)
         : (packageModes[0] || normalizeModeLabel(courseMode));
     const shouldRequireModeSelection = packageModes.length > 1;
+    const shouldRequireGradeSelection = gradeOptions.length > 0;
     const displayedPackages = useMemo(() => (
         activePackageMode
-            ? (initialPackages || []).filter((pkg) => normalizeModeLabel(pkg.mode) === activePackageMode)
-            : (initialPackages || [])
-    ), [activePackageMode, initialPackages]);
+            ? (initialPackages || []).filter((pkg) => normalizeModeLabel(pkg.mode) === activePackageMode && packageMatchesGrade(pkg, activeGrade))
+            : (initialPackages || []).filter((pkg) => packageMatchesGrade(pkg, activeGrade))
+    ), [activeGrade, activePackageMode, initialPackages]);
 
     useEffect(() => {
         setActivePackageMode(shouldRequireModeSelection ? null : defaultPackageMode);
         setShowModeSelectionError(false);
     }, [defaultPackageMode, shouldRequireModeSelection]);
+
+    useEffect(() => {
+        setActiveGrade((prev) => (
+            prev && gradeOptions.some((grade) => grade.toLowerCase() === prev.toLowerCase())
+                ? prev
+                : ''
+        ));
+        setShowGradeSelectionError(false);
+    }, [gradeOptions]);
 
     // Auto-select highest priced package for the current view
     useEffect(() => {
@@ -98,6 +117,11 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
             setShowModeSelectionError(true);
             modeSelectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
             toast.error('Please choose a mode before enrolling');
+            return;
+        }
+        if (shouldRequireGradeSelection && !activeGrade) {
+            setShowGradeSelectionError(true);
+            toast.error('Please select a grade before enrolling');
             return;
         }
         if (!selectedPkgId) { toast.error('Please select a package first'); return; }
@@ -197,6 +221,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
         try {
             const body = { package_id: selectedPkgId };
             if (selectedPkgPriceKey) body.package_price_key = selectedPkgPriceKey;
+            if (activeGrade) body.selected_grade_name = activeGrade;
             if (selectedMode === 'pay_later') body.payment_mode = 'pay_later';
 
             const res = await axios.post('/api/orders', body);
@@ -334,6 +359,9 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
                                 <Card.Body className="p-4 d-flex flex-column text-center">
                                     <div className="pkg-icon-wrapper">{getIcon(pkg.name)}</div>
                                     <h4 className="fw-bold mb-1">{pkg.name}</h4>
+                                    {pkg.gradeName && (
+                                        <div className="text-muted small mb-2 fw-semibold">Grade: {pkg.gradeName}</div>
+                                    )}
                                     {formatDuration(selectedOption?.durationDays || getPackageDisplayDurationDays(pkg)) && (
                                         <div className="text-muted small mb-2 fw-medium text-uppercase">{formatDuration(selectedOption?.durationDays || getPackageDisplayDurationDays(pkg))} Program</div>
                                     )}
@@ -347,6 +375,31 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
                                     <p className="small text-muted mb-4 flex-grow-1">{pkg.description}</p>
                                     {visiblePricingOptions.length > 0 && (
                                         <div className="mb-3 text-start">
+                                            {gradeOptions.length > 0 && (
+                                                <div className="mb-3">
+                                                    <div className="small fw-semibold mb-2">Choose your grade</div>
+                                                    <Form.Select
+                                                        value={activeGrade}
+                                                        onChange={(event) => {
+                                                            event.stopPropagation();
+                                                            setActiveGrade(event.target.value);
+                                                            setShowGradeSelectionError(false);
+                                                        }}
+                                                        className="rounded-3"
+                                                        onClick={(event) => event.stopPropagation()}
+                                                    >
+                                                        <option value="">Select Grade</option>
+                                                        {gradeOptions.map((grade) => (
+                                                            <option key={grade} value={grade}>{grade}</option>
+                                                        ))}
+                                                    </Form.Select>
+                                                    {showGradeSelectionError && !activeGrade && (
+                                                        <div className="text-danger small mt-2 fw-medium">
+                                                            Please choose your grade.
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
                                             <div className="small fw-semibold mb-2">Pricing options</div>
                                             <div className="d-flex flex-column gap-2">
                                                 {visiblePricingOptions.map((option) => {
@@ -401,7 +454,9 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
 
             {displayedPackages.length === 0 && (
                 <div className="u-card mt-4 p-4 text-center bg-light border-dashed">
-                    <h5 className="text-muted mb-0 fw-bold">No packages available for {activePackageMode} mode.</h5>
+                    <h5 className="text-muted mb-0 fw-bold">
+                        {`No packages available${activePackageMode ? ` for ${activePackageMode} mode` : ''}.`}
+                    </h5>
                 </div>
             )}
 
@@ -512,6 +567,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', initi
                     {selectedPkg && (
                         <div className="bg-light p-4 rounded-4 border text-center mb-3">
                             <div className="text-uppercase small fw-bold text-muted mb-1">{selectedPkg.name}</div>
+                            {(activeGrade || selectedPkg.gradeName) && <div className="small text-muted mb-1">Grade: {activeGrade || selectedPkg.gradeName}</div>}
                             {selectedPkgOption?.label && <div className="small text-muted mb-1">{selectedPkgOption.label}</div>}
                             {getPackageOriginalPrice(selectedPkg, selectedPkgPriceKey) > Number(selectedPkgOption?.price || getPackageDisplayPrice(selectedPkg)) && (
                                 <div className="small text-muted text-decoration-line-through mb-1">

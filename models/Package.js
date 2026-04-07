@@ -28,6 +28,7 @@ const pricingOptionSchema = new mongoose.Schema({
 const packageSchema = new mongoose.Schema({
   course_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Course', required: true },
   mode: { type: String, required: true, trim: true },
+  gradeName: { type: String, trim: true, default: '' },
   name: { type: String, required: true, trim: true },
   description: { type: String, default: '' },
   features: [{ type: String }],

@@ -6,6 +6,7 @@ import Enrollment from '@/models/Enrollment';
 import { verifyToken } from '@/lib/jwt';
 import Package from '@/models/Package';
 import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields } from '@/lib/enrollmentLifecycle';
+import { normalizeGradeName } from '@/lib/gradeUtils';
 
 export async function POST(req) {
   try {
@@ -58,6 +59,7 @@ export async function POST(req) {
           courseId: paymentRecord.courseId,
           batchId: paymentRecord.batchId || null,
           packageId: paymentRecord.packageId || null,
+          gradeName: normalizeGradeName(paymentRecord.gradeName || packageDoc?.gradeName),
           paymentId: paymentRecord._id,
           ...buildEnrollmentLifecycleFields({
             paymentStatus: 'paid',

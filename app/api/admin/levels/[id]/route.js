@@ -2,13 +2,18 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Level from '@/models/Level';
 import Batch from '@/models/Batch';
+import { normalizeGradeList } from '@/lib/gradeUtils';
 
 export async function PUT(req, { params }) {
   try {
     await dbConnect();
     const { id } = params;
     const body = await req.json();
-    const level = await Level.findByIdAndUpdate(id, body, { new: true, runValidators: true });
+    const payload = {
+      ...body,
+      grades: normalizeGradeList(body?.grades),
+    };
+    const level = await Level.findByIdAndUpdate(id, payload, { new: true, runValidators: true });
     if (!level) {
       return NextResponse.json({ error: 'Level not found' }, { status: 404 });
     }

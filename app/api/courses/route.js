@@ -28,7 +28,7 @@ export async function GET(req) {
     const courses = await Course.find(filter)
       .populate('course_creator', 'name avatar')
       .populate('instrument_id', 'name')
-      .populate('level_id', 'levelName')
+      .populate('level_id', 'levelName grades')
       .select('title thumbnail price instrument_id level_id course_creator categoryIds shortDescription mode duration certification faq');
 
     return NextResponse.json({ success: true, data: courses }, { status: 200 });

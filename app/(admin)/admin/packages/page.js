@@ -13,6 +13,7 @@ import {
 import { FaBoxOpen, FaCheckCircle, FaEdit, FaListUl, FaPlus, FaToggleOff, FaToggleOn, FaTrash } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 import { buildPackagePricingOptions, getPackageDisplayPrice } from '@/lib/packagePricing';
+import { mergeGradeOptions, normalizeGradeName } from '@/lib/gradeUtils';
 
 const createEmptyPricingOption = () => ({
   label: '',
@@ -27,6 +28,7 @@ const createEmptyPricingOption = () => ({
 
 const createInitialFormData = () => ({
   course_id: '',
+  gradeName: '',
   name: '',
   mode: '',
   description: '',
@@ -58,6 +60,8 @@ export default function PackagesPage() {
   const packages = data?.packages || [];
   const courses = coursesData?.data || [];
   const modes = modesData?.modes || [];
+  const selectedCourse = courses.find((course) => course._id === formData.course_id);
+  const selectedCourseGrades = mergeGradeOptions(selectedCourse?.level_id?.grades || []);
 
   const handleOpenModal = (pkg = null) => {
     if (pkg) {
@@ -66,6 +70,7 @@ export default function PackagesPage() {
       setCurrentPkgId(pkg._id);
       setFormData({
         course_id: pkg.course_id?._id || pkg.course_id || '',
+        gradeName: pkg.gradeName || '',
         name: pkg.name || '',
         mode: pkg.mode || '',
         description: pkg.description || '',
@@ -92,6 +97,19 @@ export default function PackagesPage() {
       setFormData(createInitialFormData());
     }
     setShowModal(true);
+  };
+
+  const handleCourseChange = (courseId) => {
+    const nextCourse = courses.find((course) => course._id === courseId);
+    const nextGrades = mergeGradeOptions(nextCourse?.level_id?.grades || []);
+
+    setFormData((prev) => ({
+      ...prev,
+      course_id: courseId,
+      gradeName: nextGrades.some((grade) => grade.toLowerCase() === normalizeGradeName(prev.gradeName).toLowerCase())
+        ? prev.gradeName
+        : '',
+    }));
   };
 
   const handleFeatureChange = (index, value) => {
@@ -150,6 +168,7 @@ export default function PackagesPage() {
     try {
       const payload = {
         course_id: formData.course_id,
+        gradeName: normalizeGradeName(formData.gradeName),
         name: formData.name.trim(),
         mode: formData.mode,
         description: formData.description.trim(),
@@ -249,6 +268,7 @@ export default function PackagesPage() {
               <th className="ps-4 py-3">Package Name</th>
               <th className="py-3">Course</th>
               <th className="py-3 text-center">Mode</th>
+              <th className="py-3 text-center">Grade</th>
               <th className="py-3 text-center">Starting Price</th>
               <th className="py-3">Pricing Options</th>
               <th className="py-3 text-center">Features</th>
@@ -277,6 +297,9 @@ export default function PackagesPage() {
                     <Badge bg={pkg.mode === 'Offline' ? 'warning' : 'info'} text={pkg.mode === 'Offline' ? 'dark' : undefined}>
                       {pkg.mode || 'Online'}
                     </Badge>
+                  </td>
+                  <td className="text-center">
+                    {pkg.gradeName ? <Badge bg="secondary">{pkg.gradeName}</Badge> : <span className="text-muted small">All grades</span>}
                   </td>
                   <td className="text-center font-monospace fw-bold text-success">{formatPrice(pkg.displayPrice ?? getPackageDisplayPrice(pkg))}</td>
                   <td className="small">
@@ -319,7 +342,7 @@ export default function PackagesPage() {
             })}
             {packages.length === 0 && (
               <tr>
-                <td colSpan="8" className="text-center py-5 text-muted">
+                <td colSpan="9" className="text-center py-5 text-muted">
                   No packages found. Click &quot;Create New Package&quot; to get started.
                 </td>
               </tr>
@@ -337,12 +360,22 @@ export default function PackagesPage() {
         <Form onSubmit={handleSubmit}>
           <Modal.Body className="p-4">
             <Row>
-              <Col md={6} className="mb-3">
+              <Col md={4} className="mb-3">
                 <Form.Label className="small fw-bold">Select Course</Form.Label>
-                <Form.Select required value={formData.course_id} onChange={(e) => setFormData((prev) => ({ ...prev, course_id: e.target.value }))}>
+                <Form.Select required value={formData.course_id} onChange={(e) => handleCourseChange(e.target.value)}>
                   <option value="">-- Choose Course --</option>
                   {courses.map((course) => (
                     <option key={course._id} value={course._id}>{course.title}</option>
+                  ))}
+                </Form.Select>
+              </Col>
+
+              <Col md={2} className="mb-3">
+                <Form.Label className="small fw-bold">Grade</Form.Label>
+                <Form.Select value={formData.gradeName} onChange={(e) => setFormData((prev) => ({ ...prev, gradeName: e.target.value }))} disabled={!selectedCourseGrades.length}>
+                  <option value="">{selectedCourseGrades.length ? 'All Grades' : 'No grades for this level'}</option>
+                  {selectedCourseGrades.map((grade) => (
+                    <option key={grade} value={grade}>{grade}</option>
                   ))}
                 </Form.Select>
               </Col>
