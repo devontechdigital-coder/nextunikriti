@@ -28,7 +28,7 @@ const courseSchema = new mongoose.Schema({
   metaKeywords: { type: String },
   // Marketing / informational fields
   shortDescription: { type: String },
-  mode: { type: String, enum: ['Online', 'Offline'], default: 'Online' },
+  mode: { type: String, enum: ['Online', 'Offline', 'Online/Offline'], default: 'Online' },
   duration: { type: String },
   brochureUrl: { type: String, default: '' },
   certification: { type: Boolean, default: false },

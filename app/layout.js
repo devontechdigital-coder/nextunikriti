@@ -13,8 +13,12 @@ const inter = Inter({
 
 import dbConnect from '@/lib/db';
 import Setting from '@/models/Setting';
+import { unstable_noStore as noStore } from 'next/cache';
+
+export const dynamic = 'force-dynamic';
 
 export async function generateMetadata() {
+  noStore();
   await dbConnect();
   const themeSetting = await Setting.findOne({ key: 'hp_theme' });
   const theme = themeSetting?.value || {};
@@ -34,6 +38,7 @@ export async function generateMetadata() {
 }
 
 export default async function RootLayout({ children }) {
+  noStore();
   await dbConnect();
   const themeSetting = await Setting.findOne({ key: 'hp_theme' });
   const theme = themeSetting?.value || {};
@@ -44,7 +49,9 @@ export default async function RootLayout({ children }) {
         {theme.faviconUrl ? <link rel="icon" href={theme.faviconUrl} /> : null}
         {theme.faviconUrl ? <link rel="shortcut icon" href={theme.faviconUrl} /> : null}
         {theme.faviconUrl ? <link rel="apple-touch-icon" href={theme.faviconUrl} /> : null}
-        {theme.customHeadScripts ? (
+        {theme.faviconUrl ? <link rel="apple-touch-icon" href={theme.faviconUrl} /> : null}
+
+         {theme.customHeadScripts ? (
           <script dangerouslySetInnerHTML={{ __html: theme.customHeadScripts }} />
         ) : null}
       </head>

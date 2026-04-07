@@ -66,8 +66,8 @@ export async function POST(req) {
     }
     
     // Validate new fields
-    if (courseData.mode && !['Online', 'Offline'].includes(courseData.mode)) {
-      return NextResponse.json({ success: false, error: "mode must be 'Online' or 'Offline'" }, { status: 400 });
+    if (courseData.mode && !['Online', 'Offline', 'Online/Offline'].includes(courseData.mode)) {
+      return NextResponse.json({ success: false, error: "mode must be 'Online', 'Offline', or 'Online/Offline'" }, { status: 400 });
     }
     if (courseData.faq !== undefined && !Array.isArray(courseData.faq)) {
       return NextResponse.json({ success: false, error: 'faq must be an array' }, { status: 400 });
@@ -126,8 +126,8 @@ export async function PATCH(req) {
     }
 
     // Validate new fields
-    if (updateData.mode && !['Online', 'Offline'].includes(updateData.mode)) {
-      return NextResponse.json({ success: false, error: "mode must be 'Online' or 'Offline'" }, { status: 400 });
+    if (updateData.mode && !['Online', 'Offline', 'Online/Offline'].includes(updateData.mode)) {
+      return NextResponse.json({ success: false, error: "mode must be 'Online', 'Offline', or 'Online/Offline'" }, { status: 400 });
     }
     if (updateData.faq !== undefined && !Array.isArray(updateData.faq)) {
       return NextResponse.json({ success: false, error: 'faq must be an array' }, { status: 400 });

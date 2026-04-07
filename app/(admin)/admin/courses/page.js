@@ -319,8 +319,13 @@ export default function AdminCoursesPage() {
                    </Badge>
                 </td>
                 <td>
-                   <Badge bg={course.mode === 'Offline' ? 'warning' : 'info'} text={course.mode === 'Offline' ? 'dark' : undefined}>
-                     {course.mode === 'Offline' ? <><FaMapMarkerAlt className="me-1"/>Offline</> : <><FaDesktop className="me-1"/>Online</>}
+                   <Badge
+                     bg={course.mode === 'Offline' ? 'warning' : course.mode === 'Online/Offline' ? 'secondary' : 'info'}
+                     text={course.mode === 'Offline' ? 'dark' : undefined}
+                   >
+                     {course.mode === 'Offline' && <><FaMapMarkerAlt className="me-1"/>Offline</>}
+                     {course.mode === 'Online' && <><FaDesktop className="me-1"/>Online</>}
+                     {course.mode === 'Online/Offline' && <><FaDesktop className="me-1"/><FaMapMarkerAlt className="me-1"/>Online/Offline</>}
                    </Badge>
                 </td>
                 <td>
