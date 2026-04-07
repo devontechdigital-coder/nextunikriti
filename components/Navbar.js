@@ -207,7 +207,7 @@ const Navbar = ({ initialMenus = [], theme = {} }) => {
         <div className="container">
           <Link className="u-brand" href="/">
             {theme?.siteLogo ? (
-              <img src={theme.siteLogo} alt={theme.siteName || 'Logo'} style={{ maxHeight: '40px' }} />
+              <img src={theme.siteLogo} alt={theme.siteName || 'Logo'} style={{ maxHeight: '80px' }} />
             ) : (
               theme?.siteName || 'UNIKRITI'
             )}
