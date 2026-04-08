@@ -233,14 +233,20 @@ export async function POST(req) {
 
       const merchantTxnNo = generateIciciMerchantTxnNo('UN');
       const iciciPayloadInput = {
-        merchantTxnNo,
-        amount: finalPrice,
-        customerName: currentUser?.name || 'Student',
-        customerEmailID: currentUser?.email || process.env.ICICI_FALLBACK_EMAIL || 'no-reply@unikriti.local',
-        customerMobileNo: currentUser?.phone || process.env.ICICI_FALLBACK_MOBILE || '9999999999',
         addlParam1: paymentRecord._id.toString(),
         addlParam2: user.id.toString(),
-        returnURL: process.env.ICICI_RETURN_URL,
+        aggregatorID: process.env.ICICI_AGGREGATOR_ID,
+        amount: finalPrice,
+        currencyCode : "356",
+        customerEmailID: currentUser?.email || process.env.ICICI_FALLBACK_EMAIL || 'no-reply@unikriti.local',
+         customerMobileNo: '91'+ currentUser?.phone || process.env.ICICI_FALLBACK_MOBILE || '9999999999',
+        customerName: currentUser?.name || 'Student',  
+        merchantId: process.env.ICICI_MERCHANT_ID,
+        payType: "0",
+        returnURL : process.env.ICICI_RETURN_URL, 
+        merchantTxnNo,
+        transactionType : "SALE",
+        txnDate: "20251209151059"
       };
 
       const { response: iciciResponse, hashMode } = await initiateIciciSaleWithFallback(iciciPayloadInput);
