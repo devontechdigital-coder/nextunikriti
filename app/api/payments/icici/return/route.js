@@ -138,7 +138,7 @@ const handleCallback = async (req, payload) => {
     process.env.NEXT_PUBLIC_BASE_URL ||
     process.env.APP_BASE_URL ||
     req.nextUrl.origin;
-  const redirectUrl = new URL('/student/my-courses', redirectBaseUrl);
+  const redirectUrl = new URL('/student/dashboard', redirectBaseUrl);
   redirectUrl.searchParams.set('gateway', 'icici');
   redirectUrl.searchParams.set('payment_status', status);
   if (paymentId) redirectUrl.searchParams.set('payment_id', paymentId);
