@@ -1,25 +1,22 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { Container, Row, Col, Nav, Offcanvas } from 'react-bootstrap';
+import { useState } from 'react';
+import { Container, Nav, Offcanvas } from 'react-bootstrap';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AdminNavbar from '@/components/AdminNavbar';
-import { useSelector } from 'react-redux';
 import { FiUsers, FiLayers, FiCreditCard, FiSliders, FiHome, FiUserCheck, FiBox, FiImage, FiSettings, FiBarChart2, FiList, FiFileText, FiMusic, FiLink } from 'react-icons/fi';
 import { FaCalendarAlt } from 'react-icons/fa';
+import { useGetPublicSettingsQuery } from '@/redux/api/apiSlice';
 
 export default function AdminLayout({ children }) {
   const [showSidebar, setShowSidebar] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-
-  const { user } = useSelector((state) => state.auth);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
+  const { data: settingsData } = useGetPublicSettingsQuery();
 
   const pathname = usePathname();
   const isSchoolAdmin = pathname?.startsWith('/school');
+  const theme = settingsData?.data?.hp_theme || {};
+  const sidebarTitle = theme.siteName?.trim() || 'NextLMS';
+  const sidebarLogo = theme.faviconUrl?.trim();
 
   const handleSidebarToggle = () => setShowSidebar(!showSidebar);
 
@@ -57,14 +54,26 @@ export default function AdminLayout({ children }) {
     return link.name !== 'Schosols';
   });
 
+  const isLinkActive = (href) => {
+    if (!pathname) return false;
+    if (pathname === href) return true;
+
+    const normalizedHref = href.endsWith('/') ? href.slice(0, -1) : href;
+    return pathname.startsWith(`${normalizedHref}/`);
+  };
+
   const SidebarContent = () => (
     <>
       <div className="p-4 border-bottom border-secondary d-flex align-items-center gap-2 " >
-        <div className="bg-primary rounded-1 p-1">
-          <FiLayers className="text-white" size={20} />
+        <div className="bg-primary rounded-1 p-1 d-flex align-items-center justify-content-center sidebar-brand-mark">
+          {sidebarLogo ? (
+            <img src={sidebarLogo} alt={isSchoolAdmin ? 'School Portal logo' : `${sidebarTitle} logo`} className="sidebar-brand-image" />
+          ) : (
+            <FiLayers className="text-white" size={20} />
+          )}
         </div>
         <h5 className="mb-0 fw-bold text-white tracking-tight">
-          {isSchoolAdmin ? 'School Portal' : 'NextLMS'}
+          {isSchoolAdmin ? 'School Portal' : sidebarTitle}
         </h5>
       </div>
       <Nav className="flex-column p-3">
@@ -74,7 +83,7 @@ export default function AdminLayout({ children }) {
             as={Link}
             href={link.href}
             onClick={() => setShowSidebar(false)}
-            className="text-white-50 mb-1 py-1 px-3 rounded-2 transition-all d-flex align-items-center gap-3 sidebar-link"
+            className={`text-white-50 mb-1 py-1 px-3 rounded-2 transition-all d-flex align-items-center gap-3 sidebar-link ${isLinkActive(link.href) ? 'active' : ''}`}
           >
             <span className="fs-5">{link.icon}</span>
             <span className="fw-medium">{link.name}</span>
@@ -127,6 +136,18 @@ export default function AdminLayout({ children }) {
 
       <style jsx global>{`
         .bg-light-gray { background-color: #f8f9fa; }
+        .sidebar-brand-mark {
+          width: 32px;
+          height: 32px;
+          flex-shrink: 0;
+          overflow: hidden;
+        }
+        .sidebar-brand-image {
+          width: 100%;
+          height: 100%;
+          object-fit: contain;
+          display: block;
+        }
         .sidebar-link:hover {
           background-color: rgba(255, 255, 255, 0.05);
           color: white !important;

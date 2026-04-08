@@ -17,16 +17,44 @@ const pickFirst = (obj, keys) => {
 };
 
 const normalizeStatus = (payload) => {
-  const raw = String(
-    pickFirst(payload, ['txnStatus', 'paymentStatus', 'status', 'responseCode', 'responseMessage']) || ''
-  )
-    .trim()
-    .toLowerCase();
+  const values = [
+    pickFirst(payload, ['txnStatus', 'paymentStatus', 'status']),
+    pickFirst(payload, ['txnResponseCode', 'txnResponsecode', 'txn_response_code']),
+    pickFirst(payload, ['responseCode', 'respCode', 'response_code']),
+    pickFirst(payload, ['txnRespDescription', 'respDescription', 'responseMessage', 'message']),
+  ]
+    .map((value) => String(value || '').trim().toLowerCase())
+    .filter(Boolean);
 
-  if (!raw) return 'pending';
-  if (['success', 'successful', 'paid', 's', 'y', 'r0000', 'r1000', '00'].includes(raw)) return 'success';
-  if (raw.includes('success')) return 'success';
-  if (raw.includes('fail') || raw.includes('cancel') || raw.includes('declin') || raw.includes('error')) return 'failed';
+  if (!values.length) return 'pending';
+
+  if (values.some((value) => (
+    [
+      'success',
+      'successful',
+      'paid',
+      's',
+      'suc',
+      'ok',
+      'y',
+      '000',
+      '0000',
+      '00',
+      'r0000',
+      'r1000',
+    ].includes(value)
+  ))) {
+    return 'success';
+  }
+
+  if (values.some((value) => value.includes('success') || value.includes('processed successfully') || value.includes('transaction successful'))) {
+    return 'success';
+  }
+
+  if (values.some((value) => value.includes('fail') || value.includes('cancel') || value.includes('declin') || value.includes('error'))) {
+    return 'failed';
+  }
+
   return 'pending';
 };
 
@@ -47,6 +75,7 @@ const handleCallback = async (req, payload) => {
   const merchantTxnNo = String(
     pickFirst(payload, ['merchantTxnNo', 'merchantTxnID', 'merchant_transaction_id', 'orderId']) || ''
   );
+  const gatewayTxnId = String(pickFirst(payload, ['txnID', 'transactionId', 'transactionID']) || '');
   const status = normalizeStatus(payload);
 
   if (paymentId) {
@@ -56,7 +85,7 @@ const handleCallback = async (req, payload) => {
     if (payment) {
       if (status === 'success') {
         payment.status = 'completed';
-        payment.transactionId = merchantTxnNo || payment.transactionId;
+        payment.transactionId = gatewayTxnId || merchantTxnNo || payment.transactionId;
         await payment.save();
 
         let packageDoc = null;
@@ -99,7 +128,7 @@ const handleCallback = async (req, payload) => {
         });
       } else if (status === 'failed') {
         payment.status = 'failed';
-        payment.transactionId = merchantTxnNo || payment.transactionId;
+        payment.transactionId = gatewayTxnId || merchantTxnNo || payment.transactionId;
         await payment.save();
       }
     }
@@ -110,6 +139,7 @@ const handleCallback = async (req, payload) => {
   redirectUrl.searchParams.set('payment_status', status);
   if (paymentId) redirectUrl.searchParams.set('payment_id', paymentId);
   if (merchantTxnNo) redirectUrl.searchParams.set('merchant_txn_no', merchantTxnNo);
+  if (gatewayTxnId) redirectUrl.searchParams.set('gateway_txn_id', gatewayTxnId);
 
   return NextResponse.redirect(redirectUrl, { status: 302 });
 };

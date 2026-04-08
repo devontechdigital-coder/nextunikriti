@@ -2,8 +2,12 @@
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+
+const isPrefetchablePath = (url) => typeof url === 'string' && url.startsWith('/') && !url.startsWith('//');
 
 const Footer = ({ initialMenus = [], theme = {}, contact = {} }) => {
+  const router = useRouter();
   const [footerMenus, setFooterMenus] = useState([]);
   const [flatMenus, setFlatMenus] = useState([]);
 
@@ -33,6 +37,27 @@ const Footer = ({ initialMenus = [], theme = {}, contact = {} }) => {
     };
     fetchMenus();
   }, [initialMenus]);
+
+  const prefetchRoute = (url) => {
+    if (!isPrefetchablePath(url)) return;
+    router.prefetch(url);
+  };
+
+  useEffect(() => {
+    if (!flatMenus.length) return;
+
+    const uniqueUrls = [...new Set(
+      flatMenus
+        .map((menu) => menu.url)
+        .filter(isPrefetchablePath)
+    )].slice(0, 10);
+
+    const timeoutId = window.setTimeout(() => {
+      uniqueUrls.forEach((url) => router.prefetch(url));
+    }, 500);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [flatMenus, router]);
   return (
     <footer className="u-footer py-5">
       <div className="container">
@@ -77,7 +102,7 @@ const Footer = ({ initialMenus = [], theme = {}, contact = {} }) => {
                     <ul className={`u-foot-links list-unstyled ${parentId !== column._id ? 'ms-3' : ''}`}>
                       {children.map(item => (
                         <li key={item._id} className="mb-2">
-                          <Link href={item.url} className="u-foot-link text-white text-decoration-none">
+                          <Link href={item.url} className="u-foot-link text-white text-decoration-none" prefetch onMouseEnter={() => prefetchRoute(item.url)} onFocus={() => prefetchRoute(item.url)}>
                             {item.title}
                           </Link>
                           {renderFooterLinks(item._id)}
