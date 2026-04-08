@@ -256,8 +256,7 @@ export async function POST(req) {
       }
 
       paymentRecord.transactionId = merchantTxnNo;
-      
-      // await paymentRecord.save();
+      await paymentRecord.save();
 
 
       console.log('ICICI Payment Initiation Success:', {
@@ -265,16 +264,14 @@ export async function POST(req) {
          hashMode,
          iciciResponse,
       });
-
-
-      // return NextResponse.json({
-      //   success: true,
-      //   gateway: 'icici',
-      //   redirectUrl,
-      //   merchantTxnNo,
-      //   hashMode,
-      //   iciciResponse,
-      // });
+      return NextResponse.json({
+        success: true,
+        gateway: 'icici',
+        redirectUrl,
+        merchantTxnNo,
+        hashMode,
+        iciciResponse,
+      });
     }
 
     return NextResponse.json({ success: false, message: 'Invalid Gateway' }, { status: 400 });

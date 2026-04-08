@@ -9,8 +9,7 @@ export default function CategoryLoading() {
         <div className="container py-5">
           <div className="row align-items-center g-4">
             <div className="col-lg-7">
-              <div className="u-skeleton mb-3" style={{ width: 180, height: 14 }} />
-              <div className="u-skeleton rounded-pill mb-3" style={{ width: 150, height: 32 }} />
+               <div className="u-skeleton rounded-pill mb-3" style={{ width: 150, height: 32 }} /> <br/>
               <div className="u-skeleton mb-3" style={{ width: '75%', height: 52 }} />
               <div className="u-skeleton mb-2" style={{ width: '95%', height: 14 }} />
               <div className="u-skeleton mb-4" style={{ width: '80%', height: 14 }} />
