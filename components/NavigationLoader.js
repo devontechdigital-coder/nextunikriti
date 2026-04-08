@@ -4,6 +4,12 @@ import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 
 const MAX_LOADER_MS = 15000;
+const isPublicPath = (pathname) =>
+  Boolean(pathname) &&
+  !pathname.startsWith('/admin') &&
+  !pathname.startsWith('/school') &&
+  !pathname.startsWith('/student') &&
+  !pathname.startsWith('/instructor');
 
 export default function NavigationLoader() {
   const pathname = usePathname();
@@ -93,6 +99,10 @@ export default function NavigationLoader() {
       window.removeEventListener('route-loading-end', handleRouteLoadingEnd);
     };
   }, []);
+
+  if (isPublicPath(pathname)) {
+    return null;
+  }
 
   return (
     <div
