@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
+import '@/models/Course';
 import Package from '@/models/Package';
 import { getUserFromCookie } from '@/utils/auth';
 import { getPackageDisplayPrice, normalizePackagePricingInput } from '@/lib/packagePricing';
