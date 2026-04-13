@@ -35,15 +35,6 @@ const courseSchema = new mongoose.Schema({
   faq: [{ question: { type: String }, answer: { type: String } }]
 }, { timestamps: true });
 
-// Ensure only one active course exists per instrument + level mapping
-courseSchema.index({ instrument_id: 1, level_id: 1 }, { 
-  unique: true, 
-  partialFilterExpression: { 
-    instrument_id: { $type: 'objectId' }, 
-    level_id: { $type: 'objectId' } 
-  } 
-});
-
 if (mongoose.models.Course) {
   const model = mongoose.models.Course;
   // If the cached model doesn't have the new fields, delete it to force reload

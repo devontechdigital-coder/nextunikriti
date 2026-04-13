@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import { stripe } from '@/lib/stripe';
 import { razorpay } from '@/lib/razorpay';
 import {
@@ -13,6 +14,7 @@ import Batch from '@/models/Batch';
 import Payment from '@/models/Payment';
 import Setting from '@/models/Setting';
 import Enrollment from '@/models/Enrollment';
+import School from '@/models/School';
 import User from '@/models/User';
 import { getUserFromCookie } from '@/utils/auth';
 import { resolvePackagePriceOption } from '@/lib/packagePricing';
@@ -30,6 +32,10 @@ const normalizeStringList = (value) => (
     : []
 );
 
+const normalizeModeLabel = (mode) => String(mode || 'Online').trim();
+
+const buildSchoolSlotValue = (slot = {}) => `${String(slot.startTime || '').trim()} - ${String(slot.endTime || '').trim()}`;
+
 export async function POST(req) {
   try {
     await dbConnect();
@@ -45,6 +51,7 @@ export async function POST(req) {
       package_price_key,
       payment_mode,
       selected_grade_name,
+      school_id,
       preferred_days,
       preferred_times,
       student_profile,
@@ -57,7 +64,9 @@ export async function POST(req) {
     let courseSlugOrId = '';
     let selectedPricingOption = null;
     let selectedPackageDoc = null;
+    let enrollmentMode = '';
     let selectedGradeName = normalizeGradeName(selected_grade_name);
+    const selectedSchoolId = String(school_id || '').trim();
     const preferredDays = normalizeStringList(preferred_days);
     const preferredTimes = normalizeStringList(preferred_times);
 
@@ -74,6 +83,7 @@ export async function POST(req) {
       finalPrice = selectedPackagePrice.price;
       courseId = pkg.course_id._id;
       courseSlugOrId = pkg.course_id.slug || pkg.course_id._id;
+      enrollmentMode = normalizeModeLabel(pkg.mode);
       name = `${pkg.course_id.title} - ${pkg.name}`;
       description = pkg.description || `Enrollment in ${pkg.name} package`;
     } else if (batch_id) {
@@ -87,10 +97,31 @@ export async function POST(req) {
       finalPrice = batch.price || batch.course_id?.price || 0;
       courseId = batch.course_id._id;
       courseSlugOrId = batch.course_id.slug || batch.course_id._id;
+      enrollmentMode = normalizeModeLabel(batch.course_id?.mode);
       name = `${batch.course_id.title} - ${batch.batchName}`;
       description = `Batch starting ${batch.startDate ? new Date(batch.startDate).toLocaleDateString() : 'soon'}`;
     } else {
       return NextResponse.json({ success: false, message: 'Package ID or Batch ID is required' }, { status: 400 });
+    }
+
+    const requiresSchoolSelection = enrollmentMode.toLowerCase() !== 'online';
+    let selectedSchool = null;
+
+    if (selectedSchoolId) {
+      if (!mongoose.Types.ObjectId.isValid(selectedSchoolId)) {
+        return NextResponse.json({ success: false, message: 'Invalid school selected' }, { status: 400 });
+      }
+
+      selectedSchool = await School.findOne({ _id: selectedSchoolId, status: 'active' })
+        .select('schoolName weeklySchedule');
+
+      if (!selectedSchool) {
+        return NextResponse.json({ success: false, message: 'Selected school is not available' }, { status: 404 });
+      }
+    }
+
+    if (requiresSchoolSelection && !selectedSchool) {
+      return NextResponse.json({ success: false, message: 'Please choose a school for this package' }, { status: 400 });
     }
 
     if (!preferredDays.length) {
@@ -101,14 +132,38 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: 'Please add at least one preferred time' }, { status: 400 });
     }
 
+    if (selectedSchool) {
+      const selectedDay = preferredDays[0];
+      const daySchedule = (selectedSchool.weeklySchedule || []).find(
+        (entry) => entry?.dayOfWeek === selectedDay && entry?.isOpen
+      );
+
+      if (!daySchedule) {
+        return NextResponse.json({ success: false, message: 'Selected day is not available for this school' }, { status: 400 });
+      }
+
+      const normalizedDaySlots = Array.isArray(daySchedule.slots) && daySchedule.slots.length
+        ? daySchedule.slots
+        : ((daySchedule.startTime || daySchedule.endTime)
+            ? [{ startTime: daySchedule.startTime || '', endTime: daySchedule.endTime || '' }]
+            : []);
+      const validSlotValues = normalizedDaySlots.map((slot) => buildSchoolSlotValue(slot));
+      const hasInvalidTime = preferredTimes.some((slotValue) => !validSlotValues.includes(slotValue));
+
+      if (hasInvalidTime) {
+        return NextResponse.json({ success: false, message: 'Selected time is not available for this school' }, { status: 400 });
+      }
+    }
+
     await upsertStudentProfile({
       userId: user.id,
       studentFields: {
         ...(student_profile || {}),
         enrolledFor: student_profile?.enrolledFor || name,
         time: student_profile?.time || preferredTimes.join(', '),
-        location: student_profile?.location || selectedPackageDoc?.mode || undefined,
+        location: student_profile?.location || selectedSchool?.schoolName || enrollmentMode || undefined,
       },
+      schoolId: selectedSchool?._id,
     });
 
     // --- Pay Later Flow ---
@@ -118,6 +173,7 @@ export async function POST(req) {
         courseId,
         batchId: batch_id || null,
         packageId: package_id || null,
+        schoolId: selectedSchool?._id || null,
         gradeName: selectedGradeName,
         pricingOptionId: selectedPricingOption?._id || null,
         packagePriceKey: selectedPricingOption?.key || package_price_key || '',
@@ -136,6 +192,7 @@ export async function POST(req) {
           courseId,
           packageId: package_id || null,
           batchId: batch_id || null,
+          schoolId: selectedSchool?._id || null,
           gradeName: selectedGradeName,
           preferredDays,
           preferredTimes,
@@ -167,6 +224,7 @@ export async function POST(req) {
       courseId,
       batchId: batch_id || null,
       packageId: package_id || null,
+      schoolId: selectedSchool?._id || null,
       gradeName: selectedGradeName,
       pricingOptionId: selectedPricingOption?._id || null,
       packagePriceKey: selectedPricingOption?.key || package_price_key || '',
@@ -200,6 +258,7 @@ export async function POST(req) {
             batchId: (batch_id || '').toString(),
             packageId: (package_id || '').toString(),
             userId: user.id.toString(),
+            schoolId: (selectedSchool?._id || '').toString(),
             gradeName: selectedGradeName,
             preferredDays: preferredDays.join(', '),
             preferredTimes: preferredTimes.join(', ')
@@ -216,7 +275,8 @@ export async function POST(req) {
         notes: {
             batchId: (batch_id || '').toString(),
             packageId: (package_id || '').toString(),
-            courseId: courseId.toString()
+            courseId: courseId.toString(),
+            schoolId: (selectedSchool?._id || '').toString(),
         }
       };
       const order = await razorpay.orders.create(options);

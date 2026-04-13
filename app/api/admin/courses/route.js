@@ -1,10 +1,46 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Course from '@/models/Course';
-import Instrument from '@/models/Instrument';
 import Level from '@/models/Level';
 import { getUserFromCookie } from '@/utils/auth';
 import mongoose from 'mongoose';
+
+let hasCheckedCourseIndexes = false;
+
+async function ensureCourseIndexes() {
+  if (hasCheckedCourseIndexes) {
+    return;
+  }
+
+  try {
+    const indexes = await Course.collection.indexes();
+    const duplicateMappingIndex = indexes.find((index) => index.name === 'instrument_id_1_level_id_1');
+
+    if (duplicateMappingIndex?.unique) {
+      await Course.collection.dropIndex('instrument_id_1_level_id_1');
+    }
+  } catch (error) {
+    if (error?.codeName !== 'NamespaceNotFound' && error?.code !== 27) {
+      console.error('Failed to verify course indexes:', error);
+    }
+  }
+
+  hasCheckedCourseIndexes = true;
+}
+
+function getDuplicateCourseError(error) {
+  const duplicateFields = Object.keys(error?.keyPattern || {});
+
+  if (duplicateFields.includes('slug')) {
+    return 'This course slug is already in use. Please choose a different slug.';
+  }
+
+  if (duplicateFields.includes('instrument_id') || duplicateFields.includes('level_id')) {
+    return 'A course with this instrument and level mapping already exists.';
+  }
+
+  return 'Duplicate course data found. Please review the values and try again.';
+}
 
 export async function GET(req) {
   try {
@@ -14,6 +50,7 @@ export async function GET(req) {
     }
 
     await connectDB();
+    await ensureCourseIndexes();
     const { searchParams } = new URL(req.url);
     const instrumentId = searchParams.get('instrumentId');
     const levelId = searchParams.get('levelId');
@@ -94,6 +131,7 @@ export async function POST(req) {
     }
 
     await connectDB();
+    await ensureCourseIndexes();
     const newCourse = new Course({
         ...courseData,
         course_creator: courseData.instructor || courseData.course_creator,
@@ -107,6 +145,13 @@ export async function POST(req) {
 
     return NextResponse.json({ success: true, data: newCourse });
   } catch (error) {
+    if (error?.code === 11000) {
+      return NextResponse.json({
+        success: false,
+        error: getDuplicateCourseError(error),
+      }, { status: 400 });
+    }
+
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
@@ -158,6 +203,7 @@ export async function PATCH(req) {
     }
 
     await connectDB();
+    await ensureCourseIndexes();
     const course = await Course.findById(courseId);
     if (!course) {
       return NextResponse.json({ success: false, error: 'Course not found' }, { status: 404 });
@@ -178,6 +224,13 @@ export async function PATCH(req) {
 
     return NextResponse.json({ success: true, data: course });
   } catch (error) {
+    if (error?.code === 11000) {
+      return NextResponse.json({
+        success: false,
+        error: getDuplicateCourseError(error),
+      }, { status: 400 });
+    }
+
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

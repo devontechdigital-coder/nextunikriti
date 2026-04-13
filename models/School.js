@@ -1,4 +1,18 @@
 import mongoose from 'mongoose';
+import { createDefaultSchoolSchedule } from '@/lib/schoolSchedule';
+
+const schoolScheduleSchema = new mongoose.Schema({
+  dayOfWeek: {
+    type: String,
+    enum: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
+    required: true,
+  },
+  isOpen: { type: Boolean, default: false },
+  slots: [{
+    startTime: { type: String, default: '' },
+    endTime: { type: String, default: '' },
+  }],
+}, { _id: false });
 
 const schoolSchema = new mongoose.Schema({
   schoolName: { type: String, required: true },
@@ -11,6 +25,10 @@ const schoolSchema = new mongoose.Schema({
   city: { type: String, default: '' },
   state: { type: String, default: '' },
   pinCode: { type: String, default: '' },
+  weeklySchedule: {
+    type: [schoolScheduleSchema],
+    default: createDefaultSchoolSchedule,
+  },
   status: { 
     type: String, 
     enum: ['active', 'inactive'], 

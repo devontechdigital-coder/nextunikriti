@@ -1,3 +1,5 @@
+import https from 'https';
+import querystring from 'querystring';
 import twilio from 'twilio';
 import axios from 'axios';
 import * as admin from 'firebase-admin';
@@ -18,7 +20,7 @@ const initFirebase = () => {
 
 class OTPService {
   constructor() {
-    this.provider = process.env.OTP_PROVIDER || 'mock'; // twilio | msg91 | firebase | mock
+    this.provider = process.env.OTP_PROVIDER || 'smartping'; // smartping | twilio | msg91 | firebase | mock
     if (this.provider === 'firebase') initFirebase();
     if (this.provider === 'twilio') {
       this.twilioClient = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
@@ -28,6 +30,8 @@ class OTPService {
   async sendOTP(phone, code) {
     try {
       switch (this.provider) {
+        case 'smartping':
+          return await this.sendSmartpingOTP(phone, code);
         case 'twilio':
           return await this.sendTwilioOTP(phone, code);
         case 'msg91':
@@ -41,6 +45,54 @@ class OTPService {
       console.error(`[OTP Service Error - ${this.provider}]:`, error.message);
       throw new Error(`Failed to send OTP via ${this.provider}`);
     }
+  }
+
+  normalizeProviderPhone(phone) {
+    const digits = String(phone || '').replace(/\D/g, '');
+    if (!digits) {
+      throw new Error('Phone number is required');
+    }
+
+    return digits;
+  }
+
+  async sendSmartpingOTP(phone, code) {
+    const queryParams = querystring.stringify({
+      username: process.env.SMARTPING_USERNAME || 'unkrti.trans',
+      password: process.env.SMARTPING_PASSWORD || 'leN8v',
+      unicode: false,
+      from: process.env.SMARTPING_FROM || 'UNKRTI',
+      to: this.normalizeProviderPhone(phone),
+      text: `Here is your OTP ${code} for Login your account on Unikriti Education.`,
+    });
+
+    const url = `${process.env.SMARTPING_URL || 'https://pgapi.smartping.ai/fe/api/v1/send'}?${queryParams}`;
+
+    return await new Promise((resolve, reject) => {
+      https
+        .get(url, (res) => {
+          let body = '';
+          res.setEncoding('utf8');
+          res.on('data', (chunk) => {
+            body += chunk;
+          });
+          res.on('end', () => {
+            if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+              console.log(`OTP API response status code: ${res.statusCode}`);
+              console.log(`Response body: ${body}`);
+              resolve({ success: true, providerId: body || `smartping-${Date.now()}` });
+              return;
+            }
+
+            console.error('Error sending OTP:', body);
+            reject(new Error(`SmartPing request failed with status ${res.statusCode}`));
+          });
+        })
+        .on('error', (error) => {
+          console.error('Error sending OTP:', error);
+          reject(new Error('Failed to send OTP'));
+        });
+    });
   }
 
   async sendTwilioOTP(phone, code) {

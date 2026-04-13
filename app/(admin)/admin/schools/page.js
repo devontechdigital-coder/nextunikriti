@@ -2,6 +2,8 @@
 
 import { useState } from 'react';
 import { Container, Table, Spinner, Alert, Form, Button, Modal, Badge } from 'react-bootstrap';
+import WeeklyScheduleEditor from '@/components/schools/WeeklyScheduleEditor';
+import { createDefaultSchoolSchedule } from '@/lib/schoolSchedule';
 import { 
   useGetAdminSchoolsQuery,
   useCreateAdminSchoolMutation, 
@@ -34,6 +36,8 @@ export default function SchoolsPage() {
     city: '',
     state: '',
     pinCode: '',
+    address: '',
+    weeklySchedule: createDefaultSchoolSchedule(),
     status: 'active'
   });
   const [successMsg, setSuccessMsg] = useState('');
@@ -53,6 +57,8 @@ export default function SchoolsPage() {
         city: school.city || '',
         state: school.state || '',
         pinCode: school.pinCode || '',
+        address: school.address || '',
+        weeklySchedule: school.weeklySchedule || createDefaultSchoolSchedule(),
         status: school.status || 'active'
       });
     } else {
@@ -67,6 +73,8 @@ export default function SchoolsPage() {
         city: '',
         state: '',
         pinCode: '',
+        address: '',
+        weeklySchedule: createDefaultSchoolSchedule(),
         status: 'active'
       });
     }
@@ -262,6 +270,30 @@ export default function SchoolsPage() {
                 />
               </div>
               <div className="col-md-4 mb-4">
+                <Form.Label>State</Form.Label>
+                <Form.Control 
+                  type="text" 
+                  value={formData.state}
+                  onChange={(e) => setFormData({...formData, state: e.target.value})}
+                />
+              </div>
+              <div className="col-md-4 mb-4">
+                <Form.Label>PIN Code</Form.Label>
+                <Form.Control 
+                  type="text" 
+                  value={formData.pinCode}
+                  onChange={(e) => setFormData({...formData, pinCode: e.target.value})}
+                />
+              </div>
+              <div className="col-12 mb-4">
+                <Form.Label>Address</Form.Label>
+                <Form.Control 
+                  type="text" 
+                  value={formData.address}
+                  onChange={(e) => setFormData({...formData, address: e.target.value})}
+                />
+              </div>
+              <div className="col-md-4 mb-4">
                 <Form.Label>Status</Form.Label>
                 <Form.Select 
                   value={formData.status}
@@ -273,6 +305,13 @@ export default function SchoolsPage() {
               </div>
             </div>
 
+            <h6 className="fw-bold mb-3 text-primary">Weekly Availability</h6>
+            <div className="bg-white p-3 rounded shadow-xs mb-4">
+              <WeeklyScheduleEditor
+                value={formData.weeklySchedule}
+                onChange={(weeklySchedule) => setFormData({ ...formData, weeklySchedule })}
+              />
+            </div>
 
             <h6 className="fw-bold mb-3 text-primary">Contact Details</h6>
             <div className="row bg-white p-3 rounded shadow-xs mb-0">

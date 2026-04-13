@@ -6,7 +6,7 @@ import '@/models/Level';
 import '@/models/User';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { FaCheckCircle, FaChevronRight, FaStar } from 'react-icons/fa';
+import CategoryCourseTabs from '@/components/category/CategoryCourseTabs';
 
 async function getCategoryData(slug) {
   await connectDB();
@@ -119,59 +119,13 @@ export default async function CategoryLandingPage({ params }) {
               <div className="mb-5" id="courses">
                 <div className="d-flex justify-content-between align-items-end mb-4">
                   <div>
-                    <h2 className="fw-black text-dark mb-1" style={{ fontWeight: 900 }}>Available Courses</h2>
-                    <p className="text-muted mb-0">Browse through our specialized {category.name} modules</p>
+                    <h2 className="fw-black text-dark mb-1" style={{ fontWeight: 900 }}>Browse By Level</h2>
+                    <p className="text-muted mb-0">Select a level tab to view the matching {category.name} courses</p>
                   </div>
                   <span className="badge bg-danger rounded-pill">{courses.length} Courses</span>
                 </div>
 
-                <div className="row g-4">
-                  {courses.length > 0 ? (
-                    courses.map(course => (
-                      <div className="col-md-6" key={course._id}>
-                        <Link href={`/courses/${course.slug || course._id}`} className="text-decoration-none">
-                          <div className="card h-100 border-0 shadow-sm hover-lift transition-all overflow-hidden rounded-4">
-                            <div style={{ height: '180px', overflow: 'hidden' }}>
-                              {course.thumbnail ? (
-                                <img src={course.thumbnail} className="w-100 h-100 object-fit-cover" alt={course.title} />
-                              ) : (
-                                <div className="w-100 h-100 bg-light d-flex align-items-center justify-content-center text-muted">
-                                  No Image
-                                </div>
-                              )}
-                            </div>
-                            <div className="card-body p-4">
-                              <div className="d-flex gap-2 mb-2">
-                                <span className="badge bg-danger-subtle text-danger fw-bold small rounded-pill">
-                                  {course.instrument_id?.name || 'General'}
-                                </span>
-                                <span className="badge bg-light text-dark fw-bold small rounded-pill border">
-                                  {course.level_id?.levelName || course.level}
-                                </span>
-                              </div>
-                              <h5 className="card-title fw-black text-dark mb-2 fs-5" style={{ fontWeight: 900 }}>
-                                {course.title}
-                              </h5>
-                              <div className="d-flex align-items-center gap-2 mt-3 pt-3 border-top">
-                                <img
-                                  src={`https://ui-avatars.com/api/?name=${course.course_creator?.name}&background=random`}
-                                  className="rounded-circle"
-                                  style={{ width: '24px', height: '24px' }}
-                                  alt="instructor"
-                                />
-                                <span className="extra-small fw-bold text-muted" style={{ fontSize: '0.75rem' }}>{course.course_creator?.name}</span>
-                              </div>
-                            </div>
-                          </div>
-                        </Link>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="col-12 text-center py-5 bg-light rounded-4 border">
-                      <h4 className="text-muted">No courses currently available in this category.</h4>
-                    </div>
-                  )}
-                </div>
+                <CategoryCourseTabs courses={courses} />
               </div>
 
               {/* FAQ Section */}

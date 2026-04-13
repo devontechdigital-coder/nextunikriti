@@ -9,6 +9,8 @@ import { setCredentials } from '@/redux/slices/authSlice';
 import { FaCheckCircle, FaStar, FaBolt, FaCrown, FaCreditCard, FaClock, FaPhoneAlt, FaUser, FaEnvelope } from 'react-icons/fa';
 import { buildPackagePricingOptions, getPackageDisplayDurationDays, getPackageDisplayPrice, getPackageOriginalPrice, resolvePackagePriceOption } from '@/lib/packagePricing';
 import { mergeGradeOptions, normalizeGradeName, packageMatchesGrade } from '@/lib/gradeUtils';
+import { DEFAULT_PHONE_COUNTRY, formatPhoneDisplay, formatPhoneInput, normalizePhoneNumber, PHONE_COUNTRY_OPTIONS } from '@/lib/phone';
+import { normalizeSchoolSchedule } from '@/lib/schoolSchedule';
 
 const AUTH_STEP = { PHONE: 'phone', OTP: 'otp', DETAILS: 'details' };
 const DETAIL_STEP = { BASIC: 0, ADDRESS: 1, FAMILY: 2 };
@@ -16,6 +18,23 @@ const ENROLLMENT_DAY_OPTIONS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'F
 const ENROLLMENT_TIME_SUGGESTIONS = ['7:00 AM - 9:00 AM', '10:00 AM - 12:00 PM', '1:00 PM - 3:00 PM', '4:00 PM - 6:00 PM', '6:00 PM - 8:00 PM'];
 
 const normalizeModeLabel = (mode) => (mode || 'Online').trim();
+const modeRequiresSchool = (mode) => normalizeModeLabel(mode).toLowerCase() !== 'online';
+const buildSchoolSlotValue = (slot = {}) => `${slot.startTime || ''} - ${slot.endTime || ''}`.trim();
+const formatScheduleTime = (value) => {
+    if (!value || !String(value).includes(':')) return value || '';
+    const [hoursString, minutesString] = String(value).split(':');
+    const hours = Number(hoursString);
+    const minutes = Number(minutesString);
+
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+        return value;
+    }
+
+    const suffix = hours >= 12 ? 'PM' : 'AM';
+    const twelveHour = hours % 12 || 12;
+    return `${twelveHour}:${String(minutes).padStart(2, '0')} ${suffix}`;
+};
+const buildSchoolSlotLabel = (slot = {}) => `${formatScheduleTime(slot.startTime)} - ${formatScheduleTime(slot.endTime)}`;
 const createInitialStudentProfile = () => ({
     joiningYear: '',
     dateOfJoining: '',
@@ -70,9 +89,11 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
     // Auth gate
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authStep, setAuthStep] = useState(AUTH_STEP.PHONE);
+    const [phoneCountry, setPhoneCountry] = useState(DEFAULT_PHONE_COUNTRY);
     const [phone, setPhone] = useState('');
     const [otp, setOtp] = useState('');
     const [otpHash, setOtpHash] = useState('');
+    const [submittedPhone, setSubmittedPhone] = useState('');
     const [pendingUser, setPendingUser] = useState(null); // stores user from OTP verify
     const [userName, setUserName] = useState('');
     const [userEmail, setUserEmail] = useState('');
@@ -83,9 +104,15 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
 
     // Confirm modal
     const [showConfirm, setShowConfirm] = useState(false);
+    const [schools, setSchools] = useState([]);
+    const [schoolsLoading, setSchoolsLoading] = useState(false);
+    const [selectedSchoolId, setSelectedSchoolId] = useState('');
+    const [selectedSchoolDay, setSelectedSchoolDay] = useState('');
+    const [selectedSchoolTime, setSelectedSchoolTime] = useState('');
     const [preferredDays, setPreferredDays] = useState([]);
     const [preferredTimes, setPreferredTimes] = useState([]);
     const [preferredTimeInput, setPreferredTimeInput] = useState('');
+    const normalizedPhone = normalizePhoneNumber(phone, phoneCountry);
 
     // Fetch public settings once
     useEffect(() => {
@@ -95,6 +122,32 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                 setSelectedMode(res.data.payOnline ? 'pay_online' : 'pay_later');
             }
         }).catch(() => {});
+    }, []);
+
+    useEffect(() => {
+        let isMounted = true;
+
+        const fetchSchools = async () => {
+            setSchoolsLoading(true);
+            try {
+                const res = await axios.get('/api/schools');
+                if (!isMounted || !res.data?.success) return;
+                setSchools(res.data.schools || []);
+            } catch (error) {
+                if (isMounted) {
+                    setSchools([]);
+                }
+            } finally {
+                if (isMounted) {
+                    setSchoolsLoading(false);
+                }
+            }
+        };
+
+        fetchSchools();
+        return () => {
+            isMounted = false;
+        };
     }, []);
 
     const packageModes = [...new Set(
@@ -116,6 +169,23 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
             ? (initialPackages || []).filter((pkg) => normalizeModeLabel(pkg.mode) === activePackageMode && packageMatchesGrade(pkg, activeGrade))
             : (initialPackages || []).filter((pkg) => packageMatchesGrade(pkg, activeGrade))
     ), [activeGrade, activePackageMode, initialPackages]);
+    const selectedPkg = selectedPkgId ? initialPackages.find((item) => item._id === selectedPkgId) : null;
+    const selectedPkgOption = selectedPkg ? resolvePackagePriceOption(selectedPkg, selectedPkgPriceKey) : null;
+    const selectedPackageMode = normalizeModeLabel(selectedPkg?.mode || activePackageMode || courseMode);
+    const requiresSchoolSelection = modeRequiresSchool(selectedPackageMode);
+    const selectedSchool = schools.find((school) => school._id === selectedSchoolId) || null;
+    const selectedSchoolSchedule = useMemo(() => (
+        selectedSchool ? normalizeSchoolSchedule(selectedSchool.weeklySchedule || []) : []
+    ), [selectedSchool]);
+    const availableSchoolDays = useMemo(() => (
+        selectedSchoolSchedule.filter((entry) => (
+            entry.isOpen && Array.isArray(entry.slots) && entry.slots.some((slot) => slot.startTime && slot.endTime)
+        ))
+    ), [selectedSchoolSchedule]);
+    const availableSchoolSlots = useMemo(() => {
+        const matchingDay = availableSchoolDays.find((entry) => entry.dayOfWeek === selectedSchoolDay);
+        return (matchingDay?.slots || []).filter((slot) => slot.startTime && slot.endTime);
+    }, [availableSchoolDays, selectedSchoolDay]);
 
     useEffect(() => {
         setActivePackageMode(shouldRequireModeSelection ? null : defaultPackageMode);
@@ -152,6 +222,40 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
         setSelectedPkgId(null);
         setSelectedPkgPriceKey('');
     }, [displayedPackages, selectedPkgId, selectedPkgPriceKey]);
+
+    useEffect(() => {
+        if (!requiresSchoolSelection) {
+            setSelectedSchoolId('');
+            setSelectedSchoolDay('');
+            setSelectedSchoolTime('');
+        }
+    }, [requiresSchoolSelection]);
+
+    useEffect(() => {
+        if (!requiresSchoolSelection) return;
+        if (!selectedSchoolId && schools.length === 1) {
+            setSelectedSchoolId(schools[0]._id);
+            return;
+        }
+
+        if (selectedSchoolId && !schools.some((school) => school._id === selectedSchoolId)) {
+            setSelectedSchoolId('');
+        }
+    }, [requiresSchoolSelection, schools, selectedSchoolId]);
+
+    useEffect(() => {
+        if (!requiresSchoolSelection) return;
+        if (!availableSchoolDays.some((entry) => entry.dayOfWeek === selectedSchoolDay)) {
+            setSelectedSchoolDay(availableSchoolDays[0]?.dayOfWeek || '');
+        }
+    }, [availableSchoolDays, requiresSchoolSelection, selectedSchoolDay]);
+
+    useEffect(() => {
+        if (!requiresSchoolSelection) return;
+        if (!availableSchoolSlots.some((slot) => buildSchoolSlotValue(slot) === selectedSchoolTime)) {
+            setSelectedSchoolTime(availableSchoolSlots[0] ? buildSchoolSlotValue(availableSchoolSlots[0]) : '');
+        }
+    }, [availableSchoolSlots, requiresSchoolSelection, selectedSchoolTime]);
 
     const updateStudentProfileField = (field, value) => {
         setStudentProfile((prev) => ({ ...prev, [field]: value }));
@@ -221,7 +325,8 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
         if (!selectedPkgId) { toast.error('Please select a package first'); return; }
         if (!user) {
             setAuthStep(AUTH_STEP.PHONE);
-            setPhone(''); setOtp(''); setOtpHash(''); setPendingUser(null); setUserName(''); setUserEmail('');
+            setPhoneCountry(DEFAULT_PHONE_COUNTRY);
+            setPhone(''); setOtp(''); setOtpHash(''); setSubmittedPhone(''); setPendingUser(null); setUserName(''); setUserEmail('');
             setStudentProfile(createInitialStudentProfile());
             setDetailStep(DETAIL_STEP.BASIC);
             setShowAuthModal(true);
@@ -232,13 +337,14 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
 
     // Step 1 — Send OTP
     const handleSendOtp = async () => {
-        if (!phone || phone.length < 10) { toast.error('Enter a valid 10-digit phone number'); return; }
+        if (!normalizedPhone) { toast.error('Enter a valid phone number for the selected country'); return; }
         setAuthLoading(true);
         try {
-            const res = await axios.post('/api/auth/send-otp', { phone: `+91${phone}` });
+            const res = await axios.post('/api/auth/send-otp', { phone: normalizedPhone, country: phoneCountry });
             if (res.data.success) {
-                const { hash, otpCode } = res.data.data;
+                const { hash, otpCode, phone: verifiedPhone } = res.data.data;
                 setOtpHash(hash);
+                setSubmittedPhone(verifiedPhone || normalizedPhone);
                 // Show OTP as toast if admin has enabled it for testing
                 if (settings.showTestOtp && otpCode) {
                     toast(`🔐 Test OTP: ${otpCode}`, { duration: 10000, icon: '🧪', style: { fontWeight: 'bold', fontSize: '1.1rem' } });
@@ -258,7 +364,12 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
         if (!otp || otp.length !== 6) { toast.error('Enter the 6-digit OTP'); return; }
         setAuthLoading(true);
         try {
-            const res = await axios.post('/api/auth/verify-otp', { phone: `+91${phone}`, hash: otpHash, otp });
+            const res = await axios.post('/api/auth/verify-otp', {
+                phone: submittedPhone || normalizedPhone,
+                hash: otpHash,
+                otp,
+                country: phoneCountry,
+            });
             if (res.data.success) {
                 const userData = res.data.data;
                 setPendingUser(userData); // store for use in details step
@@ -299,10 +410,11 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
             };
             // Update name + email in DB
             await axios.post('/api/auth/update-profile', {
-                phone: `+91${phone}`,
+                phone: submittedPhone || normalizedPhone,
                 name: userName.trim(),
                 email: userEmail.trim() || undefined,
                 studentProfile: studentPayload,
+                country: phoneCountry,
             });
             // Use the pendingUser we already have (cookie already set from step 2)
             const updatedUser = { ...pendingUser, name: userName.trim(), email: userEmail.trim() || pendingUser?.email };
@@ -326,23 +438,33 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
     // Final purchase — cookie already set server-side from OTP verify
     const handlePurchase = async () => {
         if (!selectedPkgId) { toast.error('Please select a package first'); return; }
-        if (!preferredDays.length) { toast.error('Please choose at least one preferred day'); return; }
-        if (!preferredTimes.length) { toast.error('Please add at least one preferred time'); return; }
+
+        const finalPreferredDays = requiresSchoolSelection
+            ? (selectedSchoolDay ? [selectedSchoolDay] : [])
+            : preferredDays;
+        const finalPreferredTimes = requiresSchoolSelection
+            ? (selectedSchoolTime ? [selectedSchoolTime] : [])
+            : preferredTimes;
+
+        if (requiresSchoolSelection && !selectedSchoolId) { toast.error('Please choose a school first'); return; }
+        if (!finalPreferredDays.length) { toast.error(requiresSchoolSelection ? 'Please choose an available day' : 'Please choose at least one preferred day'); return; }
+        if (!finalPreferredTimes.length) { toast.error(requiresSchoolSelection ? 'Please choose an available time slot' : 'Please add at least one preferred time'); return; }
         setLoading(true);
         try {
             const body = { package_id: selectedPkgId };
             if (selectedPkgPriceKey) body.package_price_key = selectedPkgPriceKey;
             if (activeGrade) body.selected_grade_name = activeGrade;
             if (selectedMode === 'pay_later') body.payment_mode = 'pay_later';
-            body.preferred_days = preferredDays;
-            body.preferred_times = preferredTimes;
+            body.preferred_days = finalPreferredDays;
+            body.preferred_times = finalPreferredTimes;
+            if (selectedSchoolId) body.school_id = selectedSchoolId;
             if (pendingUser || userName.trim() || studentProfile.studentName.trim()) {
                 body.student_profile = {
                     ...studentProfile,
                     studentName: studentProfile.studentName.trim() || user?.name || userName.trim(),
                     enrolledFor: studentProfile.enrolledFor.trim() || selectedPkg?.name || '',
-                    time: preferredTimes.join(', '),
-                    location: studentProfile.location.trim() || activePackageMode || courseMode || '',
+                    time: finalPreferredTimes.join(', '),
+                    location: studentProfile.location.trim() || selectedSchool?.schoolName || activePackageMode || courseMode || '',
                 };
             }
 
@@ -427,8 +549,6 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
     };
 
     const bothModesEnabled = settings.payOnline && settings.payLater;
-    const selectedPkg = selectedPkgId ? initialPackages.find(x => x._id === selectedPkgId) : null;
-    const selectedPkgOption = selectedPkg ? resolvePackagePriceOption(selectedPkg, selectedPkgPriceKey) : null;
 
     return (
         <div className="package-selector-container mt-4">
@@ -610,18 +730,28 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                         <>
                             <p className="text-muted small mb-3">Enter your mobile number. We&apos;ll send a one-time password.</p>
                             <InputGroup className="mb-3">
-                                <InputGroup.Text className="fw-bold bg-light">+91</InputGroup.Text>
+                                <Form.Select
+                                    value={phoneCountry}
+                                    onChange={e => setPhoneCountry(e.target.value)}
+                                    style={{ maxWidth: '220px' }}
+                                >
+                                    {PHONE_COUNTRY_OPTIONS.map((option) => (
+                                        <option key={option.code} value={option.code}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </Form.Select>
                                 <Form.Control
                                     type="tel"
-                                    maxLength={10}
-                                    placeholder="10-digit mobile number"
+                                    placeholder="Enter mobile number"
                                     value={phone}
-                                    onChange={e => setPhone(e.target.value.replace(/\D/g, ''))}
+                                    onChange={e => setPhone(formatPhoneInput(e.target.value, phoneCountry))}
                                     onKeyDown={e => e.key === 'Enter' && handleSendOtp()}
                                     autoFocus
                                 />
                             </InputGroup>
-                            <Button variant="dark" className="w-100 rounded-pill fw-bold" onClick={handleSendOtp} disabled={authLoading || phone.length < 10}>
+                            <div className="text-muted x-small mb-3">Number will be validated for the selected country.</div>
+                            <Button variant="dark" className="w-100 rounded-pill fw-bold" onClick={handleSendOtp} disabled={authLoading || !normalizedPhone}>
                                 {authLoading ? <Spinner size="sm" /> : 'Send OTP →'}
                             </Button>
                         </>
@@ -629,7 +759,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
 
                     {authStep === AUTH_STEP.OTP && (
                         <>
-                            <p className="text-muted small mb-1">OTP sent to <strong>+91 {phone}</strong></p>
+                            <p className="text-muted small mb-1">OTP sent to <strong>{formatPhoneDisplay(submittedPhone || normalizedPhone)}</strong></p>
                             <p className="text-muted x-small mb-3">Valid for 5 minutes</p>
                             <Form.Control
                                 type="text"
@@ -645,7 +775,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                                 {authLoading ? <Spinner size="sm" /> : 'Verify OTP →'}
                             </Button>
                             <div className="text-center">
-                                <Button variant="link" className="text-muted small text-decoration-none p-0" onClick={() => { setAuthStep(AUTH_STEP.PHONE); setOtp(''); }}>
+                                <Button variant="link" className="text-muted small text-decoration-none p-0" onClick={() => { setAuthStep(AUTH_STEP.PHONE); setOtp(''); setSubmittedPhone(''); }}>
                                     ← Change number
                                 </Button>
                             </div>
@@ -887,58 +1017,152 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
 
                     {/* Both modes — show choice */}
                     <div className="border rounded-4 p-3 mb-3">
-                        <div className="fw-semibold mb-2">Preferred Day</div>
-                        <div className="d-flex flex-wrap gap-2 mb-2">
-                            {ENROLLMENT_DAY_OPTIONS.map((day) => (
-                                <Button
-                                    key={day}
-                                    type="button"
-                                    size="sm"
-                                    variant={preferredDays.includes(day) ? 'dark' : 'outline-dark'}
-                                    className="rounded-pill"
-                                    onClick={() => togglePreferredDay(day)}
+                        {requiresSchoolSelection ? (
+                            <>
+                                <div className="fw-semibold mb-2">Choose School</div>
+                                <Form.Select
+                                    value={selectedSchoolId}
+                                    onChange={(event) => {
+                                        setSelectedSchoolId(event.target.value);
+                                        setSelectedSchoolDay('');
+                                        setSelectedSchoolTime('');
+                                    }}
+                                    disabled={schoolsLoading}
                                 >
-                                    {day}
-                                </Button>
-                            ))}
-                        </div>
-                        <div className="text-muted small">Select one or more days for your preferred class schedule.</div>
-                    </div>
-
-                    <div className="border rounded-4 p-3 mb-3">
-                        <div className="fw-semibold mb-2">Preferred Time</div>
-                        <InputGroup className="mb-2">
-                            <Form.Control
-                                placeholder="Add preferred time slot"
-                                value={preferredTimeInput}
-                                onChange={(e) => setPreferredTimeInput(e.target.value)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter') {
-                                        e.preventDefault();
-                                        addPreferredTime();
-                                    }
-                                }}
-                            />
-                            <Button variant="dark" onClick={() => addPreferredTime()}>Add</Button>
-                        </InputGroup>
-                        <div className="d-flex flex-wrap gap-2 mb-2">
-                            {ENROLLMENT_TIME_SUGGESTIONS.map((slot) => (
-                                <Button key={slot} type="button" size="sm" variant="outline-secondary" className="rounded-pill" onClick={() => addPreferredTime(slot)}>
-                                    {slot}
-                                </Button>
-                            ))}
-                        </div>
-                        {preferredTimes.length > 0 && (
-                            <div className="d-flex flex-wrap gap-2">
-                                {preferredTimes.map((slot) => (
-                                    <Badge key={slot} bg="dark" pill className="d-inline-flex align-items-center gap-2 px-3 py-2">
-                                        <span>{slot}</span>
-                                        <button type="button" className="pref-chip-remove" onClick={() => removePreferredTime(slot)}>x</button>
-                                    </Badge>
-                                ))}
-                            </div>
+                                    <option value="">Select a school</option>
+                                    {schools.map((school) => (
+                                        <option key={school._id} value={school._id}>
+                                            {school.schoolName}{school.city ? `, ${school.city}` : ''}{school.state ? `, ${school.state}` : ''}
+                                        </option>
+                                    ))}
+                                </Form.Select>
+                                <div className="text-muted small mt-2">
+                                    {schoolsLoading
+                                        ? 'Loading school schedules...'
+                                        : 'Choose a school to view its available days and time slots.'}
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <div className="fw-semibold mb-2">Preferred Day</div>
+                                <div className="d-flex flex-wrap gap-2 mb-2">
+                                    {ENROLLMENT_DAY_OPTIONS.map((day) => (
+                                        <Button
+                                            key={day}
+                                            type="button"
+                                            size="sm"
+                                            variant={preferredDays.includes(day) ? 'dark' : 'outline-dark'}
+                                            className="rounded-pill"
+                                            onClick={() => togglePreferredDay(day)}
+                                        >
+                                            {day}
+                                        </Button>
+                                    ))}
+                                </div>
+                                <div className="text-muted small">Select one or more days for your preferred class schedule.</div>
+                            </>
                         )}
                     </div>
+
+                    {requiresSchoolSelection ? (
+                        <>
+                            <div className="border rounded-4 p-3 mb-3">
+                                <div className="fw-semibold mb-2">Available Day</div>
+                                {selectedSchoolId ? (
+                                    availableSchoolDays.length > 0 ? (
+                                        <>
+                                            <div className="d-flex flex-wrap gap-2 mb-2">
+                                                {availableSchoolDays.map((entry) => (
+                                                    <Button
+                                                        key={entry.dayOfWeek}
+                                                        type="button"
+                                                        size="sm"
+                                                        variant={selectedSchoolDay === entry.dayOfWeek ? 'dark' : 'outline-dark'}
+                                                        className="rounded-pill"
+                                                        onClick={() => {
+                                                            setSelectedSchoolDay(entry.dayOfWeek);
+                                                            setSelectedSchoolTime('');
+                                                        }}
+                                                    >
+                                                        {entry.dayOfWeek}
+                                                    </Button>
+                                                ))}
+                                            </div>
+                                            <div className="text-muted small">Pick one school day to continue.</div>
+                                        </>
+                                    ) : (
+                                        <div className="text-muted small">This school does not have active timings yet.</div>
+                                    )
+                                ) : (
+                                    <div className="text-muted small">Choose a school first to view available days.</div>
+                                )}
+                            </div>
+
+                            <div className="border rounded-4 p-3 mb-3">
+                                <div className="fw-semibold mb-2">Available Time Slot</div>
+                                {selectedSchoolDay ? (
+                                    availableSchoolSlots.length > 0 ? (
+                                        <div className="d-flex flex-wrap gap-2">
+                                            {availableSchoolSlots.map((slot) => {
+                                                const slotValue = buildSchoolSlotValue(slot);
+                                                return (
+                                                    <Button
+                                                        key={slotValue}
+                                                        type="button"
+                                                        size="sm"
+                                                        variant={selectedSchoolTime === slotValue ? 'dark' : 'outline-secondary'}
+                                                        className="rounded-pill"
+                                                        onClick={() => setSelectedSchoolTime(slotValue)}
+                                                    >
+                                                        {buildSchoolSlotLabel(slot)}
+                                                    </Button>
+                                                );
+                                            })}
+                                        </div>
+                                    ) : (
+                                        <div className="text-muted small">No time slot available for the selected day.</div>
+                                    )
+                                ) : (
+                                    <div className="text-muted small">Choose a day to view time slots.</div>
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        <div className="border rounded-4 p-3 mb-3">
+                            <div className="fw-semibold mb-2">Preferred Time</div>
+                            <InputGroup className="mb-2">
+                                <Form.Control
+                                    placeholder="Add preferred time slot"
+                                    value={preferredTimeInput}
+                                    onChange={(e) => setPreferredTimeInput(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') {
+                                            e.preventDefault();
+                                            addPreferredTime();
+                                        }
+                                    }}
+                                />
+                                <Button variant="dark" onClick={() => addPreferredTime()}>Add</Button>
+                            </InputGroup>
+                            <div className="d-flex flex-wrap gap-2 mb-2">
+                                {ENROLLMENT_TIME_SUGGESTIONS.map((slot) => (
+                                    <Button key={slot} type="button" size="sm" variant="outline-secondary" className="rounded-pill" onClick={() => addPreferredTime(slot)}>
+                                        {slot}
+                                    </Button>
+                                ))}
+                            </div>
+                            {preferredTimes.length > 0 && (
+                                <div className="d-flex flex-wrap gap-2">
+                                    {preferredTimes.map((slot) => (
+                                        <Badge key={slot} bg="dark" pill className="d-inline-flex align-items-center gap-2 px-3 py-2">
+                                            <span>{slot}</span>
+                                            <button type="button" className="pref-chip-remove" onClick={() => removePreferredTime(slot)}>x</button>
+                                        </Badge>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
 
                     {bothModesEnabled && (
                         <div>

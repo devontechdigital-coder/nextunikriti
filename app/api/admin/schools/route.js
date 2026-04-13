@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import School from '@/models/School';
 import { getUserFromCookie } from '@/utils/auth';
+import { normalizeSchoolSchedule, validateSchoolSchedule } from '@/lib/schoolSchedule';
 
 export async function GET(req) {
   try {
@@ -33,6 +34,11 @@ export async function POST(req) {
     }
     await dbConnect();
     const body = await req.json();
+    body.weeklySchedule = normalizeSchoolSchedule(body.weeklySchedule);
+    const scheduleError = validateSchoolSchedule(body.weeklySchedule);
+    if (scheduleError) {
+      return NextResponse.json({ success: false, error: scheduleError }, { status: 400 });
+    }
     const school = await School.create(body);
     return NextResponse.json({ success: true, school });
   } catch (error) {

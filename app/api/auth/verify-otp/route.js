@@ -4,12 +4,14 @@ import User from '@/models/User';
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
+import { DEFAULT_PHONE_COUNTRY, normalizePhoneNumber } from '@/lib/phone';
 
 export async function POST(req) {
   try {
-    const { phone, hash, otp } = await req.json();
+    const { phone, hash, otp, country = DEFAULT_PHONE_COUNTRY } = await req.json();
+    const normalizedPhone = normalizePhoneNumber(phone, country);
 
-    if (!phone || !hash || !otp) {
+    if (!normalizedPhone || !hash || !otp) {
       return NextResponse.json({ success: false, error: 'Phone, hash, and OTP are required' }, { status: 400 });
     }
 
@@ -21,7 +23,7 @@ export async function POST(req) {
     }
 
     // Verify hash
-    const data = `${phone}.${otp}.${expires}`;
+    const data = `${normalizedPhone}.${otp}.${expires}`;
     const calculatedHash = crypto.createHmac('sha256', process.env.OTP_SECRET || 'otp_secret').update(data).digest('hex');
 
     if (calculatedHash !== hashValue) {
@@ -30,7 +32,7 @@ export async function POST(req) {
 
     // OTP is valid, connect and issue token
     await connectDB();
-    const user = await User.findOne({ phone });
+    const user = await User.findOne({ phone: normalizedPhone });
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
