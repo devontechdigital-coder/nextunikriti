@@ -112,6 +112,9 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
     const [preferredDays, setPreferredDays] = useState([]);
     const [preferredTimes, setPreferredTimes] = useState([]);
     const [preferredTimeInput, setPreferredTimeInput] = useState('');
+    const [couponCode, setCouponCode] = useState('');
+    const [appliedCoupon, setAppliedCoupon] = useState(null);
+    const [couponLoading, setCouponLoading] = useState(false);
     const normalizedPhone = normalizePhoneNumber(phone, phoneCountry);
 
     // Fetch public settings once
@@ -232,6 +235,11 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
     }, [requiresSchoolSelection]);
 
     useEffect(() => {
+        setAppliedCoupon(null);
+        setCouponCode('');
+    }, [selectedPkgId, selectedPkgPriceKey, activeGrade]);
+
+    useEffect(() => {
         if (!requiresSchoolSelection) return;
         if (!selectedSchoolId && schools.length === 1) {
             setSelectedSchoolId(schools[0]._id);
@@ -282,6 +290,43 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
 
     const removePreferredTime = (value) => {
         setPreferredTimes((prev) => prev.filter((item) => item !== value));
+    };
+
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) {
+            toast.error('Please enter a coupon code');
+            return;
+        }
+        if (!selectedPkgId) {
+            toast.error('Please select a package first');
+            return;
+        }
+
+        setCouponLoading(true);
+        try {
+            const res = await axios.post('/api/coupons/validate', {
+                code: couponCode.trim(),
+                package_id: selectedPkgId,
+                package_price_key: selectedPkgPriceKey,
+                course_id: courseId,
+            });
+
+            if (res.data.success) {
+                setAppliedCoupon(res.data.coupon);
+                setCouponCode(res.data.coupon?.code || couponCode.trim().toUpperCase());
+                toast.success(res.data.message || 'Coupon applied');
+            }
+        } catch (error) {
+            setAppliedCoupon(null);
+            toast.error(error.response?.data?.error || 'Invalid coupon code');
+        } finally {
+            setCouponLoading(false);
+        }
+    };
+
+    const handleRemoveCoupon = () => {
+        setAppliedCoupon(null);
+        setCouponCode('');
     };
 
     const validateDetailStep = () => {
@@ -455,6 +500,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
             if (selectedPkgPriceKey) body.package_price_key = selectedPkgPriceKey;
             if (activeGrade) body.selected_grade_name = activeGrade;
             if (selectedMode === 'pay_later') body.payment_mode = 'pay_later';
+            if (appliedCoupon?.code) body.coupon_code = appliedCoupon.code;
             body.preferred_days = finalPreferredDays;
             body.preferred_times = finalPreferredTimes;
             if (selectedSchoolId) body.school_id = selectedSchoolId;
@@ -549,6 +595,9 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
     };
 
     const bothModesEnabled = settings.payOnline && settings.payLater;
+    const selectedPackageAmount = Number(selectedPkgOption?.price || getPackageDisplayPrice(selectedPkg || {}));
+    const couponDiscountAmount = Number(appliedCoupon?.discountAmount || 0);
+    const payableAmount = Math.max(0, selectedPackageAmount - couponDiscountAmount);
 
     return (
         <div className="package-selector-container mt-4">
@@ -1010,13 +1059,48 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                                     ₹{getPackageOriginalPrice(selectedPkg, selectedPkgPriceKey).toLocaleString()}
                                 </div>
                             )}
-                            <h3 className="fw-bold text-dark mb-1">₹{Number(selectedPkgOption?.price || getPackageDisplayPrice(selectedPkg)).toLocaleString()}</h3>
+                            <h3 className="fw-bold text-dark mb-1">₹{selectedPackageAmount.toLocaleString()}</h3>
+                            {appliedCoupon && (
+                                <>
+                                    <div className="small text-success fw-semibold">Coupon {appliedCoupon.code} applied</div>
+                                    <div className="small text-muted">Discount: -₹{couponDiscountAmount.toLocaleString()}</div>
+                                    <div className="fw-bold mt-2">Payable: ₹{payableAmount.toLocaleString()}</div>
+                                </>
+                            )}
                             {selectedPkg.description && <div className="small text-muted">{selectedPkg.description}</div>}
                         </div>
                     )}
 
                     {/* Both modes — show choice */}
                     <div className="border rounded-4 p-3 mb-3">
+                        <div className="mb-3">
+                            <div className="fw-semibold mb-2">Coupon Code</div>
+                            <InputGroup className="mb-2">
+                                <Form.Control
+                                    placeholder="Enter coupon code"
+                                    value={couponCode}
+                                    onChange={(event) => {
+                                        setCouponCode(event.target.value.toUpperCase());
+                                        if (appliedCoupon) {
+                                            setAppliedCoupon(null);
+                                        }
+                                    }}
+                                />
+                                {appliedCoupon ? (
+                                    <Button variant="outline-danger" onClick={handleRemoveCoupon}>Remove</Button>
+                                ) : (
+                                    <Button variant="dark" onClick={handleApplyCoupon} disabled={couponLoading}>
+                                        {couponLoading ? <Spinner size="sm" /> : 'Apply'}
+                                    </Button>
+                                )}
+                            </InputGroup>
+                            <div className="text-muted small">
+                                {appliedCoupon
+                                    ? `${appliedCoupon.code} gives you Rs.${couponDiscountAmount.toLocaleString()} off on this package.`
+                                    : 'Enter a valid coupon code if you have one.'}
+                            </div>
+                        </div>
+
                         {requiresSchoolSelection ? (
                             <>
                                 <div className="fw-semibold mb-2">Choose School</div>

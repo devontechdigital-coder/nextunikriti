@@ -16,11 +16,13 @@ import Setting from '@/models/Setting';
 import Enrollment from '@/models/Enrollment';
 import School from '@/models/School';
 import User from '@/models/User';
+import Coupon from '@/models/Coupon';
 import { getUserFromCookie } from '@/utils/auth';
 import { resolvePackagePriceOption } from '@/lib/packagePricing';
 import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields } from '@/lib/enrollmentLifecycle';
 import { normalizeGradeName } from '@/lib/gradeUtils';
 import { upsertStudentProfile } from '@/lib/studentProfile';
+import { normalizeCouponCode, validateCouponForCheckout } from '@/lib/coupons';
 
 const normalizeStringList = (value) => (
   Array.isArray(value)
@@ -52,6 +54,7 @@ export async function POST(req) {
       payment_mode,
       selected_grade_name,
       school_id,
+      coupon_code,
       preferred_days,
       preferred_times,
       student_profile,
@@ -65,8 +68,10 @@ export async function POST(req) {
     let selectedPricingOption = null;
     let selectedPackageDoc = null;
     let enrollmentMode = '';
+    let appliedCoupon = null;
     let selectedGradeName = normalizeGradeName(selected_grade_name);
     const selectedSchoolId = String(school_id || '').trim();
+    const normalizedCouponCode = normalizeCouponCode(coupon_code);
     const preferredDays = normalizeStringList(preferred_days);
     const preferredTimes = normalizeStringList(preferred_times);
 
@@ -132,6 +137,22 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: 'Please add at least one preferred time' }, { status: 400 });
     }
 
+    if (normalizedCouponCode) {
+      appliedCoupon = await Coupon.findOne({ code: normalizedCouponCode });
+      const couponValidation = validateCouponForCheckout({
+        coupon: appliedCoupon,
+        courseId,
+        packageId: package_id || null,
+        amount: finalPrice,
+      });
+
+      if (!couponValidation.valid) {
+        return NextResponse.json({ success: false, message: couponValidation.message }, { status: 400 });
+      }
+
+      finalPrice = couponValidation.finalAmount;
+    }
+
     if (selectedSchool) {
       const selectedDay = preferredDays[0];
       const daySchedule = (selectedSchool.weeklySchedule || []).find(
@@ -177,6 +198,7 @@ export async function POST(req) {
         gradeName: selectedGradeName,
         pricingOptionId: selectedPricingOption?._id || null,
         packagePriceKey: selectedPricingOption?.key || package_price_key || '',
+        couponApplied: appliedCoupon?._id || null,
         preferredDays,
         preferredTimes,
         amount: finalPrice,
@@ -228,6 +250,7 @@ export async function POST(req) {
       gradeName: selectedGradeName,
       pricingOptionId: selectedPricingOption?._id || null,
       packagePriceKey: selectedPricingOption?.key || package_price_key || '',
+      couponApplied: appliedCoupon?._id || null,
       preferredDays,
       preferredTimes,
       amount: finalPrice,
@@ -259,6 +282,7 @@ export async function POST(req) {
             packageId: (package_id || '').toString(),
             userId: user.id.toString(),
             schoolId: (selectedSchool?._id || '').toString(),
+            couponCode: normalizedCouponCode,
             gradeName: selectedGradeName,
             preferredDays: preferredDays.join(', '),
             preferredTimes: preferredTimes.join(', ')
@@ -277,6 +301,7 @@ export async function POST(req) {
             packageId: (package_id || '').toString(),
             courseId: courseId.toString(),
             schoolId: (selectedSchool?._id || '').toString(),
+            couponCode: normalizedCouponCode,
         }
       };
       const order = await razorpay.orders.create(options);

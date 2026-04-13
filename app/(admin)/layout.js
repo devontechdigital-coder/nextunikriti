@@ -35,6 +35,7 @@ export default function AdminLayout({ children }) {
     { name: 'Attendance', href: `${basePath}/attendance`, icon: <FaCalendarAlt /> },
     { name: 'Courses', href: `${basePath}/courses`, icon: <FiLayers /> },
     { name: 'Packages', href: `${basePath}/packages`, icon: <FiLayers /> },
+    { name: 'Coupons', href: `${basePath}/coupons`, icon: <FiCreditCard /> },
     { name: 'Categories', href: `${basePath}/categories`, icon: <FiBox /> },
     { name: 'Menus', href: `${basePath}/menus`, icon: <FiList /> },
     { name: 'Banners', href: `${basePath}/banners`, icon: <FiImage /> },

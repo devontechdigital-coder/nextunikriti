@@ -5,6 +5,7 @@ import Payment from '@/models/Payment';
 import Enrollment from '@/models/Enrollment';
 import { verifyToken } from '@/lib/jwt';
 import Package from '@/models/Package';
+import Coupon from '@/models/Coupon';
 import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields } from '@/lib/enrollmentLifecycle';
 import { normalizeGradeName } from '@/lib/gradeUtils';
 import { upsertStudentProfile } from '@/lib/studentProfile';
@@ -19,6 +20,7 @@ export async function POST(req) {
 
     const paymentRecord = await Payment.findById(paymentDbId);
     if (!paymentRecord) return NextResponse.json({ success: false, message: 'Payment not found' }, { status: 404 });
+    const wasCompleted = paymentRecord.status === 'completed';
 
     let isVerified = false;
 
@@ -43,6 +45,10 @@ export async function POST(req) {
     if (isVerified) {
       paymentRecord.status = 'completed';
       await paymentRecord.save();
+
+      if (!wasCompleted && paymentRecord.couponApplied) {
+        await Coupon.findByIdAndUpdate(paymentRecord.couponApplied, { $inc: { usageCount: 1 } });
+      }
 
       let packageDoc = null;
       if (paymentRecord.packageId) {

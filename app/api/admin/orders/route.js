@@ -5,6 +5,7 @@ import User from '@/models/User';
 import Course from '@/models/Course';
 import Package from '@/models/Package';
 import Payment from '@/models/Payment';
+import Coupon from '@/models/Coupon';
 import { getUserFromCookie } from '@/utils/auth';
 import { getPackageDisplayPrice, resolvePackagePriceOption, resolvePackagePriceOptionById } from '@/lib/packagePricing';
 import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields, findPreferredEnrollmentForCourse } from '@/lib/enrollmentLifecycle';
@@ -185,6 +186,7 @@ export async function PATCH(req) {
     await connectDB();
     const payment = await Payment.findById(orderId);
     if (!payment) return NextResponse.json({ success: false, error: 'Order not found' }, { status: 404 });
+    const wasCompleted = payment.status === 'completed';
 
     let enrollment = await Enrollment.findOne({ paymentId: payment._id });
     if (!enrollment) {
@@ -201,6 +203,10 @@ export async function PATCH(req) {
     }
 
     await payment.save();
+
+    if (!wasCompleted && payment.status === 'completed' && payment.couponApplied) {
+      await Coupon.findByIdAndUpdate(payment.couponApplied, { $inc: { usageCount: 1 } });
+    }
 
     if (!enrollment) {
       let packageDoc = null;
