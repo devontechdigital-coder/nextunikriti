@@ -24,6 +24,7 @@ export async function GET(req) {
       .populate('userId', 'name email phone')
       .populate('courseId', 'title thumbnail')
       .populate('packageId', 'name pricingOptions gradeName')
+      .populate('schoolId', 'schoolName city state')
       .sort({ createdAt: -1 });
 
     const data = await Promise.all(payments.map(async (payment) => {
@@ -42,6 +43,7 @@ export async function GET(req) {
       return {
         ...plainPayment,
         enrollmentId: enrollment?._id || null,
+        schoolId: plainPayment.schoolId || enrollment?.schoolId || null,
         gradeName: normalizeGradeName(enrollment?.gradeName || plainPayment.gradeName || plainPayment.packageId?.gradeName),
         paymentStatus: plainPayment.status === 'completed' ? 'paid' : plainPayment.status,
         status: enrollment?.status || (plainPayment.status === 'completed' ? 'active' : 'pending_payment'),

@@ -227,6 +227,31 @@ export default function AdminOrdersPage() {
     });
   };
 
+  const formatTimeValue = (value) => {
+    if (!value || !String(value).includes(':')) return String(value || '').trim();
+
+    const [hoursString, minutesString = '00'] = String(value).split(':');
+    const hours = Number(hoursString);
+    const minutes = Number(minutesString);
+
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+      return String(value).trim();
+    }
+
+    const suffix = hours >= 12 ? 'PM' : 'AM';
+    const twelveHour = hours % 12 || 12;
+    return `${twelveHour}:${String(minutes).padStart(2, '0')} ${suffix}`;
+  };
+
+  const formatTimeRange = (slot) => {
+    const value = String(slot || '').trim();
+    if (!value) return '';
+
+    const [start, end] = value.split(' - ');
+    if (!end) return formatTimeValue(start);
+    return `${formatTimeValue(start)} - ${formatTimeValue(end)}`;
+  };
+
   const uniqueCourses = [...new Set(
     orders
       .map((order) => order.courseId)
@@ -366,8 +391,14 @@ export default function AdminOrdersPage() {
                   {Array.isArray(order.preferredDays) && order.preferredDays.length > 0 && (
                     <div className="x-small text-muted mt-1">Days: {order.preferredDays.join(', ')}</div>
                   )}
+                  {order.schoolId?.schoolName && (
+                    <div className="x-small text-muted">
+                      School: {order.schoolId.schoolName}
+                      {order.schoolId.city ? `, ${order.schoolId.city}` : ''}
+                    </div>
+                  )}
                   {Array.isArray(order.preferredTimes) && order.preferredTimes.length > 0 && (
-                    <div className="x-small text-muted">Time: {order.preferredTimes.join(', ')}</div>
+                    <div className="x-small text-muted">Time: {order.preferredTimes.map(formatTimeRange).join(', ')}</div>
                   )}
                 </td>
                 <td>{order.gradeName ? <Badge bg="secondary">{order.gradeName}</Badge> : <span className="text-muted small">-</span>}</td>
