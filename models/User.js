@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema({
     ref: 'School',
     sparse: true
   },
+  instrumentIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Instrument' }],
   bio: { type: String, default: '' },
   avatar: { type: String, default: '' },
   status: { 

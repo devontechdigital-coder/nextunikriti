@@ -154,25 +154,35 @@ export async function POST(req) {
     }
 
     if (selectedSchool) {
-      const selectedDay = preferredDays[0];
-      const daySchedule = (selectedSchool.weeklySchedule || []).find(
-        (entry) => entry?.dayOfWeek === selectedDay && entry?.isOpen
+      const scheduleByDay = new Map(
+        (selectedSchool.weeklySchedule || [])
+          .filter((entry) => entry?.dayOfWeek && entry?.isOpen)
+          .map((entry) => [entry.dayOfWeek, entry])
       );
 
-      if (!daySchedule) {
-        return NextResponse.json({ success: false, message: 'Selected day is not available for this school' }, { status: 400 });
+      const hasInvalidDay = preferredDays.some((day) => !scheduleByDay.has(day));
+      if (hasInvalidDay) {
+        return NextResponse.json({ success: false, message: 'One or more selected days are not available for this school' }, { status: 400 });
       }
 
-      const normalizedDaySlots = Array.isArray(daySchedule.slots) && daySchedule.slots.length
-        ? daySchedule.slots
-        : ((daySchedule.startTime || daySchedule.endTime)
-            ? [{ startTime: daySchedule.startTime || '', endTime: daySchedule.endTime || '' }]
-            : []);
-      const validSlotValues = normalizedDaySlots.map((slot) => buildSchoolSlotValue(slot));
-      const hasInvalidTime = preferredTimes.some((slotValue) => !validSlotValues.includes(slotValue));
+      const validSlotValues = new Set();
+      preferredDays.forEach((day) => {
+        const daySchedule = scheduleByDay.get(day);
+        const normalizedDaySlots = Array.isArray(daySchedule?.slots) && daySchedule.slots.length
+          ? daySchedule.slots
+          : ((daySchedule?.startTime || daySchedule?.endTime)
+              ? [{ startTime: daySchedule.startTime || '', endTime: daySchedule.endTime || '' }]
+              : []);
 
+        normalizedDaySlots
+          .map((slot) => buildSchoolSlotValue(slot))
+          .filter((slotValue) => slotValue && slotValue !== '-')
+          .forEach((slotValue) => validSlotValues.add(slotValue));
+      });
+
+      const hasInvalidTime = preferredTimes.some((slotValue) => !validSlotValues.has(slotValue));
       if (hasInvalidTime) {
-        return NextResponse.json({ success: false, message: 'Selected time is not available for this school' }, { status: 400 });
+        return NextResponse.json({ success: false, message: 'One or more selected times are not available for this school' }, { status: 400 });
       }
     }
 

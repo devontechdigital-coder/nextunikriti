@@ -8,7 +8,8 @@ import {
   useCreateAdminInstructorMutation,
   useGetInstructorStatsQuery,
   useGetInstructorCoursesQuery,
-  useGetAdminSchoolsQuery
+  useGetAdminSchoolsQuery,
+  useGetAdminInstrumentsQuery
 } from '@/redux/api/apiSlice';
 import { FaCheck, FaTimes, FaBan, FaChartLine, FaCheckCircle, FaPlus, FaTrash } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
@@ -32,6 +33,7 @@ const createInitialFormData = (schoolId = '') => ({
   schoolId,
   bio: '',
   avatar: '',
+  instrumentIds: [],
   status: 'active',
   dateOfBirth: '',
   landlineOrAlternateNumber: '',
@@ -80,7 +82,9 @@ export default function AdminInstructorsPage() {
   const [updateUser, { isLoading: isUpdating }] = useUpdateAdminUserMutation();
   const [createInstructor, { isLoading: isCreating }] = useCreateAdminInstructorMutation();
   const { data: schoolData } = useGetAdminSchoolsQuery();
+  const { data: instrumentsData } = useGetAdminInstrumentsQuery({ status: 'active' });
   const schools = schoolData?.schools || [];
+  const instruments = instrumentsData?.instruments || [];
   
   const { user } = useSelector((state) => state.auth);
   const isSchoolAdmin = user?.role === 'school_admin';
@@ -124,6 +128,18 @@ export default function AdminInstructorsPage() {
 
   const handleFieldChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const toggleInstrument = (instrumentId) => {
+    setFormData((prev) => {
+      const currentIds = Array.isArray(prev.instrumentIds) ? prev.instrumentIds : [];
+      return {
+        ...prev,
+        instrumentIds: currentIds.includes(instrumentId)
+          ? currentIds.filter((id) => id !== instrumentId)
+          : [...currentIds, instrumentId],
+      };
+    });
   };
 
   const handleEducationChange = (index, field, value) => {
@@ -370,6 +386,25 @@ export default function AdminInstructorsPage() {
                       value={formData.bio}
                       onChange={(e) => handleFieldChange('bio', e.target.value)}
                     />
+                  </Form.Group>
+                </Col>
+                <Col md={12}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Choose Instruments</Form.Label>
+                    <div className="border rounded-3 p-3 bg-white d-flex flex-wrap gap-3">
+                      {instruments.length > 0 ? instruments.map((instrument) => (
+                        <Form.Check
+                          key={instrument._id}
+                          type="checkbox"
+                          id={`instructor-instrument-${instrument._id}`}
+                          label={instrument.name}
+                          checked={(formData.instrumentIds || []).includes(instrument._id)}
+                          onChange={() => toggleInstrument(instrument._id)}
+                        />
+                      )) : (
+                        <div className="text-muted small">No active instruments available.</div>
+                      )}
+                    </div>
                   </Form.Group>
                 </Col>
                 {!isSchoolAdmin && (

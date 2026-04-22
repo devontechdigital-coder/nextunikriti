@@ -6,7 +6,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
 import { setCredentials } from '@/redux/slices/authSlice';
-import { FaCheckCircle, FaStar, FaBolt, FaCrown, FaCreditCard, FaClock, FaPhoneAlt, FaUser, FaEnvelope } from 'react-icons/fa';
+import { FaCheckCircle, FaStar, FaBolt, FaCrown, FaCreditCard, FaClock, FaPhoneAlt, FaUser, FaEnvelope, FaMonitor, FaSchool, FaMapMarkerAlt, FaLaptop, FaChalkboardTeacher } from 'react-icons/fa';
 import { buildPackagePricingOptions, getPackageDisplayDurationDays, getPackageDisplayPrice, getPackageOriginalPrice, resolvePackagePriceOption } from '@/lib/packagePricing';
 import { mergeGradeOptions, normalizeGradeName, packageMatchesGrade } from '@/lib/gradeUtils';
 import { DEFAULT_PHONE_COUNTRY, formatPhoneDisplay, formatPhoneInput, normalizePhoneNumber, PHONE_COUNTRY_OPTIONS } from '@/lib/phone';
@@ -25,11 +25,7 @@ const formatScheduleTime = (value) => {
     const [hoursString, minutesString] = String(value).split(':');
     const hours = Number(hoursString);
     const minutes = Number(minutesString);
-
-    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
-        return value;
-    }
-
+    if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return value;
     const suffix = hours >= 12 ? 'PM' : 'AM';
     const twelveHour = hours % 12 || 12;
     return `${twelveHour}:${String(minutes).padStart(2, '0')} ${suffix}`;
@@ -70,6 +66,22 @@ const createInitialStudentProfile = () => ({
     profilePhoto: '',
 });
 
+const getModeIcon = (mode) => {
+    const m = (mode || '').toLowerCase();
+    if (m.includes('online')) return <FaLaptop size={28} />;
+    if (m.includes('school') || m.includes('offline')) return <FaChalkboardTeacher size={28} />;
+    if (m.includes('hybrid')) return <FaMonitor size={28} />;
+    return <FaMapMarkerAlt size={28} />;
+};
+
+const getModeDescription = (mode) => {
+    const m = (mode || '').toLowerCase();
+    if (m.includes('online')) return 'Learn from anywhere with live virtual classes';
+    if (m.includes('school') || m.includes('offline')) return 'In-person classes at our partner schools';
+    if (m.includes('hybrid')) return 'Blend of online and in-person sessions';
+    return 'Flexible learning options available';
+};
+
 export default function PackageSelector({ courseId, courseMode = 'Online', courseLevelName = '', availableGrades = [], initialPackages = [] }) {
     const dispatch = useDispatch();
     const { user } = useSelector((state) => state.auth);
@@ -82,11 +94,9 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
     const [showModeSelectionError, setShowModeSelectionError] = useState(false);
     const [showGradeSelectionError, setShowGradeSelectionError] = useState(false);
 
-    // Public settings (payment modes + showTestOtp)
     const [settings, setSettings] = useState({ payOnline: true, payLater: false, showTestOtp: false });
     const [selectedMode, setSelectedMode] = useState('pay_online');
 
-    // Auth gate
     const [showAuthModal, setShowAuthModal] = useState(false);
     const [authStep, setAuthStep] = useState(AUTH_STEP.PHONE);
     const [phoneCountry, setPhoneCountry] = useState(DEFAULT_PHONE_COUNTRY);
@@ -94,7 +104,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
     const [otp, setOtp] = useState('');
     const [otpHash, setOtpHash] = useState('');
     const [submittedPhone, setSubmittedPhone] = useState('');
-    const [pendingUser, setPendingUser] = useState(null); // stores user from OTP verify
+    const [pendingUser, setPendingUser] = useState(null);
     const [userName, setUserName] = useState('');
     const [userEmail, setUserEmail] = useState('');
     const [studentProfile, setStudentProfile] = useState(createInitialStudentProfile());
@@ -102,13 +112,10 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
     const [authLoading, setAuthLoading] = useState(false);
     const modeSelectionRef = useRef(null);
 
-    // Confirm modal
     const [showConfirm, setShowConfirm] = useState(false);
     const [schools, setSchools] = useState([]);
     const [schoolsLoading, setSchoolsLoading] = useState(false);
     const [selectedSchoolId, setSelectedSchoolId] = useState('');
-    const [selectedSchoolDay, setSelectedSchoolDay] = useState('');
-    const [selectedSchoolTime, setSelectedSchoolTime] = useState('');
     const [preferredDays, setPreferredDays] = useState([]);
     const [preferredTimes, setPreferredTimes] = useState([]);
     const [preferredTimeInput, setPreferredTimeInput] = useState('');
@@ -117,7 +124,6 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
     const [couponLoading, setCouponLoading] = useState(false);
     const normalizedPhone = normalizePhoneNumber(phone, phoneCountry);
 
-    // Fetch public settings once
     useEffect(() => {
         axios.get('/api/settings/payment-modes').then(res => {
             if (res.data.success) {
@@ -129,7 +135,6 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
 
     useEffect(() => {
         let isMounted = true;
-
         const fetchSchools = async () => {
             setSchoolsLoading(true);
             try {
@@ -137,20 +142,13 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                 if (!isMounted || !res.data?.success) return;
                 setSchools(res.data.schools || []);
             } catch (error) {
-                if (isMounted) {
-                    setSchools([]);
-                }
+                if (isMounted) setSchools([]);
             } finally {
-                if (isMounted) {
-                    setSchoolsLoading(false);
-                }
+                if (isMounted) setSchoolsLoading(false);
             }
         };
-
         fetchSchools();
-        return () => {
-            isMounted = false;
-        };
+        return () => { isMounted = false; };
     }, []);
 
     const packageModes = [...new Set(
@@ -186,9 +184,20 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
         ))
     ), [selectedSchoolSchedule]);
     const availableSchoolSlots = useMemo(() => {
-        const matchingDay = availableSchoolDays.find((entry) => entry.dayOfWeek === selectedSchoolDay);
-        return (matchingDay?.slots || []).filter((slot) => slot.startTime && slot.endTime);
-    }, [availableSchoolDays, selectedSchoolDay]);
+        const selectedDays = new Set(preferredDays);
+        const slotMap = new Map();
+        availableSchoolDays
+            .filter((entry) => selectedDays.has(entry.dayOfWeek))
+            .forEach((entry) => {
+                (entry.slots || [])
+                    .filter((slot) => slot.startTime && slot.endTime)
+                    .forEach((slot) => {
+                        const slotValue = buildSchoolSlotValue(slot);
+                        if (!slotMap.has(slotValue)) slotMap.set(slotValue, slot);
+                    });
+            });
+        return Array.from(slotMap.values());
+    }, [availableSchoolDays, preferredDays]);
 
     useEffect(() => {
         setActivePackageMode(shouldRequireModeSelection ? null : defaultPackageMode);
@@ -197,14 +206,11 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
 
     useEffect(() => {
         setActiveGrade((prev) => (
-            prev && gradeOptions.some((grade) => grade.toLowerCase() === prev.toLowerCase())
-                ? prev
-                : ''
+            prev && gradeOptions.some((grade) => grade.toLowerCase() === prev.toLowerCase()) ? prev : ''
         ));
         setShowGradeSelectionError(false);
     }, [gradeOptions]);
 
-    // Auto-select highest priced package for the current view
     useEffect(() => {
         if (displayedPackages.length > 0) {
             const hasSelectedVisiblePackage = displayedPackages.some((pkg) => pkg._id === selectedPkgId);
@@ -215,23 +221,17 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                 setSelectedPkgPriceKey(activeOption?.key || '');
                 return;
             }
-
             const sorted = [...displayedPackages].sort((a, b) => getPackageDisplayPrice(b) - getPackageDisplayPrice(a));
             setSelectedPkgId(sorted[0]._id);
             setSelectedPkgPriceKey(resolvePackagePriceOption(sorted[0])?.key || '');
             return;
         }
-
         setSelectedPkgId(null);
         setSelectedPkgPriceKey('');
     }, [displayedPackages, selectedPkgId, selectedPkgPriceKey]);
 
     useEffect(() => {
-        if (!requiresSchoolSelection) {
-            setSelectedSchoolId('');
-            setSelectedSchoolDay('');
-            setSelectedSchoolTime('');
-        }
+        if (!requiresSchoolSelection) setSelectedSchoolId('');
     }, [requiresSchoolSelection]);
 
     useEffect(() => {
@@ -241,49 +241,35 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
 
     useEffect(() => {
         if (!requiresSchoolSelection) return;
-        if (!selectedSchoolId && schools.length === 1) {
-            setSelectedSchoolId(schools[0]._id);
-            return;
-        }
-
-        if (selectedSchoolId && !schools.some((school) => school._id === selectedSchoolId)) {
-            setSelectedSchoolId('');
-        }
+        if (!selectedSchoolId && schools.length === 1) { setSelectedSchoolId(schools[0]._id); return; }
+        if (selectedSchoolId && !schools.some((school) => school._id === selectedSchoolId)) setSelectedSchoolId('');
     }, [requiresSchoolSelection, schools, selectedSchoolId]);
 
     useEffect(() => {
         if (!requiresSchoolSelection) return;
-        if (!availableSchoolDays.some((entry) => entry.dayOfWeek === selectedSchoolDay)) {
-            setSelectedSchoolDay(availableSchoolDays[0]?.dayOfWeek || '');
-        }
-    }, [availableSchoolDays, requiresSchoolSelection, selectedSchoolDay]);
+        const availableDayNames = availableSchoolDays.map((entry) => entry.dayOfWeek);
+        setPreferredDays((prev) => prev.filter((day) => availableDayNames.includes(day)));
+    }, [availableSchoolDays, requiresSchoolSelection]);
 
     useEffect(() => {
         if (!requiresSchoolSelection) return;
-        if (!availableSchoolSlots.some((slot) => buildSchoolSlotValue(slot) === selectedSchoolTime)) {
-            setSelectedSchoolTime(availableSchoolSlots[0] ? buildSchoolSlotValue(availableSchoolSlots[0]) : '');
-        }
-    }, [availableSchoolSlots, requiresSchoolSelection, selectedSchoolTime]);
+        const availableSlotValues = availableSchoolSlots.map((slot) => buildSchoolSlotValue(slot));
+        setPreferredTimes((prev) => prev.filter((slotValue) => availableSlotValues.includes(slotValue)));
+    }, [availableSchoolSlots, requiresSchoolSelection]);
 
     const updateStudentProfileField = (field, value) => {
         setStudentProfile((prev) => ({ ...prev, [field]: value }));
     };
 
     const togglePreferredDay = (day) => {
-        setPreferredDays((prev) => (
-            prev.includes(day)
-                ? prev.filter((item) => item !== day)
-                : [...prev, day]
-        ));
+        setPreferredDays((prev) => prev.includes(day) ? prev.filter((item) => item !== day) : [...prev, day]);
     };
 
     const addPreferredTime = (rawValue = preferredTimeInput) => {
         const value = rawValue.trim();
         if (!value) return;
         setPreferredTimes((prev) => (
-            prev.some((item) => item.toLowerCase() === value.toLowerCase())
-                ? prev
-                : [...prev, value]
+            prev.some((item) => item.toLowerCase() === value.toLowerCase()) ? prev : [...prev, value]
         ));
         setPreferredTimeInput('');
     };
@@ -292,16 +278,19 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
         setPreferredTimes((prev) => prev.filter((item) => item !== value));
     };
 
-    const handleApplyCoupon = async () => {
-        if (!couponCode.trim()) {
-            toast.error('Please enter a coupon code');
-            return;
-        }
-        if (!selectedPkgId) {
-            toast.error('Please select a package first');
-            return;
-        }
+    const togglePreferredTime = (rawValue) => {
+        const value = String(rawValue || '').trim();
+        if (!value) return;
+        setPreferredTimes((prev) => (
+            prev.some((item) => item.toLowerCase() === value.toLowerCase())
+                ? prev.filter((item) => item.toLowerCase() !== value.toLowerCase())
+                : [...prev, value]
+        ));
+    };
 
+    const handleApplyCoupon = async () => {
+        if (!couponCode.trim()) { toast.error('Please enter a coupon code'); return; }
+        if (!selectedPkgId) { toast.error('Please select a package first'); return; }
         setCouponLoading(true);
         try {
             const res = await axios.post('/api/coupons/validate', {
@@ -310,7 +299,6 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                 package_price_key: selectedPkgPriceKey,
                 course_id: courseId,
             });
-
             if (res.data.success) {
                 setAppliedCoupon(res.data.coupon);
                 setCouponCode(res.data.coupon?.code || couponCode.trim().toUpperCase());
@@ -324,37 +312,22 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
         }
     };
 
-    const handleRemoveCoupon = () => {
-        setAppliedCoupon(null);
-        setCouponCode('');
-    };
+    const handleRemoveCoupon = () => { setAppliedCoupon(null); setCouponCode(''); };
 
     const validateDetailStep = () => {
         if (detailStep === DETAIL_STEP.BASIC) {
-            if (!userName.trim()) {
-                toast.error('Please enter your full name');
-                return false;
-            }
-            if (!studentProfile.gender) {
-                toast.error('Please select gender');
-                return false;
-            }
+            if (!userName.trim()) { toast.error('Please enter your full name'); return false; }
+            if (!studentProfile.gender) { toast.error('Please select gender'); return false; }
         }
         return true;
     };
 
     const handleDetailStepContinue = async () => {
         if (!validateDetailStep()) return;
-
-        if (detailStep < DETAIL_STEP.FAMILY) {
-            setDetailStep((prev) => prev + 1);
-            return;
-        }
-
+        if (detailStep < DETAIL_STEP.FAMILY) { setDetailStep((prev) => prev + 1); return; }
         await handleSaveDetails();
     };
 
-    // Called when "Proceed to Enroll" is clicked
     const handleProceed = () => {
         if (shouldRequireModeSelection && !activePackageMode) {
             setShowModeSelectionError(true);
@@ -380,7 +353,6 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
         }
     };
 
-    // Step 1 — Send OTP
     const handleSendOtp = async () => {
         if (!normalizedPhone) { toast.error('Enter a valid phone number for the selected country'); return; }
         setAuthLoading(true);
@@ -390,7 +362,6 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                 const { hash, otpCode, phone: verifiedPhone } = res.data.data;
                 setOtpHash(hash);
                 setSubmittedPhone(verifiedPhone || normalizedPhone);
-                // Show OTP as toast if admin has enabled it for testing
                 if (settings.showTestOtp && otpCode) {
                     toast(`🔐 Test OTP: ${otpCode}`, { duration: 10000, icon: '🧪', style: { fontWeight: 'bold', fontSize: '1.1rem' } });
                 }
@@ -404,7 +375,6 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
         }
     };
 
-    // Step 2 — Verify OTP
     const handleVerifyOtp = async () => {
         if (!otp || otp.length !== 6) { toast.error('Enter the 6-digit OTP'); return; }
         setAuthLoading(true);
@@ -417,9 +387,8 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
             });
             if (res.data.success) {
                 const userData = res.data.data;
-                setPendingUser(userData); // store for use in details step
+                setPendingUser(userData);
                 if (!userData.name || userData.name === 'Student') {
-                    // New user — collect name
                     setUserName('');
                     setUserEmail(userData.email || '');
                     setStudentProfile((prev) => ({
@@ -430,7 +399,6 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                     setDetailStep(DETAIL_STEP.BASIC);
                     setAuthStep(AUTH_STEP.DETAILS);
                 } else {
-                    // Returning user — login & proceed
                     dispatch(setCredentials(userData));
                     setShowAuthModal(false);
                     toast.success(`Welcome back, ${userData.name}! 👋`);
@@ -444,7 +412,6 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
         }
     };
 
-    // Step 3 — Save details and login (no second verify-otp needed — cookie already set in step 2)
     const handleSaveDetails = async () => {
         if (!userName.trim()) { toast.error('Please enter your full name'); return; }
         setAuthLoading(true);
@@ -453,7 +420,6 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                 ...studentProfile,
                 studentName: studentProfile.studentName.trim() || userName.trim(),
             };
-            // Update name + email in DB
             await axios.post('/api/auth/update-profile', {
                 phone: submittedPhone || normalizedPhone,
                 name: userName.trim(),
@@ -461,14 +427,12 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                 studentProfile: studentPayload,
                 country: phoneCountry,
             });
-            // Use the pendingUser we already have (cookie already set from step 2)
             const updatedUser = { ...pendingUser, name: userName.trim(), email: userEmail.trim() || pendingUser?.email };
             dispatch(setCredentials(updatedUser));
             setShowAuthModal(false);
             toast.success(`Welcome, ${userName.trim()}! 🎉`);
             setTimeout(() => setShowConfirm(true), 100);
         } catch (err) {
-            // Profile update is non-critical — still log them in
             console.warn('Profile update failed:', err.response?.data?.error);
             const updatedUser = { ...pendingUser, name: userName.trim() };
             dispatch(setCredentials(updatedUser));
@@ -480,17 +444,10 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
         }
     };
 
-    // Final purchase — cookie already set server-side from OTP verify
     const handlePurchase = async () => {
         if (!selectedPkgId) { toast.error('Please select a package first'); return; }
-
-        const finalPreferredDays = requiresSchoolSelection
-            ? (selectedSchoolDay ? [selectedSchoolDay] : [])
-            : preferredDays;
-        const finalPreferredTimes = requiresSchoolSelection
-            ? (selectedSchoolTime ? [selectedSchoolTime] : [])
-            : preferredTimes;
-
+        const finalPreferredDays = requiresSchoolSelection ? preferredDays : preferredDays;
+        const finalPreferredTimes = requiresSchoolSelection ? preferredTimes : preferredTimes;
         if (requiresSchoolSelection && !selectedSchoolId) { toast.error('Please choose a school first'); return; }
         if (!finalPreferredDays.length) { toast.error(requiresSchoolSelection ? 'Please choose an available day' : 'Please choose at least one preferred day'); return; }
         if (!finalPreferredTimes.length) { toast.error(requiresSchoolSelection ? 'Please choose an available time slot' : 'Please add at least one preferred time'); return; }
@@ -513,18 +470,15 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                     location: studentProfile.location.trim() || selectedSchool?.schoolName || activePackageMode || courseMode || '',
                 };
             }
-
             const res = await axios.post('/api/orders', body);
             if (res.data.success) {
                 const { gateway, order, url, key, redirectUrl } = res.data;
-
                 if (gateway === 'pay_later') {
                     toast.success('✅ Enrollment request submitted! Our team will contact you for payment.');
                     setShowConfirm(false);
                     setTimeout(() => { window.location.href = '/student/dashboard'; }, 1800);
                     return;
                 }
-
                 if (gateway === 'stripe' && url) {
                     window.location.href = url;
                 } else if (gateway === 'icici' && redirectUrl) {
@@ -572,26 +526,19 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
 
     if (!initialPackages || initialPackages.length === 0) {
         return (
-            <div className="u-card mt-4 p-5 text-center bg-light border-dashed">
-                <h5 className="text-muted mb-0 fw-bold">No enrollment packages available yet.</h5>
-                <p className="small text-muted mt-2">Please check back soon or contact support.</p>
+            <div className="ps-empty-state mt-4">
+                <div className="ps-empty-icon">📦</div>
+                <h5>No enrollment packages available yet</h5>
+                <p>Please check back soon or contact support.</p>
             </div>
         );
     }
 
     const getIcon = (name) => {
         const n = name.toLowerCase();
-        if (n.includes('pro') || n.includes('plus')) return <FaBolt className="mb-2 text-warning" size={24} />;
-        if (n.includes('premium') || n.includes('gold') || n.includes('master')) return <FaCrown className="mb-2 text-primary" size={24} />;
-        return <FaStar className="mb-2 text-secondary" size={24} />;
-    };
-
-    const formatDuration = (days) => {
-        if (!days) return null;
-        if (days >= 365) { const y = Math.floor(days / 365); return `${y} ${y === 1 ? 'Year' : 'Years'}`; }
-        if (days >= 30) { const m = Math.floor(days / 30); return `${m} ${m === 1 ? 'Month' : 'Months'}`; }
-        if (days >= 7) { const w = Math.floor(days / 7); return `${w} ${w === 1 ? 'Week' : 'Weeks'}`; }
-        return `${days} ${days === 1 ? 'Day' : 'Days'}`;
+        if (n.includes('pro') || n.includes('plus')) return <FaBolt className="pkg-icon-svg text-warning" size={22} />;
+        if (n.includes('premium') || n.includes('gold') || n.includes('master')) return <FaCrown className="pkg-icon-svg" size={22} />;
+        return <FaStar className="pkg-icon-svg" size={22} />;
     };
 
     const bothModesEnabled = settings.payOnline && settings.payLater;
@@ -600,648 +547,710 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
     const payableAmount = Math.max(0, selectedPackageAmount - couponDiscountAmount);
 
     return (
-        <div className="package-selector-container mt-4">
-            <h3 className="u-sec-title mb-4">Choose Your Plan</h3>
+        <div className="ps-root mt-4">
+            <h3 className="ps-section-title">Choose Your Plan</h3>
+
+            {/* ===== MODE SELECTION — CARD UI ===== */}
             {packageModes.length > 1 && (
-                <div className="mb-4" ref={modeSelectionRef}>
-                    <div className="fw-semibold mb-2">Choose your mode</div>
-                    <div className="d-flex flex-wrap gap-2">
-                    {packageModes.map((mode) => {
-                        const isActive = activePackageMode === mode;
-                        return (
-                            <Button
-                                key={mode}
-                                type="button"
-                                variant={isActive ? 'dark' : 'outline-dark'}
-                                className="rounded-pill px-4 py-2 fw-semibold"
-                                onClick={() => {
-                                    setActivePackageMode(mode);
-                                    setShowModeSelectionError(false);
-                                }}
-                            >
-                                {mode}
-                            </Button>
-                        );
-                    })}
+                <div className="mb-5" ref={modeSelectionRef}>
+                    <p className="ps-label mb-3">Select your learning mode to view available packages</p>
+                    <div className="ps-mode-grid">
+                        {packageModes.map((mode) => {
+                            const isActive = activePackageMode === mode;
+                            return (
+                                <div
+                                    key={mode}
+                                    className={`ps-mode-card ${isActive ? 'ps-mode-card--active' : ''}`}
+                                    onClick={() => {
+                                        setActivePackageMode(mode);
+                                        setShowModeSelectionError(false);
+                                    }}
+                                >
+                                    <div className="ps-mode-card__icon">
+                                        {getModeIcon(mode)}
+                                    </div>
+                                    <div className="ps-mode-card__name">{mode}</div>
+                                    <div className="ps-mode-card__desc">{getModeDescription(mode)}</div>
+                                    {isActive && (
+                                        <div className="ps-mode-card__check">
+                                            <FaCheckCircle size={16} />
+                                        </div>
+                                    )}
+                                </div>
+                            );
+                        })}
                     </div>
                     {showModeSelectionError && (
-                        <div className="text-danger small mt-2 fw-medium">
-                            Please choose a mode tab to continue with enrollment.
+                        <div className="ps-error-msg mt-2">
+                            ⚠ Please choose a learning mode to view available packages.
                         </div>
                     )}
                 </div>
             )}
-            <Row className="g-3">
-                {displayedPackages.map((pkg) => {
-                    const isSelected = selectedPkgId === pkg._id;
-                    const pricingOptions = buildPackagePricingOptions(pkg).filter((option) => option.isActive);
-                    const visiblePricingOptions = pricingOptions.length ? pricingOptions : buildPackagePricingOptions(pkg);
-                    const selectedOption = resolvePackagePriceOption(pkg, isSelected ? selectedPkgPriceKey : '');
-                    const originalPrice = getPackageOriginalPrice(pkg, isSelected ? selectedPkgPriceKey : selectedOption?.key);
-                    return (
-                        <Col lg={4} md={6} key={pkg._id}>
-                            <Card
-                                className={`u-package-card h-100 ${isSelected ? 'active' : ''}`}
-                                onClick={() => {
-                                    setSelectedPkgId(pkg._id);
-                                    setSelectedPkgPriceKey(selectedOption?.key || '');
-                                }}
-                            >
-                                <Card.Body className="p-4 d-flex flex-column text-center">
-                                    <div className="pkg-icon-wrapper">{getIcon(pkg.name)}</div>
-                                    <h4 className="fw-bold mb-1">{pkg.name}</h4>
-                                    {pkg.gradeName && (
-                                        <div className="text-muted small mb-2 fw-semibold">Grade: {pkg.gradeName}</div>
-                                    )}
-                                    {formatDuration(selectedOption?.durationDays || getPackageDisplayDurationDays(pkg)) && (
-                                        <div className="text-muted small mb-2 fw-medium text-uppercase">{formatDuration(selectedOption?.durationDays || getPackageDisplayDurationDays(pkg))} Program</div>
-                                    )}
-                                    <div className="pkg-price mb-3">
-                                        {originalPrice > Number(selectedOption?.price || getPackageDisplayPrice(pkg)) && (
-                                            <div className="pkg-original-price">₹{originalPrice.toLocaleString()}</div>
-                                        )}
-                                        <span className="currency">₹</span>
-                                        <span className="amount">{Number(selectedOption?.price || getPackageDisplayPrice(pkg)).toLocaleString()}</span>
-                                    </div>
-                                    <p className="small text-muted mb-4 flex-grow-1">{pkg.description}</p>
-                                    {visiblePricingOptions.length > 0 && (
-                                        <div className="mb-3 text-start">
-                                            {gradeOptions.length > 0 && (
-                                                <div className="mb-3">
-                                                    <div className="small fw-semibold mb-2">Choose your grade</div>
-                                                    <Form.Select
-                                                        value={activeGrade}
-                                                        onChange={(event) => {
-                                                            event.stopPropagation();
-                                                            setActiveGrade(event.target.value);
-                                                            setShowGradeSelectionError(false);
-                                                        }}
-                                                        className="rounded-3"
-                                                        onClick={(event) => event.stopPropagation()}
-                                                    >
-                                                        <option value="">Select Grade</option>
-                                                        {gradeOptions.map((grade) => (
-                                                            <option key={grade} value={grade}>{grade}</option>
-                                                        ))}
-                                                    </Form.Select>
-                                                    {showGradeSelectionError && !activeGrade && (
-                                                        <div className="text-danger small mt-2 fw-medium">
-                                                            Please choose your grade.
+
+            {/* ===== PACKAGES GRID ===== */}
+            {(!shouldRequireModeSelection || activePackageMode) ? (
+                <>
+                    {displayedPackages.length > 0 ? (
+                        <Row className="g-3">
+                            {displayedPackages.map((pkg) => {
+                                const isSelected = selectedPkgId === pkg._id;
+                                const pricingOptions = buildPackagePricingOptions(pkg).filter((option) => option.isActive);
+                                const visiblePricingOptions = pricingOptions.length ? pricingOptions : buildPackagePricingOptions(pkg);
+                                const selectedOption = resolvePackagePriceOption(pkg, isSelected ? selectedPkgPriceKey : '');
+                                const originalPrice = getPackageOriginalPrice(pkg, isSelected ? selectedPkgPriceKey : selectedOption?.key);
+                                return (
+                                    <Col lg={4} md={6} key={pkg._id}>
+                                        <div
+                                            className={`ps-pkg-card ${isSelected ? 'ps-pkg-card--selected' : ''}`}
+                                            onClick={() => {
+                                                setSelectedPkgId(pkg._id);
+                                                setSelectedPkgPriceKey(selectedOption?.key || '');
+                                            }}
+                                        >
+                                            {isSelected && <div className="ps-pkg-badge">RECOMMENDED</div>}
+                                            <div className="ps-pkg-icon-wrap">{getIcon(pkg.name)}</div>
+                                            <h4 className="ps-pkg-name">{pkg.name}</h4>
+                                            {pkg.gradeName && (
+                                                <div className="ps-pkg-grade">Grade: {pkg.gradeName}</div>
+                                            )}
+                                            <div className="ps-pkg-price">
+                                                {originalPrice > Number(selectedOption?.price || getPackageDisplayPrice(pkg)) && (
+                                                    <div className="ps-pkg-original">₹{originalPrice.toLocaleString()}</div>
+                                                )}
+                                                <span className="ps-pkg-currency">₹</span>
+                                                <span className="ps-pkg-amount">{Number(selectedOption?.price || getPackageDisplayPrice(pkg)).toLocaleString()}</span>
+                                            </div>
+
+                                            {pkg.features?.length > 0 && (
+                                                <div className="ps-features">
+                                                    {pkg.features.map((feat, i) => (
+                                                        <div key={i} className="ps-feature-item">
+                                                            <FaCheckCircle className="ps-feature-check" size={13} />
+                                                            <span>{feat}</span>
                                                         </div>
-                                                    )}
+                                                    ))}
                                                 </div>
                                             )}
-                                            <div className="small fw-semibold mb-2">Pricing options</div>
-                                            <div className="d-flex flex-column gap-2">
-                                                {visiblePricingOptions.map((option) => {
-                                                    const isOptionSelected = isSelected && selectedPkgPriceKey === option.key;
-                                                    return (
-                                                        <button
-                                                            key={option.key}
-                                                            type="button"
-                                                            className={`pkg-option-btn text-start ${isOptionSelected ? 'active' : ''}`}
-                                                            onClick={(event) => {
-                                                                event.stopPropagation();
-                                                                setSelectedPkgId(pkg._id);
-                                                                setSelectedPkgPriceKey(option.key);
-                                                            }}
-                                                        >
-                                                            <div className="small text-muted">{option.paymentType} • {option.durationDays} days</div>
-                                                            <div className="small fw-bold text-dark">
-                                                                ₹{Number(option.price || 0).toLocaleString()}
-                                                                {Number(option.discountAmount || 0) > 0 && (
-                                                                    <span className="text-muted text-decoration-line-through ms-2">
-                                                                        ₹{Number((option.price || 0) + (option.discountAmount || 0)).toLocaleString()}
-                                                                    </span>
-                                                                )}
-                                                            </div>
-<div className="fw-semibold small">
-  Admission Fee: {option.adminFee > 0 ? `₹${option.adminFee}` : "Free"}{" "}
-  <span>(one time per year)</span>
-</div>
-                                                        </button>
-                                                    );
-                                                })}
+
+                                            {pkg.description && (
+                                                <p className="ps-pkg-desc">{pkg.description}</p>
+                                            )}
+
+                                            {visiblePricingOptions.length > 0 && (
+                                                <div className="ps-pricing-wrap">
+                                                    {gradeOptions.length > 0 && (
+                                                        <div className="mb-3">
+                                                            <div className="ps-input-label">Choose your grade</div>
+                                                            <Form.Select
+                                                                value={activeGrade}
+                                                                onChange={(event) => {
+                                                                    event.stopPropagation();
+                                                                    setActiveGrade(event.target.value);
+                                                                    setShowGradeSelectionError(false);
+                                                                }}
+                                                                className="ps-select"
+                                                                onClick={(event) => event.stopPropagation()}
+                                                            >
+                                                                <option value="">Select Grade</option>
+                                                                {gradeOptions.map((grade) => (
+                                                                    <option key={grade} value={grade}>{grade}</option>
+                                                                ))}
+                                                            </Form.Select>
+                                                            {showGradeSelectionError && !activeGrade && (
+                                                                <div className="ps-error-msg mt-1">Please choose your grade.</div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                    <div className="ps-input-label">Pricing options</div>
+                                                    <div className="ps-options-list">
+                                                        {visiblePricingOptions.map((option) => {
+                                                            const isOptionSelected = isSelected && selectedPkgPriceKey === option.key;
+                                                            return (
+                                                                <button
+                                                                    key={option.key}
+                                                                    type="button"
+                                                                    className={`ps-option-btn ${isOptionSelected ? 'ps-option-btn--active' : ''}`}
+                                                                    onClick={(event) => {
+                                                                        event.stopPropagation();
+                                                                        setSelectedPkgId(pkg._id);
+                                                                        setSelectedPkgPriceKey(option.key);
+                                                                    }}
+                                                                >
+                                                                    <div className="ps-option-meta">{option.paymentType} · {option.durationDays} days</div>
+                                                                    <div className="ps-option-price">
+                                                                        ₹{Number(option.price || 0).toLocaleString()}
+                                                                        {Number(option.discountAmount || 0) > 0 && (
+                                                                            <span className="ps-option-struck">
+                                                                                ₹{Number((option.price || 0) + (option.discountAmount || 0)).toLocaleString()}
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="ps-option-fee">
+                                                                        Admission Fee: {option.adminFee > 0 ? `₹${option.adminFee}` : 'Free'}{' '}
+                                                                        <span className="ps-option-fee-note">(one time per year)</span>
+                                                                    </div>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            <div className="ps-pkg-action">
+                                                {isSelected ? (
+                                                    <button className="ps-btn ps-btn--selected">
+                                                        <FaCheckCircle size={14} /> Selected
+                                                    </button>
+                                                ) : (
+                                                    <button className="ps-btn ps-btn--outline">Select Plan</button>
+                                                )}
                                             </div>
                                         </div>
-                                    )}
-                                    <div className="features-list text-start mb-4">
-                                        {pkg.features?.map((feat, i) => (
-                                            <div key={i} className="feature-item d-flex align-items-start gap-2 mb-2">
-                                                <FaCheckCircle className="text-success mt-1" size={14} />
-                                                <span className="small">{feat}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    <div className="mt-auto">
-                                        {isSelected
-                                            ? <Button variant="dark" className="w-100 rounded-pill py-2 shadow-sm d-flex align-items-center justify-content-center gap-2"><FaCheckCircle /> Selected</Button>
-                                            : <Button variant="outline-dark" className="w-100 rounded-pill py-2">Select Plan</Button>
-                                        }
-                                    </div>
-                                </Card.Body>
-                            </Card>
-                        </Col>
-                    );
-                })}
-            </Row>
-
-            {displayedPackages.length === 0 && (
-                <div className="u-card mt-4 p-4 text-center bg-light border-dashed">
-                    <h5 className="text-muted mb-0 fw-bold">
-                        {`No packages available${activePackageMode ? ` for ${activePackageMode} mode` : ''}.`}
-                    </h5>
+                                    </Col>
+                                );
+                            })}
+                        </Row>
+                    ) : (
+                        <div className="ps-empty-state">
+                            <div className="ps-empty-icon">🔍</div>
+                            <h5>{`No packages available${activePackageMode ? ` for ${activePackageMode} mode` : ''}.`}</h5>
+                        </div>
+                    )}
+                </>
+            ) : (
+                /* Placeholder when no mode selected */
+                <div className="ps-mode-placeholder">
+                    <div className="ps-mode-placeholder__icon">↑</div>
+                    <div className="ps-mode-placeholder__text">Select a learning mode above to view available packages</div>
                 </div>
             )}
 
-            <div className="mt-5 d-grid">
-                <Button variant="dark" size="lg" className="u-btn-purchase border-0 shadow-lg py-3" disabled={!selectedPkgId || loading} onClick={handleProceed}>
+            {/* ===== CTA ===== */}
+            <div className="ps-cta mt-5">
+                <button
+                    className={`ps-cta-btn ${(!selectedPkgId || loading) ? 'ps-cta-btn--disabled' : ''}`}
+                    disabled={!selectedPkgId || loading}
+                    onClick={handleProceed}
+                >
                     {loading && <Spinner size="sm" className="me-2" />}
-                    {selectedPkgId ? 'Proceed to Enroll' : 'Please Select a Plan'}
-                </Button>
-                <p className="text-center mt-3 text-muted small">
-                    <FaBolt className="text-warning me-1" /> Secure enrollment & instant activation
+                    {selectedPkgId ? 'Proceed to Enroll →' : 'Please Select a Plan'}
+                </button>
+                <p className="ps-cta-note">
+                    <FaBolt className="me-1" style={{ color: '#f59e0b' }} />
+                    Secure enrollment &amp; instant activation
                 </p>
             </div>
 
-            {/* ===== AUTH GATE MODAL ===== */}
-            <Modal show={showAuthModal} onHide={() => setShowAuthModal(false)} centered size={authStep === AUTH_STEP.DETAILS ? 'lg' : 'sm'}>
-                <Modal.Header closeButton className="border-0 pb-0">
-                    <Modal.Title className="fw-bold fs-6">
-                        {authStep === AUTH_STEP.PHONE && '📱 Login to Enroll'}
-                        {authStep === AUTH_STEP.OTP && '🔒 Enter OTP'}
-                        {authStep === AUTH_STEP.DETAILS && '👤 Your Details'}
-                    </Modal.Title>
+            {/* ===== AUTH MODAL ===== */}
+            <Modal
+                show={showAuthModal}
+                onHide={() => setShowAuthModal(false)}
+                centered
+                size={authStep === AUTH_STEP.DETAILS ? 'lg' : undefined}
+                className="ps-auth-modal"
+            >
+                <Modal.Header closeButton className="ps-modal-header">
+                    <div className="ps-modal-brand">
+                        {authStep === AUTH_STEP.PHONE && (
+                            <>
+                                <div className="ps-modal-brand__icon">
+                                    <FaPhoneAlt size={18} />
+                                </div>
+                                <div>
+                                    <div className="ps-modal-brand__title">Sign in to Enroll</div>
+                                    <div className="ps-modal-brand__sub">We'll send you a one-time password</div>
+                                </div>
+                            </>
+                        )}
+                        {authStep === AUTH_STEP.OTP && (
+                            <>
+                                <div className="ps-modal-brand__icon ps-modal-brand__icon--otp">
+                                    <span style={{ fontSize: 20 }}>🔒</span>
+                                </div>
+                                <div>
+                                    <div className="ps-modal-brand__title">Enter OTP</div>
+                                    <div className="ps-modal-brand__sub">Check your phone for the code</div>
+                                </div>
+                            </>
+                        )}
+                        {authStep === AUTH_STEP.DETAILS && (
+                            <>
+                                <div className="ps-modal-brand__icon ps-modal-brand__icon--details">
+                                    <FaUser size={18} />
+                                </div>
+                                <div>
+                                    <div className="ps-modal-brand__title">Complete Your Profile</div>
+                                    <div className="ps-modal-brand__sub">Step {detailStep + 1} of 3</div>
+                                </div>
+                            </>
+                        )}
+                    </div>
                 </Modal.Header>
-                <Modal.Body className="px-4 pb-4">
 
+                <Modal.Body className="ps-modal-body">
+                    {/* PHONE STEP */}
                     {authStep === AUTH_STEP.PHONE && (
-                        <>
-                            <p className="text-muted small mb-3">Enter your mobile number. We&apos;ll send a one-time password.</p>
-                            <InputGroup className="mb-3">
-                                <Form.Select
-                                    value={phoneCountry}
-                                    onChange={e => setPhoneCountry(e.target.value)}
-                                    style={{ maxWidth: '220px' }}
-                                >
-                                    {PHONE_COUNTRY_OPTIONS.map((option) => (
-                                        <option key={option.code} value={option.code}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </Form.Select>
-                                <Form.Control
-                                    type="tel"
-                                    placeholder="Enter mobile number"
-                                    value={phone}
-                                    onChange={e => setPhone(formatPhoneInput(e.target.value, phoneCountry))}
-                                    onKeyDown={e => e.key === 'Enter' && handleSendOtp()}
+                        <div className="ps-auth-step">
+                            <div className="ps-auth-field-group">
+                                <label className="ps-field-label">Mobile Number</label>
+                                <div className="ps-phone-row">
+                                    <Form.Select
+                                        value={phoneCountry}
+                                        onChange={e => setPhoneCountry(e.target.value)}
+                                        className="ps-country-select"
+                                    >
+                                        {PHONE_COUNTRY_OPTIONS.map((option) => (
+                                            <option key={option.code} value={option.code}>{option.label}</option>
+                                        ))}
+                                    </Form.Select>
+                                    <Form.Control
+                                        type="tel"
+                                        placeholder="Enter mobile number"
+                                        value={phone}
+                                        onChange={e => setPhone(formatPhoneInput(e.target.value, phoneCountry))}
+                                        onKeyDown={e => e.key === 'Enter' && handleSendOtp()}
+                                        className="ps-phone-input"
+                                        autoFocus
+                                    />
+                                </div>
+                                <div className="ps-field-hint">Number will be validated for the selected country.</div>
+                            </div>
+                            <button
+                                className={`ps-auth-btn ${(authLoading || !normalizedPhone) ? 'ps-auth-btn--disabled' : ''}`}
+                                onClick={handleSendOtp}
+                                disabled={authLoading || !normalizedPhone}
+                            >
+                                {authLoading ? <Spinner size="sm" /> : <>Send OTP <span className="ms-1">→</span></>}
+                            </button>
+                        </div>
+                    )}
+
+                    {/* OTP STEP */}
+                    {authStep === AUTH_STEP.OTP && (
+                        <div className="ps-auth-step">
+                            <div className="ps-otp-sent-info">
+                                <span>OTP sent to</span>
+                                <strong>{formatPhoneDisplay(submittedPhone || normalizedPhone)}</strong>
+                                <span className="ps-otp-validity">Valid for 5 minutes</span>
+                            </div>
+                            <div className="ps-auth-field-group">
+                                <label className="ps-field-label">One-Time Password</label>
+                                <input
+                                    type="text"
+                                    maxLength={6}
+                                    placeholder="• • • • • •"
+                                    value={otp}
+                                    onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                                    onKeyDown={e => e.key === 'Enter' && handleVerifyOtp()}
+                                    className="ps-otp-input"
                                     autoFocus
                                 />
-                            </InputGroup>
-                            <div className="text-muted x-small mb-3">Number will be validated for the selected country.</div>
-                            <Button variant="dark" className="w-100 rounded-pill fw-bold" onClick={handleSendOtp} disabled={authLoading || !normalizedPhone}>
-                                {authLoading ? <Spinner size="sm" /> : 'Send OTP →'}
-                            </Button>
-                        </>
-                    )}
-
-                    {authStep === AUTH_STEP.OTP && (
-                        <>
-                            <p className="text-muted small mb-1">OTP sent to <strong>{formatPhoneDisplay(submittedPhone || normalizedPhone)}</strong></p>
-                            <p className="text-muted x-small mb-3">Valid for 5 minutes</p>
-                            <Form.Control
-                                type="text"
-                                maxLength={6}
-                                placeholder="• • • • • •"
-                                value={otp}
-                                onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
-                                onKeyDown={e => e.key === 'Enter' && handleVerifyOtp()}
-                                className="text-center fw-bold fs-4 mb-3 otp-input"
-                                autoFocus
-                            />
-                            <Button variant="dark" className="w-100 rounded-pill fw-bold mb-2" onClick={handleVerifyOtp} disabled={authLoading || otp.length !== 6}>
-                                {authLoading ? <Spinner size="sm" /> : 'Verify OTP →'}
-                            </Button>
-                            <div className="text-center">
-                                <Button variant="link" className="text-muted small text-decoration-none p-0" onClick={() => { setAuthStep(AUTH_STEP.PHONE); setOtp(''); setSubmittedPhone(''); }}>
-                                    ← Change number
-                                </Button>
+                                <div className="ps-otp-dots">
+                                    {[0,1,2,3,4,5].map(i => (
+                                        <div key={i} className={`ps-otp-dot ${otp.length > i ? 'ps-otp-dot--filled' : ''}`} />
+                                    ))}
+                                </div>
                             </div>
-                        </>
+                            <button
+                                className={`ps-auth-btn ${(authLoading || otp.length !== 6) ? 'ps-auth-btn--disabled' : ''}`}
+                                onClick={handleVerifyOtp}
+                                disabled={authLoading || otp.length !== 6}
+                            >
+                                {authLoading ? <Spinner size="sm" /> : <>Verify OTP <span className="ms-1">→</span></>}
+                            </button>
+                            <button
+                                className="ps-auth-back"
+                                onClick={() => { setAuthStep(AUTH_STEP.PHONE); setOtp(''); setSubmittedPhone(''); }}
+                            >
+                                ← Change number
+                            </button>
+                        </div>
                     )}
 
+                    {/* DETAILS STEP */}
                     {authStep === AUTH_STEP.DETAILS && (
-                        <>
-                            <div className="d-flex align-items-center justify-content-between gap-3 mb-3">
-                                <p className="text-muted small mb-0">Complete your student profile before enrollment.</p>
-                                <Badge bg="dark" pill>Step {detailStep + 1} of 3</Badge>
+                        <div className="ps-auth-step">
+                            {/* Progress Bar */}
+                            <div className="ps-progress-bar">
+                                {['Basic Info', 'Address', 'Family'].map((label, idx) => (
+                                    <div key={idx} className={`ps-progress-step ${detailStep === idx ? 'active' : ''} ${detailStep > idx ? 'done' : ''}`}>
+                                        <div className="ps-progress-step__dot">
+                                            {detailStep > idx ? <FaCheckCircle size={14} /> : <span>{idx + 1}</span>}
+                                        </div>
+                                        <span className="ps-progress-step__label">{label}</span>
+                                    </div>
+                                ))}
                             </div>
 
                             {detailStep === DETAIL_STEP.BASIC && (
-                                <Row className="g-3">
+                                <Row className="g-3 mt-1">
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">Full Name</Form.Label>
-                                        <InputGroup>
-                                            <InputGroup.Text className="bg-light"><FaUser size={12} /></InputGroup.Text>
+                                        <label className="ps-field-label">Full Name *</label>
+                                        <div className="ps-input-icon-wrap">
+                                            <FaUser className="ps-input-icon" size={12} />
                                             <Form.Control
                                                 type="text"
-                                                placeholder="Your full name *"
+                                                placeholder="Your full name"
                                                 value={userName}
                                                 onChange={e => setUserName(e.target.value)}
+                                                className="ps-form-input ps-form-input--icon"
                                                 autoFocus
                                             />
-                                        </InputGroup>
+                                        </div>
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">Email Address</Form.Label>
-                                        <InputGroup>
-                                            <InputGroup.Text className="bg-light"><FaEnvelope size={12} /></InputGroup.Text>
+                                        <label className="ps-field-label">Email Address</label>
+                                        <div className="ps-input-icon-wrap">
+                                            <FaEnvelope className="ps-input-icon" size={12} />
                                             <Form.Control
                                                 type="email"
                                                 placeholder="Email address"
                                                 value={userEmail}
                                                 onChange={e => setUserEmail(e.target.value)}
+                                                className="ps-form-input ps-form-input--icon"
                                             />
-                                        </InputGroup>
+                                        </div>
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">Student Name</Form.Label>
-                                        <Form.Control value={studentProfile.studentName} onChange={(e) => updateStudentProfileField('studentName', e.target.value)} />
+                                        <label className="ps-field-label">Student Name</label>
+                                        <Form.Control value={studentProfile.studentName} onChange={(e) => updateStudentProfileField('studentName', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">Gender</Form.Label>
-                                        <Form.Select value={studentProfile.gender} onChange={(e) => updateStudentProfileField('gender', e.target.value)}>
+                                        <label className="ps-field-label">Gender</label>
+                                        <Form.Select value={studentProfile.gender} onChange={(e) => updateStudentProfileField('gender', e.target.value)} className="ps-form-input">
                                             <option value="male">Male</option>
                                             <option value="female">Female</option>
                                             <option value="other">Other</option>
                                         </Form.Select>
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">Date of Birth</Form.Label>
-                                        <Form.Control type="date" value={studentProfile.dateOfBirth} onChange={(e) => updateStudentProfileField('dateOfBirth', e.target.value)} />
+                                        <label className="ps-field-label">Date of Birth</label>
+                                        <Form.Control type="date" value={studentProfile.dateOfBirth} onChange={(e) => updateStudentProfileField('dateOfBirth', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">Joining Year</Form.Label>
-                                        <Form.Control value={studentProfile.joiningYear} onChange={(e) => updateStudentProfileField('joiningYear', e.target.value)} placeholder="2026" />
+                                        <label className="ps-field-label">Joining Year</label>
+                                        <Form.Control value={studentProfile.joiningYear} onChange={(e) => updateStudentProfileField('joiningYear', e.target.value)} placeholder="2026" className="ps-form-input" />
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">Date of Joining</Form.Label>
-                                        <Form.Control type="date" value={studentProfile.dateOfJoining} onChange={(e) => updateStudentProfileField('dateOfJoining', e.target.value)} />
+                                        <label className="ps-field-label">Date of Joining</label>
+                                        <Form.Control type="date" value={studentProfile.dateOfJoining} onChange={(e) => updateStudentProfileField('dateOfJoining', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">Blood Group</Form.Label>
-                                        <Form.Control value={studentProfile.bloodGroup} onChange={(e) => updateStudentProfileField('bloodGroup', e.target.value)} />
+                                        <label className="ps-field-label">Blood Group</label>
+                                        <Form.Control value={studentProfile.bloodGroup} onChange={(e) => updateStudentProfileField('bloodGroup', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">Nationality</Form.Label>
-                                        <Form.Control value={studentProfile.nationality} onChange={(e) => updateStudentProfileField('nationality', e.target.value)} />
+                                        <label className="ps-field-label">Nationality</label>
+                                        <Form.Control value={studentProfile.nationality} onChange={(e) => updateStudentProfileField('nationality', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">Profile Photo URL</Form.Label>
-                                        <Form.Control value={studentProfile.profilePhoto} onChange={(e) => updateStudentProfileField('profilePhoto', e.target.value)} />
+                                        <label className="ps-field-label">Profile Photo URL</label>
+                                        <Form.Control value={studentProfile.profilePhoto} onChange={(e) => updateStudentProfileField('profilePhoto', e.target.value)} className="ps-form-input" />
                                     </Col>
                                 </Row>
                             )}
 
                             {detailStep === DETAIL_STEP.ADDRESS && (
-                                <Row className="g-3">
+                                <Row className="g-3 mt-1">
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">Address 1</Form.Label>
-                                        <Form.Control value={studentProfile.address1} onChange={(e) => updateStudentProfileField('address1', e.target.value)} />
+                                        <label className="ps-field-label">Address 1</label>
+                                        <Form.Control value={studentProfile.address1} onChange={(e) => updateStudentProfileField('address1', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">Address 2</Form.Label>
-                                        <Form.Control value={studentProfile.address2} onChange={(e) => updateStudentProfileField('address2', e.target.value)} />
+                                        <label className="ps-field-label">Address 2</label>
+                                        <Form.Control value={studentProfile.address2} onChange={(e) => updateStudentProfileField('address2', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">Street / Area</Form.Label>
-                                        <Form.Control value={studentProfile.street} onChange={(e) => updateStudentProfileField('street', e.target.value)} />
+                                        <label className="ps-field-label">Street / Area</label>
+                                        <Form.Control value={studentProfile.street} onChange={(e) => updateStudentProfileField('street', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">City / District</Form.Label>
-                                        <Form.Control value={studentProfile.cityDistrict} onChange={(e) => updateStudentProfileField('cityDistrict', e.target.value)} />
+                                        <label className="ps-field-label">City / District</label>
+                                        <Form.Control value={studentProfile.cityDistrict} onChange={(e) => updateStudentProfileField('cityDistrict', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={4}>
-                                        <Form.Label className="small fw-semibold">State</Form.Label>
-                                        <Form.Control value={studentProfile.state} onChange={(e) => updateStudentProfileField('state', e.target.value)} />
+                                        <label className="ps-field-label">State</label>
+                                        <Form.Control value={studentProfile.state} onChange={(e) => updateStudentProfileField('state', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={4}>
-                                        <Form.Label className="small fw-semibold">PIN Code</Form.Label>
-                                        <Form.Control value={studentProfile.pinCode} onChange={(e) => updateStudentProfileField('pinCode', e.target.value)} />
+                                        <label className="ps-field-label">PIN Code</label>
+                                        <Form.Control value={studentProfile.pinCode} onChange={(e) => updateStudentProfileField('pinCode', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={4}>
-                                        <Form.Label className="small fw-semibold">Location</Form.Label>
-                                        <Form.Control value={studentProfile.location} onChange={(e) => updateStudentProfileField('location', e.target.value)} placeholder="Online / City" />
+                                        <label className="ps-field-label">Location</label>
+                                        <Form.Control value={studentProfile.location} onChange={(e) => updateStudentProfileField('location', e.target.value)} placeholder="Online / City" className="ps-form-input" />
                                     </Col>
                                 </Row>
                             )}
 
                             {detailStep === DETAIL_STEP.FAMILY && (
-                                <Row className="g-3">
+                                <Row className="g-3 mt-1">
                                     <Col md={4}>
-                                        <Form.Label className="small fw-semibold">Mother Name</Form.Label>
-                                        <Form.Control value={studentProfile.motherName} onChange={(e) => updateStudentProfileField('motherName', e.target.value)} />
+                                        <label className="ps-field-label">Mother Name</label>
+                                        <Form.Control value={studentProfile.motherName} onChange={(e) => updateStudentProfileField('motherName', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={4}>
-                                        <Form.Label className="small fw-semibold">Mother Mobile</Form.Label>
-                                        <Form.Control value={studentProfile.motherMobile} onChange={(e) => updateStudentProfileField('motherMobile', e.target.value)} />
+                                        <label className="ps-field-label">Mother Mobile</label>
+                                        <Form.Control value={studentProfile.motherMobile} onChange={(e) => updateStudentProfileField('motherMobile', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={4}>
-                                        <Form.Label className="small fw-semibold">Mother Email</Form.Label>
-                                        <Form.Control type="email" value={studentProfile.motherEmail} onChange={(e) => updateStudentProfileField('motherEmail', e.target.value)} />
+                                        <label className="ps-field-label">Mother Email</label>
+                                        <Form.Control type="email" value={studentProfile.motherEmail} onChange={(e) => updateStudentProfileField('motherEmail', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={4}>
-                                        <Form.Label className="small fw-semibold">Father Name</Form.Label>
-                                        <Form.Control value={studentProfile.fatherName} onChange={(e) => updateStudentProfileField('fatherName', e.target.value)} />
+                                        <label className="ps-field-label">Father Name</label>
+                                        <Form.Control value={studentProfile.fatherName} onChange={(e) => updateStudentProfileField('fatherName', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={4}>
-                                        <Form.Label className="small fw-semibold">Father Mobile</Form.Label>
-                                        <Form.Control value={studentProfile.fatherMobile} onChange={(e) => updateStudentProfileField('fatherMobile', e.target.value)} />
+                                        <label className="ps-field-label">Father Mobile</label>
+                                        <Form.Control value={studentProfile.fatherMobile} onChange={(e) => updateStudentProfileField('fatherMobile', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={4}>
-                                        <Form.Label className="small fw-semibold">Father Email</Form.Label>
-                                        <Form.Control type="email" value={studentProfile.fatherEmail} onChange={(e) => updateStudentProfileField('fatherEmail', e.target.value)} />
+                                        <label className="ps-field-label">Father Email</label>
+                                        <Form.Control type="email" value={studentProfile.fatherEmail} onChange={(e) => updateStudentProfileField('fatherEmail', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={4}>
-                                        <Form.Label className="small fw-semibold">Home Phone</Form.Label>
-                                        <Form.Control value={studentProfile.homePhone} onChange={(e) => updateStudentProfileField('homePhone', e.target.value)} />
+                                        <label className="ps-field-label">Home Phone</label>
+                                        <Form.Control value={studentProfile.homePhone} onChange={(e) => updateStudentProfileField('homePhone', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={4}>
-                                        <Form.Label className="small fw-semibold">Emergency Contact</Form.Label>
-                                        <Form.Control value={studentProfile.emergencyDetails} onChange={(e) => updateStudentProfileField('emergencyDetails', e.target.value)} />
+                                        <label className="ps-field-label">Emergency Contact</label>
+                                        <Form.Control value={studentProfile.emergencyDetails} onChange={(e) => updateStudentProfileField('emergencyDetails', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={4}>
-                                        <Form.Label className="small fw-semibold">Relationship</Form.Label>
-                                        <Form.Control value={studentProfile.relationship} onChange={(e) => updateStudentProfileField('relationship', e.target.value)} />
+                                        <label className="ps-field-label">Relationship</label>
+                                        <Form.Control value={studentProfile.relationship} onChange={(e) => updateStudentProfileField('relationship', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">Emergency Phone No</Form.Label>
-                                        <Form.Control value={studentProfile.emergencyPhoneNo} onChange={(e) => updateStudentProfileField('emergencyPhoneNo', e.target.value)} />
+                                        <label className="ps-field-label">Emergency Phone No</label>
+                                        <Form.Control value={studentProfile.emergencyPhoneNo} onChange={(e) => updateStudentProfileField('emergencyPhoneNo', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col md={6}>
-                                        <Form.Label className="small fw-semibold">Allergies</Form.Label>
-                                        <Form.Control value={studentProfile.allergies} onChange={(e) => updateStudentProfileField('allergies', e.target.value)} />
+                                        <label className="ps-field-label">Allergies</label>
+                                        <Form.Control value={studentProfile.allergies} onChange={(e) => updateStudentProfileField('allergies', e.target.value)} className="ps-form-input" />
                                     </Col>
                                     <Col xs={12}>
-                                        <Form.Label className="small fw-semibold">Medical Condition</Form.Label>
-                                        <Form.Control as="textarea" rows={2} value={studentProfile.medicalCondition} onChange={(e) => updateStudentProfileField('medicalCondition', e.target.value)} />
+                                        <label className="ps-field-label">Medical Condition</label>
+                                        <Form.Control as="textarea" rows={2} value={studentProfile.medicalCondition} onChange={(e) => updateStudentProfileField('medicalCondition', e.target.value)} className="ps-form-input" />
                                     </Col>
                                 </Row>
                             )}
 
-                            <div className="d-flex justify-content-between gap-2 mt-4">
-                                <Button
-                                    variant="outline-secondary"
-                                    className="rounded-pill px-4"
+                            <div className="ps-details-footer">
+                                <button
+                                    className="ps-auth-back-btn"
                                     onClick={() => {
-                                        if (detailStep === DETAIL_STEP.BASIC) {
-                                            setAuthStep(AUTH_STEP.OTP);
-                                            return;
-                                        }
+                                        if (detailStep === DETAIL_STEP.BASIC) { setAuthStep(AUTH_STEP.OTP); return; }
                                         setDetailStep((prev) => Math.max(DETAIL_STEP.BASIC, prev - 1));
                                     }}
                                     disabled={authLoading}
                                 >
-                                    Back
-                                </Button>
-                                <Button variant="dark" className="rounded-pill fw-bold px-4" onClick={handleDetailStepContinue} disabled={authLoading || !userName.trim()}>
-                                    {authLoading ? <Spinner size="sm" /> : (detailStep === DETAIL_STEP.FAMILY ? 'Continue to Enrollment ->' : 'Next ->')}
-                                </Button>
+                                    ← Back
+                                </button>
+                                <button
+                                    className={`ps-auth-btn ps-auth-btn--inline ${(authLoading || !userName.trim()) ? 'ps-auth-btn--disabled' : ''}`}
+                                    onClick={handleDetailStepContinue}
+                                    disabled={authLoading || !userName.trim()}
+                                >
+                                    {authLoading ? <Spinner size="sm" /> : (detailStep === DETAIL_STEP.FAMILY ? 'Continue to Enrollment →' : 'Next →')}
+                                </button>
                             </div>
-
-                            {false && (
-                                <>
-                                    <p className="text-muted small mb-3">Just a few details to set up your account.</p>
-                            <InputGroup className="mb-3">
-                                <InputGroup.Text className="bg-light"><FaUser size={12} /></InputGroup.Text>
-                                <Form.Control
-                                    type="text"
-                                    placeholder="Your full name *"
-                                    value={userName}
-                                    onChange={e => setUserName(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && handleSaveDetails()}
-                                    autoFocus
-                                />
-                            </InputGroup>
-                            <InputGroup className="mb-4">
-                                <InputGroup.Text className="bg-light"><FaEnvelope size={12} /></InputGroup.Text>
-                                <Form.Control
-                                    type="email"
-                                    placeholder="Email address (optional)"
-                                    value={userEmail}
-                                    onChange={e => setUserEmail(e.target.value)}
-                                />
-                            </InputGroup>
-                            <Button variant="dark" className="w-100 rounded-pill fw-bold" onClick={handleSaveDetails} disabled={authLoading || !userName.trim()}>
-                                {authLoading ? <Spinner size="sm" /> : 'Continue to Payment →'}
-                            </Button>
-                        </>
-                            )}
-                        </>
+                        </div>
                     )}
                 </Modal.Body>
             </Modal>
 
             {/* ===== CONFIRM + PAYMENT MODE MODAL ===== */}
-            <Modal show={showConfirm} onHide={() => setShowConfirm(false)} centered>
-                <Modal.Header closeButton className="border-0">
-                    <Modal.Title className="fw-bold">Confirm Enrollment</Modal.Title>
+            <Modal show={showConfirm} onHide={() => setShowConfirm(false)} centered className="ps-confirm-modal">
+                <Modal.Header closeButton className="ps-modal-header">
+                    <Modal.Title className="ps-modal-confirm-title">Confirm Enrollment</Modal.Title>
                 </Modal.Header>
                 <Modal.Body className="p-4">
                     {selectedPkg && (
-                        <div className="bg-light p-4 rounded-4 border text-center mb-3">
-                            <div className="text-uppercase small fw-bold text-muted mb-1">{selectedPkg.name}</div>
-                            {(activeGrade || selectedPkg.gradeName) && <div className="small text-muted mb-1">Grade: {activeGrade || selectedPkg.gradeName}</div>}
-                            {selectedPkgOption?.label && <div className="small text-muted mb-1">{selectedPkgOption.label}</div>}
+                        <div className="ps-confirm-summary">
+                            <div className="ps-confirm-pkg-name">{selectedPkg.name}</div>
+                            {(activeGrade || selectedPkg.gradeName) && (
+                                <div className="ps-confirm-pkg-meta">Grade: {activeGrade || selectedPkg.gradeName}</div>
+                            )}
+                            {selectedPkgOption?.label && (
+                                <div className="ps-confirm-pkg-meta">{selectedPkgOption.label}</div>
+                            )}
                             {getPackageOriginalPrice(selectedPkg, selectedPkgPriceKey) > Number(selectedPkgOption?.price || getPackageDisplayPrice(selectedPkg)) && (
-                                <div className="small text-muted text-decoration-line-through mb-1">
-                                    ₹{getPackageOriginalPrice(selectedPkg, selectedPkgPriceKey).toLocaleString()}
+                                <div className="ps-confirm-original">₹{getPackageOriginalPrice(selectedPkg, selectedPkgPriceKey).toLocaleString()}</div>
+                            )}
+                            <div className="ps-confirm-price">₹{selectedPackageAmount.toLocaleString()}</div>
+                            {appliedCoupon && (
+                                <div className="ps-confirm-coupon-applied">
+                                    <span className="ps-coupon-tag">✓ {appliedCoupon.code}</span>
+                                    <span> –₹{couponDiscountAmount.toLocaleString()}</span>
+                                    <div className="ps-confirm-payable">Payable: ₹{payableAmount.toLocaleString()}</div>
                                 </div>
                             )}
-                            <h3 className="fw-bold text-dark mb-1">₹{selectedPackageAmount.toLocaleString()}</h3>
-                            {appliedCoupon && (
-                                <>
-                                    <div className="small text-success fw-semibold">Coupon {appliedCoupon.code} applied</div>
-                                    <div className="small text-muted">Discount: -₹{couponDiscountAmount.toLocaleString()}</div>
-                                    <div className="fw-bold mt-2">Payable: ₹{payableAmount.toLocaleString()}</div>
-                                </>
-                            )}
-                            {selectedPkg.description && <div className="small text-muted">{selectedPkg.description}</div>}
+                            {selectedPkg.description && <div className="ps-confirm-pkg-desc">{selectedPkg.description}</div>}
                         </div>
                     )}
 
-                    {/* Both modes — show choice */}
-                    <div className="border rounded-4 p-3 mb-3">
-                        <div className="mb-3">
-                            <div className="fw-semibold mb-2">Coupon Code</div>
-                            <InputGroup className="mb-2">
-                                <Form.Control
-                                    placeholder="Enter coupon code"
-                                    value={couponCode}
-                                    onChange={(event) => {
-                                        setCouponCode(event.target.value.toUpperCase());
-                                        if (appliedCoupon) {
-                                            setAppliedCoupon(null);
-                                        }
-                                    }}
-                                />
-                                {appliedCoupon ? (
-                                    <Button variant="outline-danger" onClick={handleRemoveCoupon}>Remove</Button>
-                                ) : (
-                                    <Button variant="dark" onClick={handleApplyCoupon} disabled={couponLoading}>
-                                        {couponLoading ? <Spinner size="sm" /> : 'Apply'}
-                                    </Button>
-                                )}
-                            </InputGroup>
-                            <div className="text-muted small">
-                                {appliedCoupon
-                                    ? `${appliedCoupon.code} gives you Rs.${couponDiscountAmount.toLocaleString()} off on this package.`
-                                    : 'Enter a valid coupon code if you have one.'}
-                            </div>
+                    <div className="ps-confirm-section">
+                        <div className="ps-confirm-section__title">Coupon Code</div>
+                        <div className="ps-coupon-row">
+                            <Form.Control
+                                placeholder="Enter coupon code"
+                                value={couponCode}
+                                onChange={(event) => {
+                                    setCouponCode(event.target.value.toUpperCase());
+                                    if (appliedCoupon) setAppliedCoupon(null);
+                                }}
+                                className="ps-form-input"
+                            />
+                            {appliedCoupon ? (
+                                <button className="ps-coupon-btn ps-coupon-btn--remove" onClick={handleRemoveCoupon}>Remove</button>
+                            ) : (
+                                <button className="ps-coupon-btn" onClick={handleApplyCoupon} disabled={couponLoading}>
+                                    {couponLoading ? <Spinner size="sm" /> : 'Apply'}
+                                </button>
+                            )}
                         </div>
-
-                        {requiresSchoolSelection ? (
-                            <>
-                                <div className="fw-semibold mb-2">Choose School</div>
-                                <Form.Select
-                                    value={selectedSchoolId}
-                                    onChange={(event) => {
-                                        setSelectedSchoolId(event.target.value);
-                                        setSelectedSchoolDay('');
-                                        setSelectedSchoolTime('');
-                                    }}
-                                    disabled={schoolsLoading}
-                                >
-                                    <option value="">Select a school</option>
-                                    {schools.map((school) => (
-                                        <option key={school._id} value={school._id}>
-                                            {school.schoolName}{school.city ? `, ${school.city}` : ''}{school.state ? `, ${school.state}` : ''}
-                                        </option>
-                                    ))}
-                                </Form.Select>
-                                <div className="text-muted small mt-2">
-                                    {schoolsLoading
-                                        ? 'Loading school schedules...'
-                                        : 'Choose a school to view its available days and time slots.'}
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className="fw-semibold mb-2">Preferred Day</div>
-                                <div className="d-flex flex-wrap gap-2 mb-2">
-                                    {ENROLLMENT_DAY_OPTIONS.map((day) => (
-                                        <Button
-                                            key={day}
-                                            type="button"
-                                            size="sm"
-                                            variant={preferredDays.includes(day) ? 'dark' : 'outline-dark'}
-                                            className="rounded-pill"
-                                            onClick={() => togglePreferredDay(day)}
-                                        >
-                                            {day}
-                                        </Button>
-                                    ))}
-                                </div>
-                                <div className="text-muted small">Select one or more days for your preferred class schedule.</div>
-                            </>
-                        )}
+                        <div className="ps-field-hint mt-1">
+                            {appliedCoupon
+                                ? `${appliedCoupon.code} gives you ₹${couponDiscountAmount.toLocaleString()} off on this package.`
+                                : 'Enter a valid coupon code if you have one.'}
+                        </div>
                     </div>
 
                     {requiresSchoolSelection ? (
+                        <div className="ps-confirm-section">
+                            <div className="ps-confirm-section__title">Choose School</div>
+                            <Form.Select
+                                value={selectedSchoolId}
+                                onChange={(event) => {
+                                    setSelectedSchoolId(event.target.value);
+                                    setPreferredDays([]);
+                                    setPreferredTimes([]);
+                                }}
+                                disabled={schoolsLoading}
+                                className="ps-form-input"
+                            >
+                                <option value="">Select a school</option>
+                                {schools.map((school) => (
+                                    <option key={school._id} value={school._id}>
+                                        {school.schoolName}{school.city ? `, ${school.city}` : ''}{school.state ? `, ${school.state}` : ''}
+                                    </option>
+                                ))}
+                            </Form.Select>
+                            <div className="ps-field-hint mt-1">
+                                {schoolsLoading ? 'Loading school schedules...' : 'Choose a school to view available days and time slots.'}
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="ps-confirm-section">
+                            <div className="ps-confirm-section__title">Preferred Day</div>
+                            <div className="ps-day-chips">
+                                {ENROLLMENT_DAY_OPTIONS.map((day) => (
+                                    <button
+                                        key={day}
+                                        type="button"
+                                        className={`ps-chip ${preferredDays.includes(day) ? 'ps-chip--active' : ''}`}
+                                        onClick={() => togglePreferredDay(day)}
+                                    >
+                                        {day}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="ps-field-hint mt-2">Select one or more days for your preferred class schedule.</div>
+                        </div>
+                    )}
+
+                    {requiresSchoolSelection && (
                         <>
-                            <div className="border rounded-4 p-3 mb-3">
-                                <div className="fw-semibold mb-2">Available Day</div>
+                            <div className="ps-confirm-section">
+                                <div className="ps-confirm-section__title">Preferred Day</div>
                                 {selectedSchoolId ? (
                                     availableSchoolDays.length > 0 ? (
                                         <>
-                                            <div className="d-flex flex-wrap gap-2 mb-2">
+                                            <div className="ps-day-chips">
                                                 {availableSchoolDays.map((entry) => (
-                                                    <Button
+                                                    <button
                                                         key={entry.dayOfWeek}
                                                         type="button"
-                                                        size="sm"
-                                                        variant={selectedSchoolDay === entry.dayOfWeek ? 'dark' : 'outline-dark'}
-                                                        className="rounded-pill"
-                                                        onClick={() => {
-                                                            setSelectedSchoolDay(entry.dayOfWeek);
-                                                            setSelectedSchoolTime('');
-                                                        }}
+                                                        className={`ps-chip ${preferredDays.includes(entry.dayOfWeek) ? 'ps-chip--active' : ''}`}
+                                                        onClick={() => togglePreferredDay(entry.dayOfWeek)}
                                                     >
                                                         {entry.dayOfWeek}
-                                                    </Button>
+                                                    </button>
                                                 ))}
                                             </div>
-                                            <div className="text-muted small">Pick one school day to continue.</div>
+                                            <div className="ps-field-hint mt-2">Select one or more school days.</div>
                                         </>
                                     ) : (
-                                        <div className="text-muted small">This school does not have active timings yet.</div>
+                                        <div className="ps-field-hint">This school does not have active timings yet.</div>
                                     )
                                 ) : (
-                                    <div className="text-muted small">Choose a school first to view available days.</div>
+                                    <div className="ps-field-hint">Choose a school first to view available days.</div>
                                 )}
                             </div>
 
-                            <div className="border rounded-4 p-3 mb-3">
-                                <div className="fw-semibold mb-2">Available Time Slot</div>
-                                {selectedSchoolDay ? (
+                            <div className="ps-confirm-section">
+                                <div className="ps-confirm-section__title">Preferred Time Slot</div>
+                                {preferredDays.length > 0 ? (
                                     availableSchoolSlots.length > 0 ? (
-                                        <div className="d-flex flex-wrap gap-2">
+                                        <div className="ps-day-chips">
                                             {availableSchoolSlots.map((slot) => {
                                                 const slotValue = buildSchoolSlotValue(slot);
                                                 return (
-                                                    <Button
+                                                    <button
                                                         key={slotValue}
                                                         type="button"
-                                                        size="sm"
-                                                        variant={selectedSchoolTime === slotValue ? 'dark' : 'outline-secondary'}
-                                                        className="rounded-pill"
-                                                        onClick={() => setSelectedSchoolTime(slotValue)}
+                                                        className={`ps-chip ${preferredTimes.includes(slotValue) ? 'ps-chip--active' : ''}`}
+                                                        onClick={() => togglePreferredTime(slotValue)}
                                                     >
                                                         {buildSchoolSlotLabel(slot)}
-                                                    </Button>
+                                                    </button>
                                                 );
                                             })}
                                         </div>
                                     ) : (
-                                        <div className="text-muted small">No time slot available for the selected day.</div>
+                                        <div className="ps-field-hint">No time slot available for the selected day.</div>
                                     )
                                 ) : (
-                                    <div className="text-muted small">Choose a day to view time slots.</div>
+                                    <div className="ps-field-hint">Choose a day to view time slots.</div>
                                 )}
                             </div>
                         </>
-                    ) : (
-                        <div className="border rounded-4 p-3 mb-3">
-                            <div className="fw-semibold mb-2">Preferred Time</div>
-                            <InputGroup className="mb-2">
+                    )}
+
+                    {!requiresSchoolSelection && (
+                        <div className="ps-confirm-section">
+                            <div className="ps-confirm-section__title">Preferred Time Slot</div>
+                            <div className="ps-coupon-row mb-2">
                                 <Form.Control
                                     placeholder="Add preferred time slot"
                                     value={preferredTimeInput}
                                     onChange={(e) => setPreferredTimeInput(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            e.preventDefault();
-                                            addPreferredTime();
-                                        }
-                                    }}
+                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPreferredTime(); } }}
+                                    className="ps-form-input"
                                 />
-                                <Button variant="dark" onClick={() => addPreferredTime()}>Add</Button>
-                            </InputGroup>
-                            <div className="d-flex flex-wrap gap-2 mb-2">
+                                <button className="ps-coupon-btn" onClick={() => addPreferredTime()}>Add</button>
+                            </div>
+                            <div className="ps-day-chips mb-2">
                                 {ENROLLMENT_TIME_SUGGESTIONS.map((slot) => (
-                                    <Button key={slot} type="button" size="sm" variant="outline-secondary" className="rounded-pill" onClick={() => addPreferredTime(slot)}>
+                                    <button
+                                        key={slot}
+                                        type="button"
+                                        className={`ps-chip ${preferredTimes.some((item) => item.toLowerCase() === slot.toLowerCase()) ? 'ps-chip--active' : ''}`}
+                                        onClick={() => togglePreferredTime(slot)}
+                                    >
                                         {slot}
-                                    </Button>
+                                    </button>
                                 ))}
                             </div>
                             {preferredTimes.length > 0 && (
-                                <div className="d-flex flex-wrap gap-2">
+                                <div className="ps-time-chips">
                                     {preferredTimes.map((slot) => (
-                                        <Badge key={slot} bg="dark" pill className="d-inline-flex align-items-center gap-2 px-3 py-2">
-                                            <span>{slot}</span>
-                                            <button type="button" className="pref-chip-remove" onClick={() => removePreferredTime(slot)}>x</button>
-                                        </Badge>
+                                        <span key={slot} className="ps-time-chip">
+                                            {slot}
+                                            <button type="button" className="ps-time-chip__remove" onClick={() => removePreferredTime(slot)}>×</button>
+                                        </span>
                                     ))}
                                 </div>
                             )}
@@ -1249,66 +1258,49 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                     )}
 
                     {bothModesEnabled && (
-                        <div>
-                            <p className="fw-semibold small mb-2">How would you like to pay?</p>
-                            <div className="d-flex flex-column gap-2">
+                        <div className="ps-confirm-section">
+                            <div className="ps-confirm-section__title">Payment Method</div>
+                            <div className="ps-pay-options">
                                 {[
-                                    { mode: 'pay_online', icon: <FaCreditCard size={18} />, label: 'Pay Online', sub: 'Secure instant payment via gateway' },
-                                    { mode: 'pay_later', icon: <FaClock size={18} />, label: 'Pay Later', sub: 'Reserve now, team will contact you' },
+                                    { mode: 'pay_online', icon: <FaCreditCard size={20} />, label: 'Pay Online', sub: 'Secure instant payment via gateway' },
+                                    { mode: 'pay_later', icon: <FaClock size={20} />, label: 'Pay Later', sub: 'Reserve now, our team will contact you' },
                                 ].map(({ mode, icon, label, sub }) => (
                                     <div
                                         key={mode}
-                                        className={`d-flex align-items-center gap-3 p-3 rounded-3 border ${selectedMode === mode ? 'border-dark bg-dark text-white' : 'bg-white'}`}
-                                        style={{ cursor: 'pointer' }}
+                                        className={`ps-pay-option ${selectedMode === mode ? 'ps-pay-option--active' : ''}`}
                                         onClick={() => setSelectedMode(mode)}
                                     >
-                                        {icon}
-                                        <div>
-                                            <div className="fw-bold small">{label}</div>
-                                            <div className={`x-small ${selectedMode === mode ? 'text-white-50' : 'text-muted'}`}>{sub}</div>
+                                        <div className="ps-pay-option__icon">{icon}</div>
+                                        <div className="ps-pay-option__text">
+                                            <div className="ps-pay-option__label">{label}</div>
+                                            <div className="ps-pay-option__sub">{sub}</div>
                                         </div>
-                                        {selectedMode === mode && <FaCheckCircle className="ms-auto" />}
+                                        {selectedMode === mode && <FaCheckCircle className="ps-pay-option__check" size={16} />}
                                     </div>
                                 ))}
                             </div>
                         </div>
                     )}
 
-                    {/* Pay later only */}
                     {!bothModesEnabled && settings.payLater && !settings.payOnline && (
-                        <div className="p-3 bg-warning bg-opacity-10 border border-warning rounded-3 d-flex align-items-center gap-2">
-                            <FaClock className="text-warning flex-shrink-0" />
-                            <small>You&apos;ll reserve this course now. Our team will contact you to arrange payment.</small>
+                        <div className="ps-pay-later-notice">
+                            <FaClock />
+                            <span>You'll reserve this course now. Our team will contact you to arrange payment.</span>
                         </div>
                     )}
                 </Modal.Body>
-                <Modal.Footer className="border-0 pb-4 px-4">
-                    <Button variant="link" className="text-decoration-none text-secondary" onClick={() => setShowConfirm(false)}>Go Back</Button>
-                    <Button variant="dark" className="px-5 rounded-pill shadow-sm fw-bold" onClick={handlePurchase} disabled={loading}>
+                <Modal.Footer className="ps-confirm-footer">
+                    <button className="ps-back-link" onClick={() => setShowConfirm(false)}>Go Back</button>
+                    <button
+                        className={`ps-confirm-btn ${loading ? 'ps-confirm-btn--loading' : ''}`}
+                        onClick={handlePurchase}
+                        disabled={loading}
+                    >
                         {loading ? <Spinner size="sm" /> : (selectedMode === 'pay_later' ? '📋 Reserve Enrollment' : '💳 Confirm & Pay')}
-                    </Button>
+                    </button>
                 </Modal.Footer>
             </Modal>
-
-            <style jsx>{`
-                .u-package-card { border: 1px solid #e0e0e0; border-radius: 20px; transition: all 0.3s cubic-bezier(0.4,0,0.2,1); cursor: pointer; background: #fff; position: relative; overflow: hidden; }
-                .u-package-card:hover { transform: translateY(-8px); box-shadow: 0 12px 30px rgba(0,0,0,0.08); border-color: #000; }
-                .u-package-card.active { border-color: #000; border-width: 2px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-                .u-package-card.active::after { content: 'RECOMMENDED'; position: absolute; top: 12px; right: -32px; background: #000; color: #fff; font-size: 10px; font-weight: 800; padding: 4px 40px; transform: rotate(45deg); }
-                .pkg-icon-wrapper { height: 60px; display: flex; align-items: center; justify-content: center; }
-                .pkg-price .currency { font-size: 1.25rem; font-weight: 600; vertical-align: top; margin-right: 2px; }
-                .pkg-price .amount { font-size: 2.5rem; font-weight: 800; letter-spacing: -1px; }
-                .pkg-original-price { font-size: 0.95rem; color: #6c757d; text-decoration: line-through; margin-bottom: 2px; }
-                .feature-item { line-height: 1.4; }
-                .pkg-option-btn { border: 1px solid #e0e0e0; border-radius: 12px; background: #fff; padding: 10px 12px; width: 100%; transition: all 0.2s ease; }
-                .pkg-option-btn.active { border-color: #000; background: #f8f9fa; }
-                .u-btn-purchase { font-weight: 700; font-size: 1.1rem; border-radius: 14px; transition: all 0.2s ease; }
-                .u-btn-purchase:active { transform: scale(0.98); }
-                .border-dashed { border: 2px dashed #ddd !important; }
-                .x-small { font-size: 0.75rem; }
-                .otp-input { letter-spacing: 0.5rem; font-size: 1.5rem !important; }
-                .pref-chip-remove { border: 0; background: transparent; color: inherit; line-height: 1; font-size: 0.85rem; padding: 0; }
-            `}</style>
+ 
         </div>
     );
 }

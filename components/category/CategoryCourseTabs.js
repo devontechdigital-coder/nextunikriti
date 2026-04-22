@@ -100,6 +100,9 @@ export default function CategoryCourseTabs({ courses = [] }) {
                   {course.mode && (
                     <span className="badge text-bg-light border">{course.mode}</span>
                   )}
+                  {course.duration && (
+                    <span className="badge text-bg-light border">{course.duration}</span>
+                  )}
                 </div>
 
                 <h5 className="fw-bold mb-2">

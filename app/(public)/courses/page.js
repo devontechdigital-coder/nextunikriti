@@ -2,9 +2,20 @@
 
 import { useState, useEffect } from 'react';
 import axios from 'axios';
-import { Container, Row, Col, Card, Spinner, Alert, Badge, Button, Form } from 'react-bootstrap';
+import { Container, Row, Col, Card, Spinner, Alert, Badge, Button, Form, Nav } from 'react-bootstrap';
 import Link from 'next/link';
-import { FiStar, FiClock, FiBook, FiFilter, FiSearch } from 'react-icons/fi';
+import { FiBook, FiFilter, FiSearch } from 'react-icons/fi';
+
+const getCourseCategoryText = (course = {}) => {
+  const categoryNames = Array.isArray(course.categoryIds)
+    ? course.categoryIds
+        .map((category) => (typeof category === 'string' ? '' : category?.name || ''))
+        .filter(Boolean)
+    : [];
+
+  if (categoryNames.length) return categoryNames.join(' ');
+  return course.category || '';
+};
 
 export default function PublicCoursesPage() {
   const [courses, setCourses] = useState([]);
@@ -33,6 +44,7 @@ export default function PublicCoursesPage() {
 
   const fetchCourses = async (categoryId = null) => {
     setLoading(true);
+    setError('');
     try {
       const url = categoryId ? `/api/courses?categoryId=${categoryId}` : '/api/courses';
       const res = await axios.get(url);
@@ -65,10 +77,24 @@ export default function PublicCoursesPage() {
     fetchCourses(null);
   };
 
-  const filteredCourses = courses.filter(course => 
-    course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    course.category.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name));
+  const parentCategories = sortedCategories.filter((category) => !category.parentId);
+  const childCategories = sortedCategories.filter((category) => category.parentId);
+  const tabCategories = parentCategories.length ? parentCategories : sortedCategories;
+  const selectedCategory = selectedCategoryId
+    ? categories.find((category) => category._id === selectedCategoryId)
+    : null;
+
+  const filteredCourses = courses.filter((course) => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return true;
+
+    return (
+      String(course.title || '').toLowerCase().includes(query) ||
+      String(course.shortDescription || '').toLowerCase().includes(query) ||
+      getCourseCategoryText(course).toLowerCase().includes(query)
+    );
+  });
 
   if (loading) return (
     <Container className="py-5 text-center min-vh-100 d-flex align-items-center justify-content-center">
@@ -89,7 +115,7 @@ export default function PublicCoursesPage() {
              <Col lg={7}>
                <Badge bg="danger" className="mb-3 px-3 py-2 rounded-pill fw-normal">Unlimited Learning</Badge>
                <h1 className="display-4 fw-bold mb-3 tracking-tighter">Explore Our Program Catalog</h1>
-               <p className="lead opacity-75 mb-4">Choose from over 210,000 online video courses with new additions published every month.</p>
+               <p className="lead opacity-75 mb-4 text-white">Choose from over 210,000 online video courses with new additions published every month.</p>
                
                <div className="bg-white p-2 rounded-pill shadow-lg d-flex align-items-center max-w-lg" style={{ maxWidth: '600px' }}>
                   <FiSearch className="ms-3 text-muted" size={20} />
@@ -111,6 +137,33 @@ export default function PublicCoursesPage() {
       </section>
 
       <Container className="pb-5">
+        {/* <div className="bg-white p-3 rounded-4 shadow-sm border border-light mb-4">
+          <Nav className="course-category-tabs flex-nowrap overflow-auto gap-2">
+            <Nav.Item>
+              <Button
+                type="button"
+                variant={!selectedCategoryId ? 'danger' : 'outline-dark'}
+                className="rounded-pill px-4 fw-semibold text-nowrap"
+                onClick={() => handleCategoryClick(null)}
+              >
+                All Courses
+              </Button>
+            </Nav.Item>
+            {tabCategories.map((category) => (
+              <Nav.Item key={category._id}>
+                <Button
+                  type="button"
+                  variant={selectedCategoryId === category._id ? 'danger' : 'outline-dark'}
+                  className="rounded-pill px-4 fw-semibold text-nowrap"
+                  onClick={() => handleCategoryClick(category._id)}
+                >
+                  {category.name}
+                </Button>
+              </Nav.Item>
+            ))}
+          </Nav>
+        </div> */}
+
         <Row>
           {/* Category Sidebar */}
           <Col lg={3} className="mb-4">
@@ -133,10 +186,6 @@ export default function PublicCoursesPage() {
                 </div>
                 
                 {(() => {
-                  const sortedCategories = [...categories].sort((a, b) => a.name.localeCompare(b.name));
-                  const parentCategories = sortedCategories.filter(c => !c.parentIds || c.parentIds.length === 0);
-                  const childCategories = sortedCategories.filter(c => c.parentIds && c.parentIds.length > 0);
-
                   return parentCategories.map(parent => (
                     <div key={parent._id} className="mb-3 mt-3">
                       <div className="d-flex align-items-center justify-content-between mb-1">
@@ -154,7 +203,7 @@ export default function PublicCoursesPage() {
                       </div>
                       <div className="ms-2">
                         {childCategories
-                          .filter(child => child.parentIds.includes(parent._id))
+                          .filter(child => child.parentId?.toString() === parent._id?.toString())
                           .map(child => (
                             <div key={child._id} className="d-flex align-items-center justify-content-between mb-1 group">
                                 <div 
@@ -182,10 +231,7 @@ export default function PublicCoursesPage() {
           <Col lg={9}>
             <div className="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
                <h2 className="fw-bold m-0 text-dark">
-                 {selectedCategoryId 
-                  ? categories.find(c => c._id === selectedCategoryId)?.name 
-                  : 'All Courses'
-                 }
+                 {selectedCategory?.name || 'All Courses'}
                  <span className="ms-2 badge bg-light text-dark fw-normal rounded-pill fs-6">{filteredCourses.length}</span>
                </h2>
                <div className="d-flex gap-2 align-items-center">
@@ -210,7 +256,7 @@ export default function PublicCoursesPage() {
               <Row className="g-4">
                 {filteredCourses.map(course => (
                   <Col md={6} lg={4} key={course._id}>
-                    <Link href={`/courses/${course._id}`} className="text-decoration-none text-dark">
+                    <Link href={`/courses/${course.slug || course._id}`} className="text-decoration-none text-dark">
                       <Card className="h-100 border-0 shadow-sm rounded-4 overflow-hidden course-card-premium transition-all hover-lift">
                         <div className="position-relative" style={{ height: '180px' }}>
                           <Badge bg="dark" className="position-absolute top-0 start-0 m-3 z-1 rounded-1 small fw-normal bg-opacity-75">
@@ -229,23 +275,16 @@ export default function PublicCoursesPage() {
                              </div>
                           )}
                         </div>
-                        <Card.Body className="p-4 d-flex flex-column">
+                        <Card.Body className="p-3 d-flex flex-column">
                           <Card.Title className="fw-bold fs-6 mb-2 text-dark truncate-2" style={{ height: '2.8rem' }}>{course.title}</Card.Title>
                           
-                          <div className="d-flex align-items-center gap-2 mb-3">
+                          <div className="d-flex align-items-center gap-2 mb-0">
                              {/* eslint-disable-next-line @next/next/no-img-element */}
                              <img src={`https://ui-avatars.com/api/?name=${course.course_creator?.name || 'Instructor'}&background=random`} className="rounded-circle" style={{ width: '24px', height: '24px' }} alt="instructor" />
                              <span className="text-muted extra-small fw-bold">{course.course_creator?.name || 'Platform Mentor'}</span>
                           </div>
 
-                          <div className="mt-auto pt-3 d-flex justify-content-between align-items-center border-top border-light">
-                              <span className="fw-bold fs-5 text-dark">
-                                  {course.price > 0 ? `$${course.price.toFixed(2)}` : 'FREE'}
-                              </span>
-                              {course.level_id && (
-                                <Badge bg="light" text="dark" className="fw-normal small px-2 py-1 border">{course.level_id.levelName}</Badge>
-                              )}
-                          </div>
+                          
                         </Card.Body>
                       </Card>
                     </Link>

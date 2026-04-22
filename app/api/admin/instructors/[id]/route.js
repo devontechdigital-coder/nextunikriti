@@ -4,9 +4,10 @@ import bcrypt from 'bcryptjs';
 import connectDB from '@/lib/db';
 import User from '@/models/User';
 import InstructorProfile from '@/models/InstructorProfile';
+import '@/models/Instrument';
 import { getUserFromCookie } from '@/utils/auth';
 
-const POPULATE_USER_FIELDS = 'name email phone role status schoolId avatar bio';
+const POPULATE_USER_FIELDS = 'name email phone role status schoolId avatar bio instrumentIds';
 
 function isAuthorized(user) {
   return ['admin', 'school_admin'].includes(user?.role);
@@ -31,6 +32,12 @@ function buildUserUpdate(body, authUser) {
   }
 
   payload.role = 'instructor';
+
+  if (Object.prototype.hasOwnProperty.call(body, 'instrumentIds')) {
+    payload.instrumentIds = Array.isArray(body.instrumentIds)
+      ? body.instrumentIds.filter((id) => mongoose.Types.ObjectId.isValid(id)).map((id) => new mongoose.Types.ObjectId(id))
+      : [];
+  }
 
   if (authUser.role === 'school_admin') {
     payload.schoolId = authUser.schoolId;
@@ -132,8 +139,12 @@ function buildProfileUpdate(body, userPayload, userId) {
 }
 
 async function populateInstructor(userId) {
-  const user = await User.findById(userId).select(POPULATE_USER_FIELDS);
-  const profile = await InstructorProfile.findOne({ userId }).populate('userId', POPULATE_USER_FIELDS);
+  const user = await User.findById(userId).select(POPULATE_USER_FIELDS).populate('instrumentIds', 'name');
+  const profile = await InstructorProfile.findOne({ userId }).populate({
+    path: 'userId',
+    select: POPULATE_USER_FIELDS,
+    populate: { path: 'instrumentIds', select: 'name' },
+  });
 
   return {
     user,
@@ -153,7 +164,7 @@ export async function GET(req, { params }) {
     }
 
     await connectDB();
-    const userDoc = await User.findById(params.id).select(POPULATE_USER_FIELDS).lean();
+    const userDoc = await User.findById(params.id).select(POPULATE_USER_FIELDS).populate('instrumentIds', 'name').lean();
     if (!userDoc || userDoc.role !== 'instructor') {
       return NextResponse.json({ success: false, error: 'Instructor not found' }, { status: 404 });
     }
@@ -162,7 +173,11 @@ export async function GET(req, { params }) {
       return NextResponse.json({ success: false, error: 'Unauthorized for this instructor' }, { status: 403 });
     }
 
-    const profile = await InstructorProfile.findOne({ userId: userDoc._id }).populate('userId', POPULATE_USER_FIELDS);
+    const profile = await InstructorProfile.findOne({ userId: userDoc._id }).populate({
+      path: 'userId',
+      select: POPULATE_USER_FIELDS,
+      populate: { path: 'instrumentIds', select: 'name' },
+    });
 
     return NextResponse.json({
       success: true,

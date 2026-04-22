@@ -5,6 +5,7 @@ import Lesson from '@/models/Lesson';
 import Category from '@/models/Category';
 import Instrument from '@/models/Instrument';
 import Level from '@/models/Level';
+import User from '@/models/User';
 import mongoose from 'mongoose';
 import { notFound } from 'next/navigation';
 import { FaQuestionCircle, FaGraduationCap, FaClock, FaDesktop, FaMapMarkerAlt } from 'react-icons/fa';
@@ -36,6 +37,18 @@ async function getCourse(courseId) {
 
         // Fetch packages directly from DB instead of internal API fetch
         const packages = await Package.find({ course_id: course._id, is_active: true }).lean();
+        const courseInstrumentId = course.instrument_id?._id || course.instrument_id;
+        const matchingInstructors = courseInstrumentId
+            ? await User.find({
+                role: 'instructor',
+                status: 'active',
+                instrumentIds: courseInstrumentId,
+            })
+                .select('name avatar bio instrumentIds')
+                .populate('instrumentIds', 'name')
+                .sort({ name: 1 })
+                .lean()
+            : [];
 
         // Fetch sections and lessons
         const sections = await Section.find({ courseId: course._id }).sort({ order: 1 }).lean();
@@ -46,7 +59,8 @@ async function getCourse(courseId) {
         return { 
             ...course.toObject(), 
             sections, 
-            packages: JSON.parse(JSON.stringify(packages)) 
+            packages: JSON.parse(JSON.stringify(packages)),
+            matchingInstructors: JSON.parse(JSON.stringify(matchingInstructors)),
         };
     } catch (error) {
         console.error("Error fetching course:", error);
@@ -79,16 +93,18 @@ export default async function PublicCourseDetailPage({ params }) {
 
     const primaryCategory = course.categoryIds?.[0]?.name || 'Course';
     const instructorName = course.course_creator?.name || 'Instructor';
+    const matchingInstructors = course.matchingInstructors?.length
+        ? course.matchingInstructors
+        : (course.course_creator ? [course.course_creator] : []);
 
-    // Find the highest priced package for the sidebar
-    const maxPackagePrice = course.packages && course.packages.length > 0 
+    const maxPackagePrice = course.packages && course.packages.length > 0
         ? Math.max(...course.packages.map((p) => getPackageDisplayPrice(p)))
         : course.price;
 
     return (
         <div className=''>
             {/* Hero Section */}
-            <section className="u-course-hero">
+            <section className="u-course-hero border-bottom">
                 <div className="container">
                     <div className="u-breadcrumb">
                         <a href="/">Home</a>
@@ -101,15 +117,15 @@ export default async function PublicCourseDetailPage({ params }) {
                     <h1 className="u-course-title">
                         {course.title}
                     </h1>
-                    <p className="u-course-sub">
+                    <p className="u-course-sub mb-0">
                         {course.shortDescription || course.description.substring(0, 200) + '...'}
                     </p>
-                    <div className="u-top-meta">
+                    {/* <div className="u-top-meta">
                         <span>{course.level_id?.levelName || course.level}</span>
                         <span>{course.mode || 'Online'}</span>
                         <span>{course.duration || 'Flexible'}</span>
                         {course.certification && <span>Certification Available</span>}
-                    </div>
+                    </div> */}
                 </div>
             </section>
 
@@ -202,6 +218,35 @@ export default async function PublicCourseDetailPage({ params }) {
                                     </div>
                                 </div>
                             </div>
+
+                            {course.matchingInstructors?.length > 0 && (
+                                <div className="u-card mt-4">
+                                    <h2 className="u-sec-title">Instructors For {course.instrument_id?.name || 'This Course'}</h2>
+                                    <div className="d-flex flex-column gap-3">
+                                        {matchingInstructors.map((instructor) => {
+                                            const matchedInstructorName = instructor.name || 'Instructor';
+                                            return (
+                                                <div className="u-instructor" key={instructor._id || matchedInstructorName}>
+                                                    {instructor.avatar ? (
+                                                        <img src={instructor.avatar} alt={matchedInstructorName} />
+                                                    ) : (
+                                                        <div className="rounded-circle bg-secondary d-flex align-items-center justify-content-center text-white" style={{ width: '92px', height: '92px' }}>
+                                                            {matchedInstructorName.charAt(0)}
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <h5>{matchedInstructorName}</h5>
+                                                        <small>{course.instrument_id?.name || primaryCategory} Instructor</small>
+                                                        <p className="u-text mb-0">
+                                                            {instructor.bio || `Learn ${course.title} with ${matchedInstructorName}.`}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            )}
 
                             {/* FAQ SECTIONS (if any) */}
                             {course.faq && course.faq.length > 0 && (

@@ -12,9 +12,11 @@ async function getCategoryData(slug) {
   await connectDB();
   const category = await Category.findOne({ slug }).lean();
   if (!category) return null;
+  const childCategories = await Category.find({ parentId: category._id }).select('_id').lean();
+  const categoryIds = [category._id, ...childCategories.map((child) => child._id)];
 
   const courses = await Course.find({
-    categoryIds: category._id,
+    categoryIds: { $in: categoryIds },
     moderationStatus: 'approved'
   })
     .populate('course_creator', 'name avatar')
@@ -80,7 +82,7 @@ export default async function CategoryLandingPage({ params }) {
                 </div>
               )}
               <div className="d-flex flex-wrap gap-2 mt-4">
-                <a href="#courses" className="u-btn-dark w-auto">
+                <a href="#browse-by-level" className="u-btn-dark w-auto">
                   Explore Courses
                 </a>
                 <a href="/courses" className="u-btn-outline">
@@ -116,7 +118,7 @@ export default async function CategoryLandingPage({ params }) {
               )}
 
               {/* Course Listing */}
-              <div className="mb-5" id="courses">
+              <div className="mb-5" id="browse-by-level">
                 <div className="d-flex justify-content-between align-items-end mb-4">
                   <div>
                     <h2 className="fw-black text-dark mb-1" style={{ fontWeight: 900 }}>Browse By Level</h2>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Course from '@/models/Course';
+import Category from '@/models/Category';
 import { getUserFromCookie } from '@/utils/auth';
 
 // Fetch all courses (public with filters or instructor-specific)
@@ -12,7 +13,13 @@ export async function GET(req) {
 
     const categoryId = searchParams.get('categoryId');
     if (categoryId) {
-      filter.categoryIds = categoryId;
+      const childCategories = await Category.find({ parentId: categoryId }).select('_id').lean();
+      filter.categoryIds = {
+        $in: [
+          categoryId,
+          ...childCategories.map((category) => category._id),
+        ],
+      };
     }
 
     // For public courses, we only show published and approved. 
@@ -21,7 +28,6 @@ export async function GET(req) {
     if (searchParams.get('instructor') === 'true' && user && ['admin', 'instructor'].includes(user.role)) {
        filter.course_creator = user.id;
     } else {
-       filter.isPublished = true;
        filter.moderationStatus = 'approved';
     }
 
@@ -29,7 +35,8 @@ export async function GET(req) {
       .populate('course_creator', 'name avatar')
       .populate('instrument_id', 'name')
       .populate('level_id', 'levelName grades')
-      .select('title thumbnail price instrument_id level_id course_creator categoryIds shortDescription mode duration brochureUrl certification faq');
+      .populate('categoryIds', 'name slug parentId')
+      .select('title slug thumbnail price instrument_id level_id course_creator categoryIds category shortDescription mode duration brochureUrl certification faq');
 
     return NextResponse.json({ success: true, data: courses }, { status: 200 });
   } catch (error) {

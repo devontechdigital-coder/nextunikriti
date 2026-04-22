@@ -5173,3 +5173,299 @@ div#navMain{
     transform: translateX(5px);
   }
 }
+.u-side-sticky .u-price-card .price,
+.u-side-sticky .u-price-card .mini {
+  display: none;
+}
+
+
+      /* ===== ROOT ===== */
+                .ps-root { font-family: 'Geist', 'DM Sans', system-ui, sans-serif; }
+                .ps-section-title { font-size: 1.6rem; font-weight: 800; letter-spacing: -0.5px; color: #0a0a0a; margin-bottom: 1.5rem; }
+                .ps-label { font-size: 0.85rem; font-weight: 500; color: #6b7280; }
+
+                /* ===== MODE CARDS ===== */
+                .ps-mode-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+                .ps-mode-card {
+                    position: relative;
+                    background: #fff;
+                    border: 1.5px solid #e5e7eb;
+                    border-radius: 16px;
+                    padding: 24px 20px;
+                    cursor: pointer;
+                    transition: all 0.22s cubic-bezier(.4,0,.2,1);
+                    text-align: center;
+                    user-select: none;
+                }
+                .ps-mode-card:hover { border-color: #000; transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.08); }
+                .ps-mode-card--active { border-color: #000; border-width: 2px; background: #0a0a0a; color: #fff; box-shadow: 0 10px 28px rgba(0,0,0,0.15); }
+                .ps-mode-card__icon { margin-bottom: 10px; line-height: 1; opacity: 0.85; }
+                .ps-mode-card--active .ps-mode-card__icon { opacity: 1; }
+                .ps-mode-card__name { font-size: 1rem; font-weight: 700; margin-bottom: 6px; letter-spacing: -0.2px; }
+                .ps-mode-card__desc { font-size: 0.78rem; color: #6b7280; line-height: 1.4; }
+                .ps-mode-card--active .ps-mode-card__desc { color: #d1d5db; }
+                .ps-mode-card__check { position: absolute; top: 12px; right: 12px; color: #fff; }
+                .ps-error-msg { font-size: 0.8rem; color: #dc2626; font-weight: 500; }
+
+                /* ===== MODE PLACEHOLDER ===== */
+                .ps-mode-placeholder {
+                    border: 2px dashed #e5e7eb;
+                    border-radius: 16px;
+                    padding: 48px 24px;
+                    text-align: center;
+                    color: #9ca3af;
+                    margin-top: 8px;
+                }
+                .ps-mode-placeholder__icon { font-size: 2rem; margin-bottom: 10px; opacity: 0.4; }
+                .ps-mode-placeholder__text { font-size: 0.95rem; font-weight: 500; }
+
+                /* ===== PACKAGE CARDS ===== */
+                .ps-pkg-card {
+                    position: relative;
+                    background: #fff;
+                    border: 1.5px solid #e5e7eb;
+                    border-radius: 20px;
+                    padding: 28px 24px;
+                    cursor: pointer;
+                    transition: all 0.22s cubic-bezier(.4,0,.2,1);
+                    display: flex;
+                    flex-direction: column;
+                    height: 100%;
+                    overflow: hidden;
+                }
+                .ps-pkg-card:hover { transform: translateY(-6px); box-shadow: 0 16px 40px rgba(0,0,0,0.09); border-color: #111; }
+                .ps-pkg-card--selected { border-color: #000; border-width: 2px; box-shadow: 0 12px 32px rgba(0,0,0,0.07); }
+                .ps-pkg-badge {
+                    position: absolute; top: 14px; right: -30px;
+                    background: #000; color: #fff; font-size: 9px; font-weight: 800;
+                    padding: 4px 44px; transform: rotate(45deg); letter-spacing: 0.5px;
+                }
+                .ps-pkg-icon-wrap { height: 52px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px; }
+                .pkg-icon-svg { color: #6b7280; }
+                .ps-pkg-name { font-size: 1.15rem; font-weight: 800; text-align: center; color: #0a0a0a; margin-bottom: 4px; letter-spacing: -0.3px; }
+                .ps-pkg-grade { font-size: 0.78rem; color: #6b7280; font-weight: 600; text-align: center; margin-bottom: 12px; }
+                .ps-pkg-price { text-align: center; margin-bottom: 16px; }
+                .ps-pkg-original { font-size: 0.875rem; color: #9ca3af; text-decoration: line-through; }
+                .ps-pkg-currency { font-size: 1.1rem; font-weight: 700; vertical-align: top; margin-right: 1px; }
+                .ps-pkg-amount { font-size: 2.4rem; font-weight: 900; letter-spacing: -2px; color: #0a0a0a; line-height: 1; }
+                .ps-features { margin-bottom: 12px; }
+                .ps-feature-item { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 6px; font-size: 0.82rem; line-height: 1.45; }
+                .ps-feature-check { color: #16a34a; flex-shrink: 0; margin-top: 2px; }
+                .ps-pkg-desc { font-size: 0.8rem; color: #6b7280; flex-grow: 1; margin-bottom: 16px; line-height: 1.5; }
+                .ps-pricing-wrap { margin-bottom: 16px; }
+                .ps-input-label { font-size: 0.78rem; font-weight: 700; color: #374151; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.4px; }
+                .ps-select { font-size: 0.85rem; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 8px 12px; }
+                .ps-select:focus { border-color: #000; box-shadow: none; outline: none; }
+                .ps-options-list { display: flex; flex-direction: column; gap: 8px; }
+                .ps-option-btn {
+                    border: 1.5px solid #e5e7eb; border-radius: 12px; background: #fff;
+                    padding: 10px 14px; text-align: left; transition: all 0.18s ease; width: 100%;
+                }
+                .ps-option-btn:hover { border-color: #9ca3af; background: #f9fafb; }
+                .ps-option-btn--active { border-color: #000; background: #f9fafb; }
+                .ps-option-meta { font-size: 0.75rem; color: #6b7280; margin-bottom: 2px; }
+                .ps-option-price { font-size: 0.875rem; font-weight: 700; color: #0a0a0a; }
+                .ps-option-struck { font-weight: 400; color: #9ca3af; text-decoration: line-through; margin-left: 8px; font-size: 0.8rem; }
+                .ps-option-fee { font-size: 0.75rem; font-weight: 600; color: #374151; margin-top: 2px; }
+                .ps-option-fee-note { font-weight: 400; color: #9ca3af; }
+                .ps-pkg-action { margin-top: auto; }
+                .ps-btn {
+                    width: 100%; padding: 10px 20px; border-radius: 50px; font-size: 0.875rem;
+                    font-weight: 700; border: none; cursor: pointer; transition: all 0.18s ease;
+                    display: flex; align-items: center; justify-content: center; gap: 6px;
+                }
+                .ps-btn--selected { background: #0a0a0a; color: #fff; }
+                .ps-btn--outline { background: transparent; border: 1.5px solid #d1d5db; color: #374151; }
+                .ps-btn--outline:hover { border-color: #000; color: #000; }
+
+                /* ===== CTA ===== */
+                .ps-cta { display: grid; }
+                .ps-cta-btn {
+                    background: #0a0a0a; color: #fff; border: none; padding: 16px 32px;
+                    font-size: 1.05rem; font-weight: 800; border-radius: 14px; cursor: pointer;
+                    letter-spacing: -0.3px; transition: all 0.2s ease;
+                    display: flex; align-items: center; justify-content: center; gap: 8px;
+                }
+                .ps-cta-btn:hover:not(.ps-cta-btn--disabled) { background: #1a1a1a; transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+                .ps-cta-btn--disabled { background: #d1d5db; color: #9ca3af; cursor: not-allowed; }
+                .ps-cta-note { text-align: center; font-size: 0.8rem; color: #9ca3af; margin-top: 10px; margin-bottom: 0; }
+
+                /* ===== EMPTY STATE ===== */
+                .ps-empty-state { text-align: center; padding: 48px 24px; border: 2px dashed #e5e7eb; border-radius: 16px; }
+                .ps-empty-icon { font-size: 2.5rem; margin-bottom: 12px; }
+                .ps-empty-state h5 { color: #6b7280; font-weight: 700; margin-bottom: 6px; }
+                .ps-empty-state p { font-size: 0.85rem; color: #9ca3af; margin: 0; }
+
+                /* ===== AUTH MODAL ===== */
+                :global(.ps-auth-modal .modal-content),
+                :global(.ps-confirm-modal .modal-content) {
+                    border: none;
+                    border-radius: 20px;
+                    box-shadow: 0 24px 64px rgba(0,0,0,0.14);
+                    overflow: hidden;
+                }
+                .ps-modal-header {
+                    background: #fff;
+                    border-bottom: 1px solid #f3f4f6;
+                    padding: 20px 24px 16px;
+                }
+                .ps-modal-brand { display: flex; align-items: center; gap: 14px; }
+                .ps-modal-brand__icon {
+                    width: 42px; height: 42px; background: #0a0a0a; color: #fff;
+                    border-radius: 12px; display: flex; align-items: center; justify-content: center;
+                    flex-shrink: 0;
+                }
+                .ps-modal-brand__icon--otp { background: #1d4ed8; }
+                .ps-modal-brand__icon--details { background: #7c3aed; }
+                .ps-modal-brand__title { font-size: 1rem; font-weight: 800; color: #0a0a0a; line-height: 1.2; }
+                .ps-modal-brand__sub { font-size: 0.78rem; color: #6b7280; margin-top: 2px; }
+                .ps-modal-body { background: #fff; padding: 24px; }
+
+                /* ===== AUTH STEPS ===== */
+                .ps-auth-step { display: flex; flex-direction: column; gap: 16px; }
+                .ps-field-label { font-size: 0.78rem; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.4px; display: block; margin-bottom: 6px; }
+                .ps-auth-field-group { display: flex; flex-direction: column; }
+                .ps-phone-row { display: flex; gap: 8px; }
+                .ps-country-select { max-width: 180px; font-size: 0.875rem; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; outline: none; background: #fff; }
+                .ps-country-select:focus { border-color: #000; box-shadow: none; }
+                .ps-phone-input { flex: 1; font-size: 0.875rem; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 10px 14px; outline: none; }
+                .ps-phone-input:focus { border-color: #000; box-shadow: none; }
+                .ps-field-hint { font-size: 0.75rem; color: #9ca3af; margin-top: 6px; }
+                .ps-auth-btn {
+                    background: #0a0a0a; color: #fff; border: none;
+                    padding: 13px 24px; border-radius: 10px; font-size: 0.9rem; font-weight: 700;
+                    cursor: pointer; transition: all 0.18s ease; display: flex; align-items: center; justify-content: center; gap: 6px;
+                }
+                .ps-auth-btn:hover:not(.ps-auth-btn--disabled) { background: #1f1f1f; }
+                .ps-auth-btn--disabled { background: #d1d5db; color: #9ca3af; cursor: not-allowed; }
+                .ps-auth-btn--inline { width: auto; }
+                .ps-auth-back { background: none; border: none; color: #6b7280; font-size: 0.8rem; cursor: pointer; text-align: center; padding: 0; text-decoration: underline; text-underline-offset: 2px; }
+                .ps-auth-back:hover { color: #0a0a0a; }
+
+                /* ===== OTP ===== */
+                .ps-otp-sent-info { display: flex; align-items: center; gap: 6px; font-size: 0.82rem; color: #6b7280; flex-wrap: wrap; }
+                .ps-otp-sent-info strong { color: #0a0a0a; }
+                .ps-otp-validity { background: #f3f4f6; border-radius: 20px; padding: 2px 10px; font-size: 0.75rem; color: #6b7280; }
+                .ps-otp-input {
+                    width: 100%; text-align: center; font-size: 2rem; font-weight: 900;
+                    letter-spacing: 1.2rem; border: 1.5px solid #e5e7eb; border-radius: 12px;
+                    padding: 14px 20px; outline: none; color: #0a0a0a; background: #f9fafb;
+                    transition: border-color 0.18s;
+                }
+                .ps-otp-input:focus { border-color: #000; background: #fff; }
+                .ps-otp-dots { display: flex; justify-content: center; gap: 8px; margin-top: 8px; }
+                .ps-otp-dot { width: 8px; height: 8px; border-radius: 50%; background: #e5e7eb; transition: background 0.15s; }
+                .ps-otp-dot--filled { background: #0a0a0a; }
+
+                /* ===== DETAILS PROGRESS ===== */
+                .ps-progress-bar { display: flex; align-items: center; gap: 0; margin-bottom: 20px; }
+                .ps-progress-step { display: flex; align-items: center; gap: 6px; flex: 1; }
+                .ps-progress-step:not(:last-child)::after {
+                    content: ''; flex: 1; height: 2px; background: #e5e7eb; margin: 0 8px;
+                }
+                .ps-progress-step.done::after { background: #000; }
+                .ps-progress-step__dot {
+                    width: 28px; height: 28px; border-radius: 50%; border: 2px solid #e5e7eb;
+                    display: flex; align-items: center; justify-content: center;
+                    font-size: 0.75rem; font-weight: 700; color: #9ca3af; flex-shrink: 0; background: #fff;
+                }
+                .ps-progress-step.active .ps-progress-step__dot { border-color: #000; color: #000; }
+                .ps-progress-step.done .ps-progress-step__dot { border-color: #000; background: #000; color: #fff; }
+                .ps-progress-step__label { font-size: 0.72rem; font-weight: 600; color: #9ca3af; white-space: nowrap; }
+                .ps-progress-step.active .ps-progress-step__label { color: #0a0a0a; }
+                .ps-progress-step.done .ps-progress-step__label { color: #374151; }
+                .ps-details-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 24px; }
+                .ps-auth-back-btn {
+                    background: transparent; border: 1.5px solid #e5e7eb; color: #374151;
+                    padding: 10px 18px; border-radius: 10px; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+                    transition: all 0.18s; 
+                }
+                .ps-auth-back-btn:hover:not(:disabled) { border-color: #000; color: #000; }
+                .ps-auth-back-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+                /* ===== FORM INPUTS ===== */
+                .ps-form-input { font-size: 0.875rem; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 9px 12px; transition: border-color 0.18s; }
+                .ps-form-input:focus { border-color: #000 !important; box-shadow: none !important; outline: none; }
+                .ps-input-icon-wrap { position: relative; }
+                .ps-input-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #9ca3af; pointer-events: none; }
+                .ps-form-input--icon { padding-left: 32px; }
+
+                /* ===== CONFIRM MODAL ===== */
+                .ps-modal-confirm-title { font-size: 1.1rem; font-weight: 800; color: #0a0a0a; }
+                .ps-confirm-summary {
+                    background: #f9fafb; border: 1.5px solid #e5e7eb; border-radius: 16px;
+                    padding: 20px; text-align: center; margin-bottom: 16px;
+                }
+                .ps-confirm-pkg-name { font-size: 0.8rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.8px; color: #6b7280; margin-bottom: 4px; }
+                .ps-confirm-pkg-meta { font-size: 0.8rem; color: #9ca3af; }
+                .ps-confirm-original { font-size: 0.875rem; color: #9ca3af; text-decoration: line-through; }
+                .ps-confirm-price { font-size: 2rem; font-weight: 900; color: #0a0a0a; letter-spacing: -1px; }
+                .ps-confirm-coupon-applied { margin-top: 6px; }
+                .ps-coupon-tag { background: #dcfce7; color: #16a34a; font-size: 0.75rem; font-weight: 700; padding: 2px 10px; border-radius: 20px; margin-right: 4px; }
+                .ps-confirm-payable { font-size: 1rem; font-weight: 800; color: #0a0a0a; margin-top: 4px; }
+                .ps-confirm-pkg-desc { font-size: 0.78rem; color: #9ca3af; margin-top: 6px; }
+
+                .ps-confirm-section { background: #fff; border: 1.5px solid #e5e7eb; border-radius: 14px; padding: 16px; margin-bottom: 12px; }
+                .ps-confirm-section__title { font-size: 0.78rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; color: #374151; margin-bottom: 10px; }
+                .ps-coupon-row { display: flex; gap: 8px; }
+                .ps-coupon-btn {
+                    background: #0a0a0a; color: #fff; border: none;
+                    padding: 9px 18px; border-radius: 10px; font-size: 0.85rem; font-weight: 700;
+                    cursor: pointer; white-space: nowrap; transition: background 0.18s;
+                    display: flex; align-items: center; gap: 6px;
+                }
+                .ps-coupon-btn:hover:not(:disabled) { background: #1f1f1f; }
+                .ps-coupon-btn:disabled { background: #d1d5db; cursor: not-allowed; }
+                .ps-coupon-btn--remove { background: transparent; color: #dc2626; border: 1.5px solid #fca5a5; }
+                .ps-coupon-btn--remove:hover { background: #fef2f2; }
+                .ps-day-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+                .ps-chip {
+                    background: #fff; border: 1.5px solid #e5e7eb; color: #374151;
+                    padding: 5px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+                    cursor: pointer; transition: all 0.16s; white-space: nowrap;
+                }
+                .ps-chip:hover { border-color: #000; }
+                .ps-chip--active { background: #0a0a0a; color: #fff; border-color: #000; }
+                .ps-time-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+                .ps-time-chip {
+                    display: inline-flex; align-items: center; gap: 6px;
+                    background: #0a0a0a; color: #fff; padding: 4px 12px 4px 14px;
+                    border-radius: 20px; font-size: 0.78rem; font-weight: 600;
+                }
+                .ps-time-chip__remove { background: transparent; border: none; color: #d1d5db; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; }
+                .ps-time-chip__remove:hover { color: #fff; }
+
+                /* ===== PAY OPTIONS ===== */
+                .ps-pay-options { display: flex; flex-direction: column; gap: 8px; }
+                .ps-pay-option {
+                    display: flex; align-items: center; gap: 12px; padding: 14px 16px;
+                    border: 1.5px solid #e5e7eb; border-radius: 12px; cursor: pointer;
+                    background: #fff; transition: all 0.18s;
+                }
+                .ps-pay-option:hover { border-color: #9ca3af; }
+                .ps-pay-option--active { border-color: #000; background: #0a0a0a; }
+                .ps-pay-option__icon { color: #6b7280; }
+                .ps-pay-option--active .ps-pay-option__icon { color: #fff; }
+                .ps-pay-option__text { flex: 1; }
+                .ps-pay-option__label { font-size: 0.875rem; font-weight: 700; color: #0a0a0a; }
+                .ps-pay-option--active .ps-pay-option__label { color: #fff; }
+                .ps-pay-option__sub { font-size: 0.75rem; color: #6b7280; }
+                .ps-pay-option--active .ps-pay-option__sub { color: #9ca3af; }
+                .ps-pay-option__check { color: #fff; }
+
+                .ps-pay-later-notice {
+                    display: flex; align-items: center; gap: 10px;
+                    background: #fffbeb; border: 1.5px solid #fbbf24; border-radius: 12px; padding: 12px 16px;
+                    font-size: 0.82rem; color: #92400e;
+                }
+
+                .ps-confirm-footer { border-top: 1px solid #f3f4f6; padding: 16px 24px; display: flex; align-items: center; justify-content: space-between; }
+                .ps-back-link { background: none; border: none; color: #6b7280; font-size: 0.875rem; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+                .ps-back-link:hover { color: #0a0a0a; }
+                .ps-confirm-btn {
+                    background: #0a0a0a; color: #fff; border: none;
+                    padding: 12px 28px; border-radius: 10px; font-size: 0.9rem; font-weight: 800;
+                    cursor: pointer; transition: all 0.18s; display: flex; align-items: center; gap: 6px;
+                }
+                .ps-confirm-btn:hover:not(:disabled):not(.ps-confirm-btn--loading) { background: #1f1f1f; transform: translateY(-1px); }
+                .ps-confirm-btn:disabled { background: #d1d5db; cursor: not-allowed; }
