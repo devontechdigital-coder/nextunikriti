@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import User from '@/models/User';
+import Student from '@/models/Student';
 import { getUserFromCookie } from '@/utils/auth';
+import { buildStudentPayload, upsertStudentProfile } from '@/lib/studentProfile';
 
 const buildProfilePayload = (body = {}) => {
   const payload = {};
@@ -35,7 +37,15 @@ export async function GET() {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: user });
+    const student = await Student.findOne({ userId: authUser.id }).lean({ virtuals: true });
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...user.toObject(),
+        studentProfile: student || null,
+      }
+    });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
@@ -50,23 +60,36 @@ export async function PUT(req) {
 
     const body = await req.json();
     const payload = buildProfilePayload(body);
+    const studentPayload = buildStudentPayload(body);
 
     if (!payload.name) {
       return NextResponse.json({ success: false, error: 'Name is required' }, { status: 400 });
     }
 
     await connectDB();
-    const user = await User.findByIdAndUpdate(
-      authUser.id,
-      { $set: payload },
-      { new: true, runValidators: true }
-    ).select('name phone email bio avatar role status createdAt');
+    await upsertStudentProfile({
+      userId: authUser.id,
+      userFields: payload,
+      studentFields: {
+        ...studentPayload,
+        name: payload.name,
+      },
+    });
+
+    const user = await User.findById(authUser.id).select('name phone email bio avatar role status createdAt');
+    const student = await Student.findOne({ userId: authUser.id }).lean({ virtuals: true });
 
     if (!user) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ success: true, data: user });
+    return NextResponse.json({
+      success: true,
+      data: {
+        ...user.toObject(),
+        studentProfile: student || null,
+      },
+    });
   } catch (error) {
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }

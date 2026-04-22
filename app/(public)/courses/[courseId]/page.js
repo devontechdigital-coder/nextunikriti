@@ -199,7 +199,7 @@ export default async function PublicCourseDetailPage({ params }) {
 
 
                             {/* INSTRUCTOR */}
-                            <div className="u-card mt-4">
+                            <div className="u-card mt-4 d-none">
                                 <h2 className="u-sec-title">Meet Your Instructor</h2>
                                 <div className="u-instructor">
                                     {course.course_creator?.avatar ? (

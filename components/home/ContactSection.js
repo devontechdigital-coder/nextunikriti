@@ -21,43 +21,84 @@ const ContactSection = ({ settings, isLoading }) => {
                   <div className="contact-card p-4 rounded-4 border shadow-sm h-100">
                      <h4 className="fw-bold mb-4">Contact Information</h4>
 
-                     {settings.email && (
-                        <div className="contact-item d-flex align-items-center gap-3 mb-4">
-                           <div className="contact-icon bg-dark text-white p-3 rounded-3" style={{ width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📧</div>
-                           <div>
-                              <h6 className="mb-0 fw-bold">Email Address</h6>
-                              <a href={`mailto:${settings.email}`} className="text-decoration-none text-muted">{settings.email}</a>
-                           </div>
-                        </div>
-                     )}
+                    {settings.email && (
+  <div className="contact-item d-flex align-items-center gap-3 mb-4">
+    <div className="contact-icon bg-dark text-white rounded-3 d-flex align-items-center justify-content-center"
+      style={{ width: '50px', height: '50px' }}>
+      <i className="bi bi-envelope-fill"></i>
+    </div>
 
-                     {settings.phone && (
-                        <div className="contact-item d-flex align-items-center gap-3 mb-4">
-                           <div className="contact-icon bg-dark text-white p-3 rounded-3" style={{ width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📞</div>
-                           <div>
-                              <h6 className="mb-0 fw-bold">Phone Number</h6>
-                              <a href={`tel:${settings.phone.replace(/\s+/g, '')}`} className="text-decoration-none text-muted">{settings.phone}</a>
-                           </div>
-                        </div>
-                     )}
+    <div>
+      <h6 className="mb-0 fw-bold">Email Address</h6>
+      <a href={`mailto:${settings.email}`} className="text-decoration-none text-muted">
+        {settings.email}
+      </a>
+    </div>
+  </div>
+)}
 
-                     {settings.address && (
-                        <div className="contact-item d-flex align-items-center gap-3 mb-4">
-                           <div className="contact-icon bg-dark text-white p-3 rounded-3" style={{ width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>📍</div>
-                           <div>
-                              <h6 className="mb-0 fw-bold">Our Location</h6>
-                              <p className="mb-0 text-muted">{settings.address}</p>
-                           </div>
-                        </div>
-                     )}
+{settings.phone && (
+  <div className="contact-item d-flex align-items-center gap-3 mb-4">
+    <div className="contact-icon bg-dark text-white rounded-3 d-flex align-items-center justify-content-center"
+      style={{ width: '50px', height: '50px' }}>
+      <i className="bi bi-telephone-fill"></i>
+    </div>
+
+    <div>
+      <h6 className="mb-0 fw-bold">Phone Number</h6>
+      <a href={`tel:${settings.phone.replace(/\s+/g, '')}`} className="text-decoration-none text-muted">
+        {settings.phone}
+      </a>
+    </div>
+  </div>
+)}
+
+{settings.address && (
+  <div className="contact-item d-flex align-items-center gap-3 mb-4">
+    <div className="contact-icon bg-dark text-white rounded-3 d-flex align-items-center justify-content-center"
+      style={{ width: '50px', height: '50px' }}>
+      <i className="bi bi-geo-alt-fill"></i>
+    </div>
+
+    <div>
+      <h6 className="mb-0 fw-bold">Our Location</h6>
+      <p className="mb-0 text-muted">{settings.address}</p>
+    </div>
+  </div>
+)}
 
                      <div className="mt-auto pt-4 border-top">
                         <h6 className="fw-bold mb-3">Follow Us</h6>
                         <div className="d-flex gap-3 social-links">
-                           {settings.facebook && <a href={settings.facebook} className="p-2 border rounded-3 bg-light text-dark text-decoration-none">FB</a>}
-                           {settings.instagram && <a href={settings.instagram} className="p-2 border rounded-3 bg-light text-dark text-decoration-none">IG</a>}
-                           {settings.linkedin && <a href={settings.linkedin} className="p-2 border rounded-3 bg-light text-dark text-decoration-none">LN</a>}
-                        </div>
+
+  {settings.facebook && (
+    <a href={settings.facebook}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="social-btn">
+      <i className="bi bi-facebook"></i>
+    </a>
+  )}
+
+  {settings.instagram && (
+    <a href={settings.instagram}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="social-btn">
+      <i className="bi bi-instagram"></i>
+    </a>
+  )}
+
+  {settings.linkedin && (
+    <a href={settings.linkedin}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="social-btn">
+      <i className="bi bi-linkedin"></i>
+    </a>
+  )}
+
+</div>
                      </div>
                   </div>
                </div>

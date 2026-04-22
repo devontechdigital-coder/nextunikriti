@@ -37,6 +37,20 @@ export default function AdminSettingsPage() {
     customHeadScripts: '',
     customFooterScripts: ''
   });
+  const [emailSmtp, setEmailSmtp] = useState({
+    enabled: false,
+    host: '',
+    port: 587,
+    secure: false,
+    username: '',
+    password: '',
+    fromName: '',
+    fromEmail: '',
+    replyTo: '',
+    adminEmails: '',
+    subjectPrefix: '',
+    customCss: '',
+  });
   const [paymentModeOnline, setPaymentModeOnline] = useState(true);
   const [paymentModeLater, setPaymentModeLater] = useState(false);
   const [paymentGateway, setPaymentGateway] = useState('stripe');
@@ -75,6 +89,20 @@ export default function AdminSettingsPage() {
         metaKeywords: '',
         customHeadScripts: '',
         customFooterScripts: ''
+      }));
+      setEmailSmtp(getVal('email_smtp', {
+        enabled: false,
+        host: '',
+        port: 587,
+        secure: false,
+        username: '',
+        password: '',
+        fromName: '',
+        fromEmail: '',
+        replyTo: '',
+        adminEmails: '',
+        subjectPrefix: '',
+        customCss: '',
       }));
       setPaymentModeOnline(getVal('payment_mode_online', true));
       setPaymentModeLater(getVal('payment_mode_later', false));
@@ -722,6 +750,87 @@ export default function AdminSettingsPage() {
               </div>
 
               {/* Developer Options */}
+              <div className="mt-4 p-3 border rounded-3 bg-light shadow-sm">
+                <div className="d-flex justify-content-between align-items-center mb-3">
+                  <h6 className="fw-bold mb-0 d-flex align-items-center gap-2">
+                    <FaEnvelope size={14} className="text-primary" /> Email SMTP Configuration
+                  </h6>
+                  <Button variant="primary" size="sm" onClick={() => handleSave('email_smtp', emailSmtp)} disabled={isUpdating}>
+                    <FaSave className="me-1" /> Save Email SMTP
+                  </Button>
+                </div>
+                <Form className="row g-3">
+                  <Form.Group className="col-md-3">
+                    <Form.Label className="fw-semibold small">Enable Email Sending</Form.Label>
+                    <Form.Check
+                      type="switch"
+                      id="email-smtp-enabled"
+                      label={emailSmtp.enabled ? 'Enabled' : 'Disabled'}
+                      checked={Boolean(emailSmtp.enabled)}
+                      onChange={e => setEmailSmtp({ ...emailSmtp, enabled: e.target.checked })}
+                    />
+                  </Form.Group>
+                  <Form.Group className="col-md-6">
+                    <Form.Label className="fw-semibold small">SMTP Host</Form.Label>
+                    <Form.Control value={emailSmtp.host} onChange={e => setEmailSmtp({ ...emailSmtp, host: e.target.value })} placeholder="smtp.gmail.com" />
+                  </Form.Group>
+                  <Form.Group className="col-md-3">
+                    <Form.Label className="fw-semibold small">SMTP Port</Form.Label>
+                    <Form.Control type="number" value={emailSmtp.port} onChange={e => setEmailSmtp({ ...emailSmtp, port: Number(e.target.value || 587) })} />
+                  </Form.Group>
+                  <Form.Group className="col-md-3">
+                    <Form.Label className="fw-semibold small">Secure SSL</Form.Label>
+                    <Form.Check
+                      type="switch"
+                      id="email-smtp-secure"
+                      label={emailSmtp.secure ? 'SSL/TLS' : 'STARTTLS/Plain'}
+                      checked={Boolean(emailSmtp.secure)}
+                      onChange={e => setEmailSmtp({ ...emailSmtp, secure: e.target.checked })}
+                    />
+                  </Form.Group>
+                  <Form.Group className="col-md-4">
+                    <Form.Label className="fw-semibold small">SMTP Username</Form.Label>
+                    <Form.Control value={emailSmtp.username} onChange={e => setEmailSmtp({ ...emailSmtp, username: e.target.value })} autoComplete="off" />
+                  </Form.Group>
+                  <Form.Group className="col-md-5">
+                    <Form.Label className="fw-semibold small">SMTP Password / App Password</Form.Label>
+                    <Form.Control type="password" value={emailSmtp.password} onChange={e => setEmailSmtp({ ...emailSmtp, password: e.target.value })} autoComplete="new-password" />
+                  </Form.Group>
+                  <Form.Group className="col-md-4">
+                    <Form.Label className="fw-semibold small">From Name</Form.Label>
+                    <Form.Control value={emailSmtp.fromName} onChange={e => setEmailSmtp({ ...emailSmtp, fromName: e.target.value })} placeholder="Unikriti Admissions" />
+                  </Form.Group>
+                  <Form.Group className="col-md-4">
+                    <Form.Label className="fw-semibold small">From Email</Form.Label>
+                    <Form.Control type="email" value={emailSmtp.fromEmail} onChange={e => setEmailSmtp({ ...emailSmtp, fromEmail: e.target.value })} placeholder="admissions@example.com" />
+                  </Form.Group>
+                  <Form.Group className="col-md-4">
+                    <Form.Label className="fw-semibold small">Reply-To Email</Form.Label>
+                    <Form.Control type="email" value={emailSmtp.replyTo} onChange={e => setEmailSmtp({ ...emailSmtp, replyTo: e.target.value })} placeholder="support@example.com" />
+                  </Form.Group>
+                  <Form.Group className="col-md-8">
+                    <Form.Label className="fw-semibold small">Admin Notification Emails</Form.Label>
+                    <Form.Control value={emailSmtp.adminEmails} onChange={e => setEmailSmtp({ ...emailSmtp, adminEmails: e.target.value })} placeholder="admin@example.com, accounts@example.com" />
+                    <Form.Text className="text-muted">Separate multiple admin emails with commas.</Form.Text>
+                  </Form.Group>
+                  <Form.Group className="col-md-4">
+                    <Form.Label className="fw-semibold small">Subject Prefix</Form.Label>
+                    <Form.Control value={emailSmtp.subjectPrefix} onChange={e => setEmailSmtp({ ...emailSmtp, subjectPrefix: e.target.value })} placeholder="[Unikriti]" />
+                  </Form.Group>
+                  <Form.Group className="col-12">
+                    <Form.Label className="fw-semibold small">Custom Email CSS</Form.Label>
+                    <Form.Control
+                      as="textarea"
+                      rows={6}
+                      value={emailSmtp.customCss}
+                      onChange={e => setEmailSmtp({ ...emailSmtp, customCss: e.target.value })}
+                      placeholder=".email-card { border-radius: 18px; } .email-hero { background: #111827; }"
+                    />
+                    <Form.Text className="text-muted">Applied inside confirmation emails so you can style the email UI.</Form.Text>
+                  </Form.Group>
+                </Form>
+              </div>
+
               <div className="mt-4 p-3 border rounded-3 bg-light shadow-sm">
                 <div className="d-flex justify-content-between align-items-start">
                   <div>

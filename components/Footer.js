@@ -71,23 +71,38 @@ const Footer = ({ initialMenus = [], theme = {}, contact = {} }) => {
             </p>
           </div>
           <div className="u-news">
-            <div className="u-social social-links">
-              {contact.facebook && (
-                <a href={contact.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook">
-                  <i className="fa fa-facebook" />
-                </a>
-              )}
-              {contact.instagram && (
-                <a href={contact.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-                  <i className="fa fa-instagram" />
-                </a>
-              )}
-              {contact.linkedin && (
-                <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-                  <i className="fa fa-linkedin" />
-                </a>
-              )}
+            <div className='text-center'>
+   <Link className="u-brand" href="/">
+                    {theme?.siteLogo ? (
+                      <img src={theme.siteLogo} alt={theme.siteName || 'Logo'} className='mx-auto' style={{ maxHeight: '80px' ,width:'auto'}} />
+                    ) : (
+                      theme?.siteName || 'UNIKRITI'
+                    )}
+                  </Link>
+        
+            <div className="u-social social-links justify-content-center">
+  {contact.facebook && (
+    <a href={contact.facebook} target="_blank" rel="noopener noreferrer" aria-label="Facebook">
+      <i className="bi bi-facebook"></i>
+    </a>
+  )}
+
+  {contact.instagram && (
+    <a href={contact.instagram} target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+      <i className="bi bi-instagram"></i>
+    </a>
+  )}
+
+  {contact.linkedin && (
+    <a href={contact.linkedin} target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+      <i className="bi bi-linkedin"></i>
+    </a>
+  )}
+</div>
+
             </div>
+      
+          
           </div>
         </div>
         <div className="row g-4 mt-4">

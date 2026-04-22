@@ -6,7 +6,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useSelector, useDispatch } from 'react-redux';
 import { setCredentials } from '@/redux/slices/authSlice';
-import { FaCheckCircle, FaStar, FaBolt, FaCrown, FaCreditCard, FaClock, FaPhoneAlt, FaUser, FaEnvelope, FaMonitor, FaSchool, FaMapMarkerAlt, FaLaptop, FaChalkboardTeacher } from 'react-icons/fa';
+import { FaCheckCircle, FaStar, FaBolt, FaCrown, FaCreditCard, FaClock, FaPhoneAlt, FaUser, FaEnvelope, FaDesktop, FaSchool, FaMapMarkerAlt, FaLaptop, FaChalkboardTeacher } from 'react-icons/fa';
 import { buildPackagePricingOptions, getPackageDisplayDurationDays, getPackageDisplayPrice, getPackageOriginalPrice, resolvePackagePriceOption } from '@/lib/packagePricing';
 import { mergeGradeOptions, normalizeGradeName, packageMatchesGrade } from '@/lib/gradeUtils';
 import { DEFAULT_PHONE_COUNTRY, formatPhoneDisplay, formatPhoneInput, normalizePhoneNumber, PHONE_COUNTRY_OPTIONS } from '@/lib/phone';
@@ -70,7 +70,7 @@ const getModeIcon = (mode) => {
     const m = (mode || '').toLowerCase();
     if (m.includes('online')) return <FaLaptop size={28} />;
     if (m.includes('school') || m.includes('offline')) return <FaChalkboardTeacher size={28} />;
-    if (m.includes('hybrid')) return <FaMonitor size={28} />;
+    if (m.includes('hybrid')) return <FaDesktop size={28} />;
     return <FaMapMarkerAlt size={28} />;
 };
 
@@ -449,8 +449,8 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
         const finalPreferredDays = requiresSchoolSelection ? preferredDays : preferredDays;
         const finalPreferredTimes = requiresSchoolSelection ? preferredTimes : preferredTimes;
         if (requiresSchoolSelection && !selectedSchoolId) { toast.error('Please choose a school first'); return; }
-        if (!finalPreferredDays.length) { toast.error(requiresSchoolSelection ? 'Please choose an available day' : 'Please choose at least one preferred day'); return; }
-        if (!finalPreferredTimes.length) { toast.error(requiresSchoolSelection ? 'Please choose an available time slot' : 'Please add at least one preferred time'); return; }
+        if (!finalPreferredDays.length) { toast.error(requiresSchoolSelection ? 'Please choose an preferred day' : 'Please choose at least one preferred day'); return; }
+        if (!finalPreferredTimes.length) { toast.error(requiresSchoolSelection ? 'Please choose an preferred time slot' : 'Please add at least one preferred time'); return; }
         setLoading(true);
         try {
             const body = { package_id: selectedPkgId };

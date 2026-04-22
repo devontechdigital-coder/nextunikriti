@@ -6,9 +6,12 @@ import Enrollment from '@/models/Enrollment';
 import { verifyToken } from '@/lib/jwt';
 import Package from '@/models/Package';
 import Coupon from '@/models/Coupon';
+import User from '@/models/User';
+import Course from '@/models/Course';
 import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields } from '@/lib/enrollmentLifecycle';
 import { normalizeGradeName } from '@/lib/gradeUtils';
 import { upsertStudentProfile } from '@/lib/studentProfile';
+import { sendEnrollmentConfirmation } from '@/lib/email';
 
 export async function POST(req) {
   try {
@@ -88,6 +91,17 @@ export async function POST(req) {
           status: 'active',
         },
       });
+
+      if (!wasCompleted) {
+        const [currentUser, courseDoc] = await Promise.all([
+          User.findById(paymentRecord.userId).select('name email phone'),
+          Course.findById(paymentRecord.courseId).select('title'),
+        ]);
+        await Promise.all([
+          sendEnrollmentConfirmation({ payment: paymentRecord, user: currentUser, course: courseDoc, packageDoc }),
+          sendEnrollmentConfirmation({ payment: paymentRecord, user: currentUser, course: courseDoc, packageDoc, admin: true }),
+        ]);
+      }
 
       return NextResponse.json({ success: true, message: 'Payment verified successfully' });
     }

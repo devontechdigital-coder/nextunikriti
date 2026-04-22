@@ -3,9 +3,12 @@ import dbConnect from '@/lib/db';
 import Payment from '@/models/Payment';
 import Enrollment from '@/models/Enrollment';
 import Package from '@/models/Package';
+import User from '@/models/User';
+import Course from '@/models/Course';
 import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields } from '@/lib/enrollmentLifecycle';
 import { normalizeGradeName } from '@/lib/gradeUtils';
 import { upsertStudentProfile } from '@/lib/studentProfile';
+import { sendEnrollmentConfirmation } from '@/lib/email';
 
 const pickFirst = (obj, keys) => {
   for (const key of keys) {
@@ -83,6 +86,7 @@ const handleCallback = async (req, payload) => {
     const payment = await Payment.findById(paymentId);
 
     if (payment) {
+      const wasCompleted = payment.status === 'completed';
       if (status === 'success') {
         payment.status = 'completed';
         payment.transactionId = gatewayTxnId || merchantTxnNo || payment.transactionId;
@@ -126,6 +130,17 @@ const handleCallback = async (req, payload) => {
             status: 'active',
           },
         });
+
+        if (!wasCompleted) {
+          const [currentUser, courseDoc] = await Promise.all([
+            User.findById(payment.userId).select('name email phone'),
+            Course.findById(payment.courseId).select('title'),
+          ]);
+          await Promise.all([
+            sendEnrollmentConfirmation({ payment, user: currentUser, course: courseDoc, packageDoc }),
+            sendEnrollmentConfirmation({ payment, user: currentUser, course: courseDoc, packageDoc, admin: true }),
+          ]);
+        }
       } else if (status === 'failed') {
         payment.status = 'failed';
         payment.transactionId = gatewayTxnId || merchantTxnNo || payment.transactionId;

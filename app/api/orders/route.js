@@ -23,6 +23,7 @@ import { buildEnrollmentIdentityFilter, buildEnrollmentLifecycleFields } from '@
 import { normalizeGradeName } from '@/lib/gradeUtils';
 import { upsertStudentProfile } from '@/lib/studentProfile';
 import { normalizeCouponCode, validateCouponForCheckout } from '@/lib/coupons';
+import { sendEnrollmentConfirmation } from '@/lib/email';
 
 const normalizeStringList = (value) => (
   Array.isArray(value)
@@ -239,6 +240,23 @@ export async function POST(req) {
         },
         { upsert: true, returnDocument: 'after', setDefaultsOnInsert: true }
       );
+
+      const currentUser = await User.findById(user.id).select('name email phone');
+      await Promise.all([
+        sendEnrollmentConfirmation({
+          payment: paymentRecord,
+          user: currentUser,
+          course: { title: name.replace(` - ${selectedPackageDoc?.name || ''}`, '') },
+          packageDoc: selectedPackageDoc,
+        }),
+        sendEnrollmentConfirmation({
+          payment: paymentRecord,
+          user: currentUser,
+          course: { title: name.replace(` - ${selectedPackageDoc?.name || ''}`, '') },
+          packageDoc: selectedPackageDoc,
+          admin: true,
+        }),
+      ]);
 
       return NextResponse.json({ success: true, gateway: 'pay_later' });
     }

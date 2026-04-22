@@ -5326,7 +5326,7 @@ div#navMain{
                 .ps-field-label { font-size: 0.78rem; font-weight: 700; color: #374151; text-transform: uppercase; letter-spacing: 0.4px; display: block; margin-bottom: 6px; }
                 .ps-auth-field-group { display: flex; flex-direction: column; }
                 .ps-phone-row { display: flex; gap: 8px; }
-                .ps-country-select { max-width: 180px; font-size: 0.875rem; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; outline: none; background: #fff; }
+                .ps-country-select { max-width: 100px; font-size: 0.875rem; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 10px 12px; outline: none; background: #fff; }
                 .ps-country-select:focus { border-color: #000; box-shadow: none; }
                 .ps-phone-input { flex: 1; font-size: 0.875rem; border: 1.5px solid #e5e7eb; border-radius: 10px; padding: 10px 14px; outline: none; }
                 .ps-phone-input:focus { border-color: #000; box-shadow: none; }
@@ -5469,3 +5469,5 @@ div#navMain{
                 }
                 .ps-confirm-btn:hover:not(:disabled):not(.ps-confirm-btn--loading) { background: #1f1f1f; transform: translateY(-1px); }
                 .ps-confirm-btn:disabled { background: #d1d5db; cursor: not-allowed; }
+
+                
