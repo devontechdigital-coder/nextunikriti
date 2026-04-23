@@ -657,6 +657,7 @@ export default function CourseBuilderPage() {
                                             <Button variant="link" className="text-danger p-0" onClick={() => handleDeleteLesson(lesson._id)}>
                                                 Delete
                                             </Button>
+                                            
                                           </div>
                                       </ListGroup.Item>
                                   ))}
