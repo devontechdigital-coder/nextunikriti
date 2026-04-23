@@ -13,7 +13,8 @@ const authorizeSectionEdit = async (sectionId) => {
     if (!section) return null;
 
     const course = await Course.findById(section.courseId);
-    if (!course || (course.instructor.toString() !== user.id && user.role !== 'admin')) {
+    const ownerId = (course?.course_creator || course?.instructor)?.toString();
+    if (!course || (ownerId !== user.id && user.role !== 'admin')) {
         return null; // Unauthorized or orphaned
     }
     return section;

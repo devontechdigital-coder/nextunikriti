@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Course from '@/models/Course';
 import Category from '@/models/Category';
+import '@/models/Instrument';
+import '@/models/Level';
+import '@/models/User';
 import { getUserFromCookie } from '@/utils/auth';
 
 // Fetch all courses (public with filters or instructor-specific)
@@ -26,17 +29,21 @@ export async function GET(req) {
     // If requested by an instructor, we show their courses.
     const user = getUserFromCookie();
     if (searchParams.get('instructor') === 'true' && user && ['admin', 'instructor'].includes(user.role)) {
-       filter.course_creator = user.id;
+       filter.$or = [
+         { course_creator: user.id },
+         { instructor: user.id },
+       ];
     } else {
        filter.moderationStatus = 'approved';
     }
 
     const courses = await Course.find(filter)
       .populate('course_creator', 'name avatar')
+      .populate('instructor', 'name avatar')
       .populate('instrument_id', 'name')
       .populate('level_id', 'levelName grades')
       .populate('categoryIds', 'name slug parentId')
-      .select('title slug thumbnail price instrument_id level_id course_creator categoryIds category shortDescription mode duration brochureUrl certification faq');
+      .select('title slug thumbnail price instrument_id level_id course_creator instructor categoryIds category shortDescription description mode duration brochureUrl certification faq isPublished moderationStatus');
 
     return NextResponse.json({ success: true, data: courses }, { status: 200 });
   } catch (error) {
@@ -56,6 +63,7 @@ export async function POST(req) {
     await connectDB();
     
     body.course_creator = user.id; // Force creator to be the authenticated user
+    body.instructor = user.id;
     
     const course = await Course.create(body);
     return NextResponse.json({ success: true, data: course }, { status: 201 });

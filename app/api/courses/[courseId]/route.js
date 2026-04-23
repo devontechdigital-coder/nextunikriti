@@ -4,6 +4,9 @@ import connectDB from '@/lib/db';
 import Course from '@/models/Course';
 import Section from '@/models/Section';
 import Lesson from '@/models/Lesson';
+import '@/models/Instrument';
+import '@/models/Level';
+import '@/models/User';
 import { getUserFromCookie } from '@/utils/auth';
 
 export async function GET(req, { params }) {
@@ -22,6 +25,7 @@ export async function GET(req, { params }) {
 
     if (course) {
       course = await course.populate('course_creator', 'name avatar')
+      course = await course.populate('instructor', 'name avatar')
       course = await course.populate('instrument_id', 'name')
       course = await course.populate('level_id', 'levelName grades');
     }
@@ -52,12 +56,35 @@ export async function PUT(req, { params }) {
     if (!course) return NextResponse.json({ success: false, error: 'Course not found' }, { status: 404 });
     
     // Auth Check: Is this instructor the owner or an admin?
-    if (course.course_creator?.toString() !== user.id && user.role !== 'admin') {
+    const ownerId = (course.course_creator || course.instructor)?.toString();
+    if (ownerId !== user.id && user.role !== 'admin') {
       return NextResponse.json({ success: false, error: 'Unauthorized to edit this course' }, { status: 403 });
     }
 
     const body = await req.json();
-    const updatedCourse = await Course.findByIdAndUpdate(params.courseId, body, { new: true, runValidators: true });
+    const update = { ...body };
+
+    if (Array.isArray(update.categoryIds)) {
+      update.categoryIds = update.categoryIds
+        .map((id) => id?._id || id)
+        .filter((id) => mongoose.Types.ObjectId.isValid(id));
+    }
+
+    ['instrument_id', 'level_id', 'course_creator', 'instructor'].forEach((field) => {
+      if (update[field]?._id) update[field] = update[field]._id;
+      if (update[field] === '') update[field] = null;
+    });
+
+    if (user.role !== 'admin') {
+      delete update.course_creator;
+      delete update.instructor;
+      delete update.moderationStatus;
+    } else {
+      if (update.course_creator && !update.instructor) update.instructor = update.course_creator;
+      if (update.instructor && !update.course_creator) update.course_creator = update.instructor;
+    }
+
+    const updatedCourse = await Course.findByIdAndUpdate(params.courseId, update, { new: true, runValidators: true });
     
     return NextResponse.json({ success: true, data: updatedCourse }, { status: 200 });
   } catch (error) {
@@ -74,7 +101,8 @@ export async function DELETE(req, { params }) {
     const course = await Course.findById(params.courseId);
     if (!course) return NextResponse.json({ success: false, error: 'Course not found' }, { status: 404 });
 
-    if (course.course_creator?.toString() !== user.id && user.role !== 'admin') {
+    const ownerId = (course.course_creator || course.instructor)?.toString();
+    if (ownerId !== user.id && user.role !== 'admin') {
       return NextResponse.json({ success: false, error: 'Unauthorized to delete this course' }, { status: 403 });
     }
 

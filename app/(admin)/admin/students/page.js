@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { Container, Table, Spinner, Alert, Form, Button, Modal, Badge, Row, Col } from 'react-bootstrap';
 import { 
   useGetAdminStudentsQuery,
@@ -36,6 +36,7 @@ const createInitialFormData = (schoolId = '') => ({
   cityDistrict: '',
   state: '',
   nationality: 'Indian',
+  country: 'India',
   motherName: '',
   motherMobile: '',
   motherEmail: '',
@@ -56,6 +57,7 @@ const createInitialFormData = (schoolId = '') => ({
 
 export default function StudentsPage() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const isSchoolAdminPath = pathname.startsWith('/school');
 
   const { user } = useSelector((state) => state.auth);
@@ -66,7 +68,7 @@ export default function StudentsPage() {
     schoolId: (typeof window !== 'undefined' && JSON.parse(localStorage.getItem('auth_user') || '{}')?.role === 'school_admin') 
       ? (JSON.parse(localStorage.getItem('auth_user') || '{}')?.schoolId || JSON.parse(localStorage.getItem('auth_user') || '{}')?._id)
       : '', 
-    status: '', 
+    status: searchParams.get('status') || '', 
     gender: '', 
     search: '' 
   });
@@ -85,6 +87,30 @@ export default function StudentsPage() {
 
   const students = data?.students || [];
   const schools = schoolData?.schools || [];
+  const isAdmin = user?.role === 'admin' && !isSchoolAdminPath;
+
+  useEffect(() => {
+    setFilters((current) => ({ ...current, status: searchParams.get('status') || '' }));
+  }, [searchParams]);
+
+  const formatDate = (value) => {
+    if (!value) return 'N/A';
+    return new Date(value).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+  };
+
+  const buildAddressQuery = () => [
+    formData.address1,
+    formData.address2,
+    formData.street,
+    formData.cityDistrict,
+    formData.state,
+    formData.country,
+    formData.pinCode,
+  ].filter(Boolean).join(', ');
+
+  const addressQuery = buildAddressQuery();
+  const googleMapSrc = addressQuery ? `https://www.google.com/maps?q=${encodeURIComponent(addressQuery)}&output=embed` : '';
+  const googleMapLink = addressQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressQuery)}` : '';
 
   const handleOpenModal = () => {
     setFormData(createInitialFormData(isSchoolAdmin ? schoolId : ''));
@@ -227,7 +253,10 @@ export default function StudentsPage() {
           <thead className="bg-light text-secondary text-uppercase small fw-bold">
             <tr>
               <th className="ps-4 py-3">Student Details</th>
+              <th className="py-3">Contact</th>
               <th className="py-3">Enrolment ID</th>
+              <th className="py-3">Joining</th>
+              <th className="py-3">Slots / Center</th>
               {isSchoolAdminPath ? null : <th>School</th>}
               <th className="py-3">Status</th>
               <th className="text-end pe-4 py-3">Actions</th>
@@ -252,11 +281,23 @@ export default function StudentsPage() {
                     </div>
                     <div>
                       <div className="fw-bold">{student.userId?.name || 'Unknown'}</div>
-                      <small className="text-muted d-block">{student.userId?.email || student.userId?.phone}</small>
+                      <small className="text-muted d-block">{student.studentName || student.enrolledFor || 'Student profile'}</small>
                     </div>
                   </div>
                 </td>
+                <td>
+                  <div className="small">{student.userId?.email || 'No email'}</div>
+                  <div className="small text-muted">{student.userId?.phone || 'No phone'}</div>
+                </td>
                 <td><code className="text-dark bg-light px-2 py-1 rounded small">{student.enrolmentNumber}</code></td>
+                <td>
+                  <div className="small">{formatDate(student.joiningDate || student.dateOfJoining)}</div>
+                  <div className="small text-muted">{student.joiningYear || 'No year'}</div>
+                </td>
+                <td>
+                  <div className="small fw-semibold">{student.time || 'No slot'}</div>
+                  <div className="small text-muted">{student.location || 'No center'}</div>
+                </td>
                 {isSchoolAdminPath ? null : <td>{student.schoolId?.schoolName || <em className="text-muted">Unassigned</em>}</td>}
                 <td>
                   <Badge pill bg={statusColors[student.status] || 'secondary'} className="px-3">
@@ -269,9 +310,11 @@ export default function StudentsPage() {
                       View Profile
                     </Button>
                   </Link>
-                  <Button variant="outline-danger" size="sm" className="rounded-circle shadow-xs" onClick={() => { setStudentToDelete(student); setShowDeleteModal(true); }}>
-                    <FaTrash size={12} />
-                  </Button>
+                  {isAdmin && (
+                    <Button variant="outline-danger" size="sm" className="rounded-circle shadow-xs" onClick={() => { setStudentToDelete(student); setShowDeleteModal(true); }}>
+                      <FaTrash size={12} />
+                    </Button>
+                  )}
                 </td>
               </tr>
             )})}
@@ -422,8 +465,23 @@ export default function StudentsPage() {
                 <Form.Control value={formData.state} onChange={(e) => handleFieldChange('state', e.target.value)} />
               </Col>
               <Col md={4}>
+                <Form.Label className="small fw-bold">Country</Form.Label>
+                <Form.Control value={formData.country} onChange={(e) => handleFieldChange('country', e.target.value)} />
+              </Col>
+              <Col md={4}>
                 <Form.Label className="small fw-bold">PIN Code</Form.Label>
                 <Form.Control value={formData.pinCode} onChange={(e) => handleFieldChange('pinCode', e.target.value)} />
+              </Col>
+              <Col md={12}>
+                <div className="d-flex justify-content-between align-items-center mb-2">
+                  <Form.Label className="small fw-bold mb-0">Google Map Preview</Form.Label>
+                  {googleMapLink && <a href={googleMapLink} target="_blank" rel="noopener noreferrer" className="small">Open in Google Maps</a>}
+                </div>
+                {googleMapSrc ? (
+                  <iframe title="Student address map" src={googleMapSrc} width="100%" height="220" style={{ border: 0, borderRadius: 8 }} loading="lazy" />
+                ) : (
+                  <div className="bg-white border rounded p-4 text-muted small">Enter address details to preview this location on Google Maps.</div>
+                )}
               </Col>
             </Row>
 

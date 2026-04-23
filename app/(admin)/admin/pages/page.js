@@ -32,6 +32,10 @@ export default function AdminPagesPage() {
     slug: '',
     content: '',
     status: 'draft',
+    imageUrl: '',
+    showEnquiryForm: false,
+    metaTitle: '',
+    metaDescription: '',
     metaKeywords: '',
     customScripts: '',
     customCSS: '',
@@ -47,6 +51,10 @@ export default function AdminPagesPage() {
         slug: page.slug || '',
         content: page.content || '',
         status: page.status || 'draft',
+        imageUrl: page.imageUrl || '',
+        showEnquiryForm: !!page.showEnquiryForm,
+        metaTitle: page.metaTitle || '',
+        metaDescription: page.metaDescription || '',
         metaKeywords: page.metaKeywords || '',
         customScripts: page.customScripts || '',
         customCSS: page.customCSS || '',
@@ -60,6 +68,10 @@ export default function AdminPagesPage() {
         slug: '',
         content: '',
         status: 'draft',
+        imageUrl: '',
+        showEnquiryForm: false,
+        metaTitle: '',
+        metaDescription: '',
         metaKeywords: '',
         customScripts: '',
         customCSS: '',
@@ -72,12 +84,17 @@ export default function AdminPagesPage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    const payload = {
+      ...formData,
+      imageUrl: formData.imageUrl?.trim() || '',
+    };
+
     try {
       if (editingPage) {
-        await updatePage({ id: editingPage._id, ...formData }).unwrap();
+        await updatePage({ id: editingPage._id, ...payload }).unwrap();
         toast.success('Page updated successfully!');
       } else {
-        await createPage(formData).unwrap();
+        await createPage(payload).unwrap();
         toast.success('Page created successfully!');
       }
       setShowModal(false);
@@ -139,6 +156,7 @@ export default function AdminPagesPage() {
               <th className="ps-4">Title</th>
               <th>Slug</th>
               <th>Status</th>
+              <th>Form</th>
               <th className="text-end pe-4">Actions</th>
             </tr>
           </thead>
@@ -150,6 +168,11 @@ export default function AdminPagesPage() {
                 <td>
                   <Badge bg={page.status === 'published' ? 'success' : 'secondary'}>
                     {page.status}
+                  </Badge>
+                </td>
+                <td>
+                  <Badge bg={page.showEnquiryForm ? 'info' : 'light'} text={page.showEnquiryForm ? undefined : 'dark'}>
+                    {page.showEnquiryForm ? 'Shown' : 'Hidden'}
                   </Badge>
                 </td>
                 <td className="text-end pe-4">
@@ -216,6 +239,30 @@ export default function AdminPagesPage() {
                         >
                           <option value="draft">Draft</option>
                           <option value="published">Published</option>
+                        </Form.Select>
+                      </Form.Group>
+                    </div>
+                    <div className="col-md-8">
+                      <Form.Group>
+                        <Form.Label className="fw-bold">Image URL <span className="text-muted fw-normal">(Optional)</span></Form.Label>
+                        <Form.Control
+                          type="text"
+                          placeholder="https://example.com/page-image.jpg"
+                          value={formData.imageUrl}
+                          onChange={(e) => setFormData({ ...formData, imageUrl: e.target.value })}
+                        />
+                        <Form.Text className="text-muted">Leave blank if this page does not need a top image.</Form.Text>
+                      </Form.Group>
+                    </div>
+                    <div className="col-md-4">
+                      <Form.Group>
+                        <Form.Label className="fw-bold">Show Form</Form.Label>
+                        <Form.Select
+                          value={formData.showEnquiryForm ? 'yes' : 'no'}
+                          onChange={(e) => setFormData({ ...formData, showEnquiryForm: e.target.value === 'yes' })}
+                        >
+                          <option value="no">No</option>
+                          <option value="yes">Yes</option>
                         </Form.Select>
                       </Form.Group>
                     </div>

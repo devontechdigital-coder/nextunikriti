@@ -12,7 +12,7 @@ export async function GET(req) {
 
     await connectDB();
     const bookmarks = await Bookmark.find({ userId: user.id })
-      .populate('lessonId', 'title videoUrl')
+      .populate('lessonId', 'title')
       .populate('courseId', 'title thumbnail')
       .sort({ createdAt: -1 });
 

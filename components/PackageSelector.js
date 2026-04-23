@@ -1114,7 +1114,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                         <div className="ps-field-hint mt-1">
                             {appliedCoupon
                                 ? `${appliedCoupon.code} gives you ₹${couponDiscountAmount.toLocaleString()} off on this package.`
-                                : 'Enter a valid coupon code if you have one.'}
+                                : null }
                         </div>
                     </div>
 

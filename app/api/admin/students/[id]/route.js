@@ -27,6 +27,7 @@ function buildStudentPayload(body) {
     street: body.street,
     city: body.cityDistrict ?? body.city,
     state: body.state,
+    country: body.country,
     pinCode: body.pinCode,
     motherName: body.motherName,
     motherMobile: body.motherMobile,
@@ -128,7 +129,7 @@ export async function PUT(req, { params }) {
 export async function DELETE(req, { params }) {
   try {
     const user = getUserFromCookie();
-    if (!user || (!['admin', 'school_admin'].includes(user.role))) {
+    if (!user || user.role !== 'admin') {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -136,11 +137,6 @@ export async function DELETE(req, { params }) {
     const student = await Student.findById(params.id);
     if (!student) {
       return NextResponse.json({ success: false, error: 'Student not found' }, { status: 404 });
-    }
-
-    // School admin check
-    if (user.role === 'school_admin' && student.schoolId?.toString() !== user.schoolId) {
-      return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
     // 1. Delete Student

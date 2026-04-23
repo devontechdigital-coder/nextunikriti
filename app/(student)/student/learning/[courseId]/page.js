@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
 import { Container, Row, Col, Card, ListGroup, Button, Spinner, Alert, Badge, Accordion } from 'react-bootstrap';
 import { useParams, useRouter } from 'next/navigation';
@@ -18,6 +18,9 @@ export default function LearningPage() {
   const [activeLesson, setActiveLesson] = useState(null);
   const [completing, setCompleting] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
+  const [videoBlobUrl, setVideoBlobUrl] = useState('');
+  const [videoLoading, setVideoLoading] = useState(false);
+  const [videoError, setVideoError] = useState('');
 
   const flatLessons = course?.sections?.flatMap(sec => sec.lessons) || [];
 
@@ -33,7 +36,7 @@ export default function LearningPage() {
     try {
       const res = await axios.get('/api/student/bookmarks');
       if (res.data.success) {
-        const bookmarked = res.data.data.some(b => b.lessonId._id === lessonId);
+        const bookmarked = res.data.data.some(b => b.lessonId?._id === lessonId);
         setIsBookmarked(bookmarked);
       }
     } catch (e) { console.error(e); }
@@ -51,6 +54,44 @@ export default function LearningPage() {
     }
   }, [activeLesson, courseId]);
 
+  useEffect(() => {
+    let objectUrl = '';
+    let cancelled = false;
+
+    const loadVideoBlob = async () => {
+      setVideoBlobUrl('');
+      setVideoError('');
+
+      if (!activeLesson?.hasVideo) return;
+
+      setVideoLoading(true);
+      try {
+        const res = await axios.post(
+          '/api/videos/play',
+          { lessonId: activeLesson._id },
+          { responseType: 'blob' }
+        );
+
+        if (cancelled) return;
+        objectUrl = URL.createObjectURL(res.data);
+        setVideoBlobUrl(objectUrl);
+      } catch (err) {
+        if (!cancelled) {
+          setVideoError('Unable to load this video.');
+        }
+      } finally {
+        if (!cancelled) setVideoLoading(false);
+      }
+    };
+
+    loadVideoBlob();
+
+    return () => {
+      cancelled = true;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+    };
+  }, [activeLesson]);
+
   const toggleBookmark = async () => {
     try {
       const res = await axios.post('/api/student/bookmarks', {
@@ -63,32 +104,33 @@ export default function LearningPage() {
     } catch (e) { alert('Failed to toggle bookmark'); }
   };
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
-      // Get course with full hierarchy (reuse existing api)
-      const courseRes = await axios.get(`/api/courses/${courseId}`);
-      // Get student enrollment for this course
-      const enrollRes = await axios.get(`/api/student/progress?courseId=${courseId}`);
+      const learningRes = await axios.get(`/api/student/learn/${courseId}`);
 
-      if (courseRes.data.success && enrollRes.data.success) {
-        const courseData = courseRes.data.data;
+      if (learningRes.data.success) {
+        const courseData = {
+          ...learningRes.data.data.course,
+          sections: learningRes.data.data.sections || [],
+        };
+        const enrollmentData = learningRes.data.data.enrollment;
         setCourse(courseData);
-        setEnrollment(enrollRes.data.data);
+        setEnrollment(enrollmentData);
 
         // Auto-resume logic: if lastLessonId exists in enrollment, use it. Otherwise default to first lesson.
-        if (!activeLesson && courseData.sections?.length > 0) {
+        if (courseData.sections?.length > 0) {
           let lessonToSelect = null;
           const flattened = courseData.sections.flatMap(s => s.lessons);
           
-          if (enrollRes.data.data?.lastLessonId) {
-             lessonToSelect = flattened.find(l => l._id === enrollRes.data.data.lastLessonId);
+          if (enrollmentData?.lastLessonId) {
+             lessonToSelect = flattened.find(l => l._id === enrollmentData.lastLessonId);
              
              // Check if it's locked just in case
              if (lessonToSelect) {
                  const index = flattened.findIndex(l => l._id === lessonToSelect._id);
                  if (index > 0) {
                      const prevLessonId = flattened[index - 1]._id;
-                     if (!enrollRes.data.data.completedLessons?.includes(prevLessonId)) {
+                     if (!enrollmentData.completedLessons?.includes(prevLessonId)) {
                          // Fallback to first unlocked
                          lessonToSelect = null;
                      }
@@ -100,11 +142,11 @@ export default function LearningPage() {
             lessonToSelect = flattened.find((l, idx) => {
                if (idx === 0) return true;
                const prevL = flattened[idx - 1];
-               return enrollRes.data.data.completedLessons?.includes(prevL._id) && !enrollRes.data.data.completedLessons?.includes(l._id);
+               return enrollmentData.completedLessons?.includes(prevL._id) && !enrollmentData.completedLessons?.includes(l._id);
             }) || flattened[0];
           }
           
-          if (lessonToSelect) setActiveLesson(lessonToSelect);
+          if (lessonToSelect) setActiveLesson((current) => current || lessonToSelect);
         }
       } else {
           setError('Could not find course or enrollment data.');
@@ -114,11 +156,11 @@ export default function LearningPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [courseId]);
 
   useEffect(() => {
     if (courseId) fetchData();
-  }, [courseId]);
+  }, [courseId, fetchData]);
 
   const handleMarkComplete = async () => {
     if (!activeLesson || completing) return;
@@ -157,14 +199,31 @@ export default function LearningPage() {
         <Col lg={9} className="border-end overflow-auto" style={{ height: 'calc(100vh - 72px)' }}>
           {activeLesson ? (
             <div>
-              {/* Fake Video Player Placeholder */}
               <div className="bg-black d-flex align-items-center justify-content-center text-white" style={{ aspectRatio: '16/9', maxHeight: '70vh' }}>
-                {activeLesson.videoUrl ? (
-                    <div className="text-center">
-                        <i className="bi bi-play-btn fs-1 text-primary"></i>
-                        <div className="small opacity-50 mt-2">Video streaming via GCS Signed URL placeholder</div>
-                        <div className="small mt-1 px-3 border rounded text-truncate mx-auto" style={{maxWidth: '300px'}}>{activeLesson.videoUrl}</div>
-                    </div>
+                {activeLesson.hasVideo ? (
+                    videoLoading ? (
+                      <div className="text-center">
+                        <Spinner animation="border" variant="light" />
+                        <div className="small opacity-75 mt-3">Preparing secure video...</div>
+                      </div>
+                    ) : videoBlobUrl ? (
+                      <video
+                        key={videoBlobUrl}
+                        controls
+                        controlsList="nodownload noplaybackrate"
+                        disablePictureInPicture
+                        onContextMenu={(e) => e.preventDefault()}
+                        className="w-100 h-100"
+                        style={{ objectFit: 'contain', backgroundColor: '#000' }}
+                      >
+                        <source src={videoBlobUrl} type="video/mp4" />
+                      </video>
+                    ) : (
+                      <div className="text-center opacity-75">
+                        <i className="bi bi-exclamation-circle fs-1"></i>
+                        <p className="mb-1">{videoError || 'Video is not ready yet.'}</p>
+                      </div>
+                    )
                 ) : (
                     <div className="text-center opacity-50">
                         <i className="bi bi-file-earmark-text fs-1"></i>
@@ -266,7 +325,7 @@ export default function LearningPage() {
                           </div>
                           <div className="min-w-0 flex-grow-1">
                             <div className="fw-semibold small text-truncate" style={{ fontSize: '0.85rem' }}>{lesson.title}</div>
-                            {lesson.videoUrl && <div className="text-muted small" style={{fontSize: '0.7rem'}}>Video • 10m</div>}
+                            {lesson.hasVideo && <div className="text-muted small" style={{fontSize: '0.7rem'}}>Video • 10m</div>}
                           </div>
                         </ListGroup.Item>
                       );

@@ -4,6 +4,11 @@ import Enrollment from '@/models/Enrollment';
 import Payment from '@/models/Payment';
 import Section from '@/models/Section';
 import Lesson from '@/models/Lesson';
+import '@/models/Course';
+import '@/models/Package';
+import '@/models/User';
+import '@/models/Batch';
+import '@/models/School';
 import { getUserFromCookie } from '@/utils/auth';
 import { resolvePackagePriceOptionById } from '@/lib/packagePricing';
 import { findPreferredEnrollmentForCourse } from '@/lib/enrollmentLifecycle';
@@ -72,6 +77,8 @@ export async function GET(req) {
         const daysUsed = enrollment?.startDate ? diffDaysFloor(enrollment.startDate, new Date()) : 0;
         const requestedDaysAgo = diffDaysFloor(payment.createdAt, new Date());
 
+        const pricingOptionLabel = pricingOption?.label || null;
+
         return {
             payment_id: payment._id,
             enrollment_id: enrollment?._id || payment._id,
@@ -80,7 +87,7 @@ export async function GET(req) {
             thumbnail: payment.courseId?.thumbnail,
             package_name: packageDoc?.name || 'Standard',
             grade_name: normalizeGradeName(enrollment?.gradeName || payment.gradeName || packageDoc?.gradeName),
-            pricing_option_label: packageDoc ? resolvePackagePriceOptionById(packageDoc, pricingOptionId).label : null,
+            pricing_option_label: pricingOptionLabel,
             pricing_option_price: pricingOption?.price ?? null,
             payment_status: toStudentPaymentStatus(payment.status),
             order_status: payment.status,

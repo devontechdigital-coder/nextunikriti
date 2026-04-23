@@ -3,14 +3,15 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useSelector, useDispatch } from 'react-redux';
-import { logout } from '@/redux/slices/authSlice';
-import { Dropdown } from 'react-bootstrap';
+import { useSelector } from 'react-redux';
 import { FaUserCircle } from 'react-icons/fa';
 
 import TrialModal from './home/TrialModal';
 
 const isPrefetchablePath = (url) => typeof url === 'string' && url.startsWith('/') && !url.startsWith('//');
+const getSafeHref = (url, fallback = '#') => (
+  typeof url === 'string' && url.trim() ? url : fallback
+);
 
 const CoursesMega = ({ menu, submenus, getSubmenus, prefetchRoute }) => {
   const [activeCat, setActiveCat] = useState(submenus[0]?._id || null);
@@ -46,7 +47,7 @@ const CoursesMega = ({ menu, submenus, getSubmenus, prefetchRoute }) => {
                 <div className="row g-3">
                   {getSubmenus(activeCat).map(item => (
                     <div className="col-md-6" key={item._id}>
-                      <Link className="course-item" href={item.url} prefetch onMouseEnter={() => prefetchRoute(item.url)} onFocus={() => prefetchRoute(item.url)}>
+                      <Link className="course-item" href={getSafeHref(item.url)} prefetch onMouseEnter={() => prefetchRoute(item.url)} onFocus={() => prefetchRoute(item.url)}>
                         <div className="course-icon">{item.icon || '🎵'}</div>
                         <div>
                           <div className="name">{item.title}</div>
@@ -56,7 +57,7 @@ const CoursesMega = ({ menu, submenus, getSubmenus, prefetchRoute }) => {
                     </div>
                   ))}
                 </div>
-                <Link className="see-all" href={submenus.find(c => c._id === activeCat)?.url || '#'} prefetch onMouseEnter={() => prefetchRoute(submenus.find(c => c._id === activeCat)?.url)} onFocus={() => prefetchRoute(submenus.find(c => c._id === activeCat)?.url)}>
+                <Link className="see-all" href={getSafeHref(submenus.find(c => c._id === activeCat)?.url)} prefetch onMouseEnter={() => prefetchRoute(submenus.find(c => c._id === activeCat)?.url)} onFocus={() => prefetchRoute(submenus.find(c => c._id === activeCat)?.url)}>
                   See all Courses <span>→</span>
                 </Link>
               </div>
@@ -87,7 +88,7 @@ const CoursesMega = ({ menu, submenus, getSubmenus, prefetchRoute }) => {
                     <div className="row g-2">
                       {getSubmenus(cat._id).map(item => (
                         <div className="col-12" key={item._id}>
-                          <Link className="course-item" href={item.url} prefetch onMouseEnter={() => prefetchRoute(item.url)} onFocus={() => prefetchRoute(item.url)}>
+                          <Link className="course-item" href={getSafeHref(item.url)} prefetch onMouseEnter={() => prefetchRoute(item.url)} onFocus={() => prefetchRoute(item.url)}>
                             <div className="course-icon">{item.icon || '🎵'}</div>
                             <div>
                               <div className="name">{item.title}</div>
@@ -142,7 +143,7 @@ const LabsMega = ({ menu, submenus, getSubmenus, prefetchRoute }) => {
                       </div>
                       <div className={`programs transition-all overflow-hidden ${openSchool === school._id ? 'max-h-500 mt-3' : 'max-h-0'}`}>
                         {getSubmenus(school._id).map(prog => (
-                          <Link key={prog._id} className="dropdown-item p-2 rounded-2 mb-2 bg-light border-start border-primary border-4" href={prog.url} prefetch onMouseEnter={() => prefetchRoute(prog.url)} onFocus={() => prefetchRoute(prog.url)}>
+                          <Link key={prog._id} className="dropdown-item p-2 rounded-2 mb-2 bg-light border-start border-primary border-4" href={getSafeHref(prog.url)} prefetch onMouseEnter={() => prefetchRoute(prog.url)} onFocus={() => prefetchRoute(prog.url)}>
                             <h6 className="small fw-bold mb-1">{prog.title}</h6>
                             <p className="very-small text-muted mb-0">{prog.metaText}</p>
                           </Link>
@@ -162,7 +163,6 @@ const LabsMega = ({ menu, submenus, getSubmenus, prefetchRoute }) => {
 
 const Navbar = ({ initialMenus = [], theme = {} }) => {
   const router = useRouter();
-  const dispatch = useDispatch();
   const { user, isAuthenticated } = useSelector((state) => state.auth);
   const [authReady, setAuthReady] = useState(false);
   const [dynamicMenus, setDynamicMenus] = useState(initialMenus.filter(m => m.isActive && m.type === 'header'));
@@ -223,13 +223,15 @@ const Navbar = ({ initialMenus = [], theme = {} }) => {
 
   // Helper to get dashboard URL based on role
   const getDashboardUrl = (role) => {
-    switch (role) {
+    switch (typeof role === 'string' ? role.toLowerCase() : '') {
       case 'admin': return '/admin';
       case 'instructor': return '/instructor';
       case 'school_admin': return '/school/dashboard';
       default: return '/student/dashboard';
     }
   };
+
+  const accountHref = getDashboardUrl(user?.role);
 
   return (
     <>
@@ -286,7 +288,7 @@ const Navbar = ({ initialMenus = [], theme = {} }) => {
                                       <ul className="list-unstyled u-mega-links mt-3">
                                         {items.map(item => (
                                           <li key={item._id} className="mb-2">
-                                            <Link href={item.url} className="u-mega-link" prefetch onMouseEnter={() => prefetchRoute(item.url)} onFocus={() => prefetchRoute(item.url)}>
+                                            <Link href={getSafeHref(item.url)} className="u-mega-link" prefetch onMouseEnter={() => prefetchRoute(item.url)} onFocus={() => prefetchRoute(item.url)}>
                                               {item.title}
                                             </Link>
                                           </li>
@@ -318,7 +320,7 @@ const Navbar = ({ initialMenus = [], theme = {} }) => {
                   // Simple Link
                   return (
                     <li key={menu._id} className="nav-item">
-                      <Link className={isSub ? "dropdown-item py-2" : "nav-link"} href={menu.url} prefetch onMouseEnter={() => prefetchRoute(menu.url)} onFocus={() => prefetchRoute(menu.url)}>
+                      <Link className={isSub ? "dropdown-item py-2" : "nav-link"} href={getSafeHref(menu.url)} prefetch onMouseEnter={() => prefetchRoute(menu.url)} onFocus={() => prefetchRoute(menu.url)}>
                         {menu.title}
                       </Link>
                     </li>
@@ -332,8 +334,15 @@ const Navbar = ({ initialMenus = [], theme = {} }) => {
               })()}
 
               {authReady && isAuthenticated ? (
-                <li className="nav-item dropdown ms-lg-3 mt-3 mt-lg-0">
-                  <Dropdown>
+                <li className="nav-item ms-lg-3 mt-3 mt-lg-0">
+                  <Link
+                    href={accountHref}
+                    className="btn btn-outline-dark text-white rounded-pill px-4 fw-bold d-inline-flex align-items-center gap-2"
+                  >
+                    <FaUserCircle size={18} /> {user?.name || 'My Account'}
+                  </Link>
+
+                  {/* <Dropdown>
                     <Dropdown.Toggle variant="dark" className="rounded-pill px-4 fw-bold d-flex align-items-center gap-2">
                       <FaUserCircle size={18} /> {user?.name || 'My Account'}
                     </Dropdown.Toggle>
@@ -346,7 +355,7 @@ const Navbar = ({ initialMenus = [], theme = {} }) => {
                         Log Out
                       </Dropdown.Item>
                     </Dropdown.Menu>
-                  </Dropdown>
+                  </Dropdown> */}
                 </li>
               ) : (
                 <li className="nav-item ms-lg-3 mt-3 mt-lg-0">

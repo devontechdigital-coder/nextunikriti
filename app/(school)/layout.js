@@ -42,6 +42,7 @@ export default function SchoolLayout({ children }) {
     { name: 'Batches', href: '/school/batches', icon: <FiLayers /> },
     { name: 'Timetable', href: '/school/timetable', icon: <FiCalendar /> },
     { name: 'Attendance', href: '/school/attendance', icon: <FiCalendar /> },
+    { name: 'Enquiries', href: '/school/enquiries', icon: <FiMoreVertical /> },
   ];
 
   if (!isMounted) return null;

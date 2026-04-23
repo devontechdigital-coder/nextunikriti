@@ -11,14 +11,16 @@ import {
   Alert, 
   Modal, 
   Form, 
-  ListGroup 
+  ListGroup,
+  Badge
 } from 'react-bootstrap';
 import { 
   useGetAdminCourseSectionsQuery, 
   useCreateAdminCourseSectionMutation, 
   useUpdateAdminSectionMutation, 
   useDeleteAdminSectionMutation,
-  useReorderAdminCourseSectionsMutation
+  useReorderAdminCourseSectionsMutation,
+  useUpdateLessonMutation
 } from '@/redux/api/apiSlice';
 import { 
   FiPlus, 
@@ -42,10 +44,16 @@ export default function AdminCourseCurriculumPage() {
   const [updateSection, { isLoading: isUpdating }] = useUpdateAdminSectionMutation();
   const [deleteSection, { isLoading: isDeleting }] = useDeleteAdminSectionMutation();
   const [reorderSections] = useReorderAdminCourseSectionsMutation();
+  const [updateLesson, { isLoading: isUpdatingLesson }] = useUpdateLessonMutation();
 
   const [showModal, setShowModal] = useState(false);
   const [editingSection, setEditingSection] = useState(null);
   const [sectionTitle, setSectionTitle] = useState('');
+  const [showLessonPlanModal, setShowLessonPlanModal] = useState(false);
+  const [editingLesson, setEditingLesson] = useState(null);
+  const [lessonPlanDraft, setLessonPlanDraft] = useState('');
+  const [lessonPlanStatus, setLessonPlanStatus] = useState('pending');
+  const [lessonPlanNote, setLessonPlanNote] = useState('');
 
   const sections = useMemo(() => sectionsData?.data || [], [sectionsData]);
 
@@ -114,6 +122,31 @@ export default function AdminCourseCurriculumPage() {
       toast.success('Order updated!');
     } catch (err) {
       toast.error('Failed to reorder sections');
+    }
+  };
+
+  const openLessonPlanModal = (lesson) => {
+    setEditingLesson(lesson);
+    setLessonPlanDraft(lesson.lessonPlan || '');
+    setLessonPlanStatus(lesson.lessonPlanStatus || 'pending');
+    setLessonPlanNote(lesson.lessonPlanReviewNote || '');
+    setShowLessonPlanModal(true);
+  };
+
+  const handleLessonPlanUpdate = async (status = lessonPlanStatus) => {
+    if (!editingLesson) return;
+
+    try {
+      await updateLesson({
+        lessonId: editingLesson._id,
+        lessonPlan: lessonPlanDraft,
+        lessonPlanStatus: status,
+        lessonPlanReviewNote: lessonPlanNote
+      }).unwrap();
+      toast.success('Lesson plan updated!');
+      setShowLessonPlanModal(false);
+    } catch (err) {
+      toast.error(err?.data?.error || 'Failed to update lesson plan');
     }
   };
 
@@ -202,11 +235,43 @@ export default function AdminCourseCurriculumPage() {
                 </div>
               </Card.Header>
               <Card.Body className="bg-light-gray p-0">
-                <div className="p-4 text-center border-top">
-                  <div className="text-muted small mb-0">
-                    <FiBook className="me-1" /> Admin view: Lessons management restricted to curriculum structure.
-                  </div>
-                </div>
+                <ListGroup variant="flush">
+                  {section.lessons?.length > 0 ? section.lessons.map((lesson) => (
+                    <ListGroup.Item key={lesson._id} className="px-4 py-3 border-top">
+                      <div className="d-flex justify-content-between align-items-start gap-3">
+                        <div>
+                          <div className="fw-bold d-flex align-items-center gap-2 flex-wrap">
+                            <FiBook className="text-primary" />
+                            {lesson.title}
+                            <Badge
+                              bg={lesson.lessonPlanStatus === 'approved' ? 'success' : lesson.lessonPlanStatus === 'rejected' ? 'danger' : lesson.lessonPlanStatus === 'pending' ? 'warning' : 'secondary'}
+                              text={lesson.lessonPlanStatus === 'pending' ? 'dark' : undefined}
+                            >
+                              {lesson.lessonPlanStatus || 'draft'}
+                            </Badge>
+                          </div>
+                          {lesson.lessonPlan ? (
+                            <p className="small text-muted mb-0 mt-2">{lesson.lessonPlan}</p>
+                          ) : (
+                            <p className="small text-muted mb-0 mt-2">No lesson plan submitted yet.</p>
+                          )}
+                          {lesson.lessonPlanReviewNote && (
+                            <div className="small text-muted mt-2">Admin note: {lesson.lessonPlanReviewNote}</div>
+                          )}
+                        </div>
+                        <Button variant="outline-primary" size="sm" className="rounded-pill px-3" onClick={() => openLessonPlanModal(lesson)}>
+                          Review
+                        </Button>
+                      </div>
+                    </ListGroup.Item>
+                  )) : (
+                    <ListGroup.Item className="p-4 text-center border-top">
+                      <div className="text-muted small mb-0">
+                        <FiBook className="me-1" /> No lessons added in this section.
+                      </div>
+                    </ListGroup.Item>
+                  )}
+                </ListGroup>
               </Card.Body>
             </Card>
           ))
@@ -246,6 +311,61 @@ export default function AdminCourseCurriculumPage() {
             </Button>
           </Modal.Footer>
         </Form>
+      </Modal>
+
+      <Modal show={showLessonPlanModal} onHide={() => setShowLessonPlanModal(false)} centered size="lg">
+        <Modal.Header closeButton className="border-0">
+          <Modal.Title className="fw-bold">Review Lesson Plan</Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="pt-0">
+          <div className="mb-3">
+            <div className="small text-muted text-uppercase fw-bold mb-1">Lesson</div>
+            <div className="fw-bold">{editingLesson?.title}</div>
+          </div>
+          <Form.Group className="mb-3">
+            <Form.Label className="small fw-bold text-muted text-uppercase">Lesson Plan</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={8}
+              value={lessonPlanDraft}
+              onChange={(e) => setLessonPlanDraft(e.target.value)}
+              placeholder="Edit or add lesson plan details."
+            />
+          </Form.Group>
+          <Form.Group className="mb-3">
+            <Form.Label className="small fw-bold text-muted text-uppercase">Status</Form.Label>
+            <Form.Select value={lessonPlanStatus} onChange={(e) => setLessonPlanStatus(e.target.value)}>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Disapproved</option>
+              <option value="draft">Draft</option>
+            </Form.Select>
+          </Form.Group>
+          <Form.Group>
+            <Form.Label className="small fw-bold text-muted text-uppercase">Review Note</Form.Label>
+            <Form.Control
+              as="textarea"
+              rows={3}
+              value={lessonPlanNote}
+              onChange={(e) => setLessonPlanNote(e.target.value)}
+              placeholder="Optional note for teacher."
+            />
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer className="border-0 d-flex justify-content-between">
+          <Button variant="outline-danger" onClick={() => handleLessonPlanUpdate('rejected')} disabled={isUpdatingLesson}>
+            Disapprove
+          </Button>
+          <div className="d-flex gap-2">
+            <Button variant="light" onClick={() => setShowLessonPlanModal(false)}>Cancel</Button>
+            <Button variant="outline-primary" onClick={() => handleLessonPlanUpdate()} disabled={isUpdatingLesson}>
+              Save Edit
+            </Button>
+            <Button variant="success" onClick={() => handleLessonPlanUpdate('approved')} disabled={isUpdatingLesson}>
+              Approve
+            </Button>
+          </div>
+        </Modal.Footer>
       </Modal>
 
       <style jsx global>{`

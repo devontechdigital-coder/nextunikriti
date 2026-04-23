@@ -16,11 +16,15 @@ export async function GET(req) {
     const schoolId = searchParams.get('schoolId');
     const teacherId = searchParams.get('teacherId');
     const programType = searchParams.get('programType');
+    const grade = searchParams.get('grade');
+    const batchNo = searchParams.get('batchNo');
 
     const query = {};
     if (schoolId && mongoose.Types.ObjectId.isValid(schoolId)) query.schoolId = new mongoose.Types.ObjectId(schoolId);
     if (teacherId && mongoose.Types.ObjectId.isValid(teacherId)) query.teacherId = new mongoose.Types.ObjectId(teacherId);
     if (programType) query.programType = programType;
+    if (grade) query.grade = { $regex: grade, $options: 'i' };
+    if (batchNo) query.batchNo = { $regex: batchNo, $options: 'i' };
 
     // Instructors can only see their own batches
     if (user.role === 'instructor' && user.id) {

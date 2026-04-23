@@ -2,6 +2,9 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Batch from '@/models/Batch';
 import Enrollment from '@/models/Enrollment';
+import '@/models/Instrument';
+import '@/models/Level';
+import '@/models/User';
 
 export async function GET(req) {
     try {

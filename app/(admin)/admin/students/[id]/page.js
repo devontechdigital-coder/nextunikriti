@@ -63,6 +63,7 @@ export default function StudentProfilePage() {
         street: student.street || '',
         cityDistrict: student.cityDistrict || student.city || '',
         state: student.state || '',
+        country: student.country || 'India',
         pinCode: student.pinCode || '',
         motherName: student.motherName || '',
         motherMobile: student.motherMobile || '',
@@ -115,6 +116,18 @@ export default function StudentProfilePage() {
   if (!student) {
     return <Container className="py-5"><Alert variant="danger">Student record not found.</Alert></Container>;
   }
+
+  const addressQuery = [
+    formData.address1,
+    formData.address2,
+    formData.street,
+    formData.cityDistrict,
+    formData.state,
+    formData.country,
+    formData.pinCode,
+  ].filter(Boolean).join(', ');
+  const googleMapSrc = addressQuery ? `https://www.google.com/maps?q=${encodeURIComponent(addressQuery)}&output=embed` : '';
+  const googleMapLink = addressQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressQuery)}` : '';
 
   return (
     <Container className="py-5">
@@ -181,17 +194,6 @@ export default function StudentProfilePage() {
               </Card.Body>
             </Card>
 
-            <Card className="border-0 shadow-sm bg-light">
-              <Card.Body>
-                <h6 className="fw-bold mb-3 small text-uppercase text-muted">Quick Contact</h6>
-                <div className="d-flex align-items-center gap-2 mb-2 small">
-                  <FaEnvelope className="text-muted" /> {student.userId?.email || 'N/A'}
-                </div>
-                <div className="d-flex align-items-center gap-2 small">
-                  <FaPhone className="text-muted" /> {student.userId?.phone || 'N/A'}
-                </div>
-              </Card.Body>
-            </Card>
           </Col>
 
           <Col lg={9}>
@@ -368,8 +370,23 @@ export default function StudentProfilePage() {
                         <Form.Control value={formData.state} onChange={(e) => setFormData({...formData, state: e.target.value})} />
                       </Col>
                       <Col md={4}>
+                        <Form.Label className="small fw-bold">Country</Form.Label>
+                        <Form.Control value={formData.country} onChange={(e) => setFormData({...formData, country: e.target.value})} />
+                      </Col>
+                      <Col md={4}>
                         <Form.Label className="small fw-bold">Pin Code</Form.Label>
                         <Form.Control value={formData.pinCode} onChange={(e) => setFormData({...formData, pinCode: e.target.value})} />
+                      </Col>
+                      <Col md={12}>
+                        <div className="d-flex justify-content-between align-items-center mb-2">
+                          <Form.Label className="small fw-bold mb-0">Google Map Preview</Form.Label>
+                          {googleMapLink && <a href={googleMapLink} target="_blank" rel="noopener noreferrer" className="small">Open in Google Maps</a>}
+                        </div>
+                        {googleMapSrc ? (
+                          <iframe title="Student address map" src={googleMapSrc} width="100%" height="260" style={{ border: 0, borderRadius: 8 }} loading="lazy" />
+                        ) : (
+                          <div className="bg-light border rounded p-4 text-muted small">Enter address details to preview this location on Google Maps.</div>
+                        )}
                       </Col>
                     </Row>
                   </Card.Body>

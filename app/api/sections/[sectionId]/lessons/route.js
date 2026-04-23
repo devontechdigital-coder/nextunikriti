@@ -13,7 +13,8 @@ const authorizeLessonEdit = async (sectionId) => {
     if (!section) return null;
 
     const course = await Course.findById(section.courseId);
-    if (!course || (course.instructor.toString() !== user.id && user.role !== 'admin')) {
+    const ownerId = (course?.course_creator || course?.instructor)?.toString();
+    if (!course || (ownerId !== user.id && user.role !== 'admin')) {
         return null;
     }
     return section;
@@ -38,7 +39,10 @@ export async function POST(req, { params }) {
       order: nextOrder,
       videoUrl: body.videoUrl || '',
       resources: body.resources || [],
-      duration: body.duration || 0
+      duration: body.duration || 0,
+      lessonPlan: body.lessonPlan || '',
+      lessonPlanStatus: body.lessonPlan ? 'pending' : 'draft',
+      lessonPlanSubmittedBy: getUserFromCookie()?.id || undefined
     });
 
     return NextResponse.json({ success: true, data: lesson }, { status: 201 });

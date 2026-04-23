@@ -15,7 +15,7 @@ export async function GET(req) {
     await connectDB();
 
     // 1. Get instructor's courses
-    const courses = await Course.find({ course_creator: user.id });
+    const courses = await Course.find({ $or: [{ course_creator: user.id }, { instructor: user.id }] });
     const courseIds = courses.map(c => c._id);
 
     // 2. Count total students (unique users enrolled in instructor's courses)

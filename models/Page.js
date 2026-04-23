@@ -9,6 +9,8 @@ const pageSchema = new mongoose.Schema({
   metaTitle: { type: String },
   metaDescription: { type: String },
   metaKeywords: { type: String },
+  imageUrl: { type: String, default: '' },
+  showEnquiryForm: { type: Boolean, default: false },
   customScripts: { type: String },
   customCSS: { type: String },
   customContent: { type: String },

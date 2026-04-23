@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Course from '@/models/Course';
+import '@/models/User';
 import Section from '@/models/Section';
 import Lesson from '@/models/Lesson';
 import Enrollment from '@/models/Enrollment';
@@ -72,9 +73,13 @@ export async function GET(req, { params }) {
         sections,
         enrollment: enrollment
           ? {
+              _id: enrollment._id,
               completedLessons: enrollment.completedLessons,
+              lastLessonId: enrollment.lastLessonId,
               progress: enrollment.progress,
               completed: enrollment.completed,
+              status: enrollment.status,
+              paymentStatus: enrollment.paymentStatus,
             }
           : null,
       },

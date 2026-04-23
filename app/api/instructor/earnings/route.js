@@ -14,7 +14,7 @@ export async function GET(req) {
 
     await connectDB();
 
-    const courses = await Course.find({ course_creator: user.id });
+    const courses = await Course.find({ $or: [{ course_creator: user.id }, { instructor: user.id }] });
     const courseIds = courses.map(c => c._id);
 
     // Get all successful payments for instructor's courses

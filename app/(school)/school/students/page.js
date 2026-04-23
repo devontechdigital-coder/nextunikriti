@@ -4,10 +4,9 @@ import { useState } from 'react';
 import { Container, Table, Spinner, Alert, Form, Button, Modal, Badge, Row, Col } from 'react-bootstrap';
 import { 
   useGetAdminStudentsQuery,
-  useCreateAdminStudentMutation, 
-  useDeleteAdminStudentMutation 
+  useCreateAdminStudentMutation
 } from '@/redux/api/apiSlice';
-import { FaTrash, FaPlus, FaCheckCircle, FaUserGraduate, FaSearch, FaFilter } from 'react-icons/fa';
+import { FaPlus, FaCheckCircle, FaUserGraduate, FaSearch, FaFilter } from 'react-icons/fa';
 import Link from 'next/link';
 import { useSelector } from 'react-redux';
 
@@ -24,11 +23,8 @@ export default function SchoolStudentsPage() {
   
   const { data, isLoading, isError, error } = useGetAdminStudentsQuery(filters);
   const [createStudent, { isLoading: isCreating }] = useCreateAdminStudentMutation();
-  const [deleteStudent, { isLoading: isDeleting }] = useDeleteAdminStudentMutation();
 
   const [showModal, setShowModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [studentToDelete, setStudentToDelete] = useState(null);
   
   const [formData, setFormData] = useState({ 
     name: '', email: '', phone: '', password: '',
@@ -59,17 +55,6 @@ export default function SchoolStudentsPage() {
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (err) {
       alert(err?.data?.error || 'Failed to create student.');
-    }
-  };
-
-  const handleDelete = async () => {
-    try {
-      await deleteStudent(studentToDelete._id).unwrap();
-      setSuccessMsg('Student deleted successfully!');
-      setShowDeleteModal(false);
-      setTimeout(() => setSuccessMsg(''), 3000);
-    } catch (err) {
-      alert('Failed to delete student.');
     }
   };
 
@@ -204,9 +189,6 @@ export default function SchoolStudentsPage() {
                       View Profile
                     </Button>
                   </Link>
-                  <Button variant="outline-danger" size="sm" className="rounded-circle shadow-xs" onClick={() => { setStudentToDelete(student); setShowDeleteModal(true); }}>
-                    <FaTrash size={12} />
-                  </Button>
                 </td>
               </tr>
             )})}
@@ -294,22 +276,6 @@ export default function SchoolStudentsPage() {
         </Form>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)} centered>
-        <Modal.Header closeButton>
-          <Modal.Title className="fs-6 fw-bold">Confirm Deletion</Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="py-4">
-          <p className="mb-0">Are you sure you want to delete student <strong>{studentToDelete?.userId?.name}</strong>?</p>
-          <p className="text-danger small mt-2 fw-bold">This will also delete the linked user account and parent details.</p>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="light" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
-          <Button variant="danger" onClick={handleDelete} disabled={isDeleting}>
-            {isDeleting ? <Spinner size="sm" /> : 'Delete Permanently'}
-          </Button>
-        </Modal.Footer>
-      </Modal>
     </Container>
   );
 }

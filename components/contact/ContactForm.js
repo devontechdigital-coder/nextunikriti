@@ -1,15 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Form, Button, Row, Col } from 'react-bootstrap';
 import { toast } from 'react-hot-toast';
+import axios from 'axios';
 
 const ContactForm = () => {
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    subject: '',
     message: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,15 +22,19 @@ const ContactForm = () => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    // Simulate API call
     try {
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await axios.post('/api/enquiries', {
+        ...formData,
+        enquiryType: 'general',
+        source: 'contact_page',
+        pageTitle: 'Contact Us',
+        pageSlug: 'contact',
+      });
       toast.success('Your message has been sent successfully! We will get back to you soon.');
       setFormData({
         name: '',
         email: '',
         phone: '',
-        subject: '',
         message: ''
       });
     } catch (error) {
@@ -69,6 +72,19 @@ const ContactForm = () => {
           onChange={handleChange} 
           placeholder="Your Email" 
           required 
+        />
+      </div>
+
+      <div className="mb-3">
+        <label htmlFor="phone" className="form-label">Phone Number</label>
+        <input
+          type="tel"
+          className="form-control"
+          id="phone"
+          name="phone"
+          value={formData.phone}
+          onChange={handleChange}
+          placeholder="Your Phone"
         />
       </div>
 

@@ -120,7 +120,7 @@ export default function SchoolBatchDetailPage() {
               <FaLayerGroup size={40} />
             </div>
             <div>
-              <h2 className="fw-bold mb-1">{batch.batchName}</h2>
+              <h2 className="fw-bold mb-1 display-6">{batch.batchName}</h2>
               <p className="text-muted mb-0">
                 <Badge bg="light" text="dark" className="border me-2 px-3 py-2">
                   {batch.instrument} • {batch.level}

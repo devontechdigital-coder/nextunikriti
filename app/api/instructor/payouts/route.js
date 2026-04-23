@@ -21,7 +21,7 @@ export async function POST(req) {
     await connectDB();
 
     // Verify balance
-    const courses = await Course.find({ course_creator: user.id });
+    const courses = await Course.find({ $or: [{ course_creator: user.id }, { instructor: user.id }] });
     const courseIds = courses.map(c => c._id);
     const sales = await Payment.find({ courseId: { $in: courseIds }, status: 'completed' });
     const totalRevenue = sales.reduce((acc, curr) => acc + curr.amount, 0);

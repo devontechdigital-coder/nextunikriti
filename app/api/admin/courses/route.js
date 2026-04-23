@@ -61,6 +61,7 @@ export async function GET(req) {
 
     const courses = await Course.find(query)
       .populate('course_creator', 'name email')
+      .populate('instructor', 'name email')
       .populate({ path: 'instrument_id', select: 'name', strictPopulate: false })
       .populate({ path: 'level_id', select: 'levelName grades', strictPopulate: false })
       .sort({ createdAt: -1 });
@@ -132,14 +133,18 @@ export async function POST(req) {
 
     await connectDB();
     await ensureCourseIndexes();
+    const selectedCreator = courseData.instructor || courseData.course_creator;
+
     const newCourse = new Course({
         ...courseData,
-        course_creator: courseData.instructor || courseData.course_creator,
+        course_creator: selectedCreator,
+        instructor: selectedCreator,
         category: undefined 
     });
     
     await newCourse.save();
     await newCourse.populate('course_creator', 'name email');
+    await newCourse.populate('instructor', 'name email');
     await newCourse.populate({ path: 'instrument_id', select: 'name', strictPopulate: false });
     await newCourse.populate({ path: 'level_id', select: 'levelName grades', strictPopulate: false });
 
@@ -209,6 +214,13 @@ export async function PATCH(req) {
       return NextResponse.json({ success: false, error: 'Course not found' }, { status: 404 });
     }
 
+    if (updateData.course_creator && !updateData.instructor) {
+      updateData.instructor = updateData.course_creator;
+    }
+    if (updateData.instructor && !updateData.course_creator) {
+      updateData.course_creator = updateData.instructor;
+    }
+
     // Apply updates
     Object.keys(updateData).forEach(key => {
         course[key] = updateData[key];
@@ -219,6 +231,7 @@ export async function PATCH(req) {
 
     await course.save();
     await course.populate('course_creator', 'name email');
+    await course.populate('instructor', 'name email');
     await course.populate({ path: 'instrument_id', select: 'name', strictPopulate: false });
     await course.populate({ path: 'level_id', select: 'levelName grades', strictPopulate: false });
 

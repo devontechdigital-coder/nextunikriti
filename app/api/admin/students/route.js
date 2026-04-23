@@ -47,6 +47,7 @@ function buildStudentPayload(body) {
     street: body.street || '',
     city: body.cityDistrict || body.city || '',
     state: body.state || '',
+    country: body.country || '',
     pinCode: body.pinCode || '',
     motherName: body.motherName || '',
     motherMobile: body.motherMobile || '',

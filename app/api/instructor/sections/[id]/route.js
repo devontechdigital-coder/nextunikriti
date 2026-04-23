@@ -27,7 +27,10 @@ export async function PUT(req, { params }) {
     }
 
     // Verify course belongs to instructor
-    const course = await Course.findOne({ _id: section.courseId, instructor: user.id });
+    const course = await Course.findOne({
+      _id: section.courseId,
+      $or: [{ course_creator: user.id }, { instructor: user.id }]
+    });
     if (!course) {
       return NextResponse.json({ success: false, error: 'Unauthorized to edit this section' }, { status: 403 });
     }
@@ -64,7 +67,10 @@ export async function DELETE(req, { params }) {
     }
 
     // Verify course belongs to instructor
-    const course = await Course.findOne({ _id: section.courseId, instructor: user.id });
+    const course = await Course.findOne({
+      _id: section.courseId,
+      $or: [{ course_creator: user.id }, { instructor: user.id }]
+    });
     if (!course) {
       return NextResponse.json({ success: false, error: 'Unauthorized to delete this section' }, { status: 403 });
     }

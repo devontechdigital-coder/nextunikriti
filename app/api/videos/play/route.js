@@ -1,55 +1,74 @@
 import { NextResponse } from 'next/server';
 import { generateV4ReadSignedUrl } from '@/lib/gcs';
-import { verifyToken } from '@/lib/jwt';
 import dbConnect from '@/lib/db';
 import Enrollment from '@/models/Enrollment';
 import Lesson from '@/models/Lesson';
-import User from '@/models/User';
+import Section from '@/models/Section';
+import Course from '@/models/Course';
+import { getUserFromCookie } from '@/utils/auth';
+import { findPreferredEnrollmentForCourse } from '@/lib/enrollmentLifecycle';
+
+const isHttpUrl = (value = '') => /^https?:\/\//i.test(value);
+void Section;
 
 export async function POST(req) {
   try {
     await dbConnect();
-    
-    const token = req.cookies.get('token')?.value;
-    if (!token) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
 
-    const decoded = verifyToken(token);
-    if (!decoded) return NextResponse.json({ success: false, message: 'Invalid token' }, { status: 401 });
+    const user = getUserFromCookie();
+    if (!user) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
 
-    const { lessonId, deviceId } = await req.json();
+    const { lessonId } = await req.json();
+    if (!lessonId) return NextResponse.json({ success: false, message: 'Lesson ID is required' }, { status: 400 });
 
     const lesson = await Lesson.findById(lessonId).populate('sectionId');
     if (!lesson) return NextResponse.json({ success: false, message: 'Lesson not found' }, { status: 404 });
 
     const courseId = lesson.sectionId.courseId;
 
-    // Admin/Instructors skip enrollment check
-    if (decoded.role === 'student') {
-      const enrollment = await Enrollment.findOne({ userId: decoded.id, courseId });
+    if (!lesson.videoUrl) {
+      return NextResponse.json({ success: false, message: 'No video available for this lesson' }, { status: 404 });
+    }
+
+    if (user.role === 'student') {
+      const enrollment = await Enrollment.findOne(
+        findPreferredEnrollmentForCourse({ userId: user.id, courseId })
+      ).lean();
       if (!enrollment) {
         return NextResponse.json({ success: false, message: 'Not enrolled in this course' }, { status: 403 });
       }
-      
-      // Implement single-device limitation check
-      // User model would need a `currentDeviceId` field in a real system.
-      // E.g., const user = await User.findById(decoded.id);
-      // if (user.currentDeviceId && user.currentDeviceId !== deviceId) { ... }
+    } else if (user.role === 'instructor') {
+      const course = await Course.findById(courseId).select('course_creator instructor').lean();
+      const ownerId = (course?.course_creator || course?.instructor)?.toString();
+      if (ownerId !== user.id) {
+        return NextResponse.json({ success: false, message: 'Unauthorized for this lesson' }, { status: 403 });
+      }
+    } else if (!['admin', 'staff'].includes(user.role)) {
+      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
-    const user = await User.findById(decoded.id);
+    const sourceUrl = isHttpUrl(lesson.videoUrl)
+      ? lesson.videoUrl
+      : await generateV4ReadSignedUrl(lesson.videoUrl);
 
-    // Assuming lesson.videoUrl stores the GCS key or path to the HLS manifest
-    const videoKey = lesson.videoUrl; 
-    
-    // In HLS, the manifest contains sub-urls. A real secure implementation often uses signed cookies 
-    // or a proxy endpoint. For simplicity, we assume generation of a signed manifest URL, or we 
-    // provide the videoKey so the client can request segments via a proxy if required.
-    const signedManifestUrl = await generateV4ReadSignedUrl(videoKey);
+    const upstream = await fetch(sourceUrl, {
+      headers: {
+        'User-Agent': 'Unikirti-LMS-Video-Proxy',
+      },
+    });
 
-    return NextResponse.json({
-      success: true,
-      playbackUrl: signedManifestUrl,
-      watermarkEmail: user.email || user.phone || 'student-demo',
+    if (!upstream.ok || !upstream.body) {
+      return NextResponse.json({ success: false, message: 'Unable to load video' }, { status: 502 });
+    }
+
+    return new NextResponse(upstream.body, {
+      status: 200,
+      headers: {
+        'Content-Type': upstream.headers.get('content-type') || 'video/mp4',
+        'Cache-Control': 'no-store, private',
+        'Content-Disposition': 'inline; filename="lesson-video"',
+        'X-Content-Type-Options': 'nosniff',
+      },
     });
 
   } catch (error) {

@@ -23,6 +23,9 @@ const createInitialFormData = (isSchoolAdmin, schoolId) => ({
   programType: 'in_school',
   instrument: 'Keyboard',
   level: 'Foundation',
+  grade: '',
+  batchNo: '',
+  roomNo: '',
   teacherId: '',
   maxStrength: 20,
   startDate: '',
@@ -36,7 +39,9 @@ export default function BatchesPage() {
       ? (JSON.parse(localStorage.getItem('auth_user') || '{}')?.schoolId || JSON.parse(localStorage.getItem('auth_user') || '{}')?._id)
       : '',
     teacherId: '',
-    programType: ''
+    programType: '',
+    grade: '',
+    batchNo: ''
   });
 
   const pathname = usePathname();
@@ -102,6 +107,9 @@ export default function BatchesPage() {
         programType: batch.programType || 'in_school',
         instrument: batch.instrument || 'Keyboard',
         level: batch.level || 'Foundation',
+        grade: batch.grade || '',
+        batchNo: batch.batchNo || '',
+        roomNo: batch.roomNo || '',
         teacherId: (batch.teacherId?._id || batch.teacherId || '').toString(),
         maxStrength: batch.maxStrength || 20,
         startDate: batch.startDate ? new Date(batch.startDate).toISOString().split('T')[0] : '',
@@ -169,7 +177,7 @@ export default function BatchesPage() {
       <div className="bg-white p-4 rounded shadow-sm mb-4 border">
         <Row className="g-3">
           {!isSchoolAdminPath && (
-            <Col md={4}>
+            <Col md={3}>
               <Form.Group>
                 <Form.Label className="small fw-bold text-muted mb-1 d-flex align-items-center gap-1">
                   <FaFilter size={12} /> School
@@ -183,7 +191,7 @@ export default function BatchesPage() {
               </Form.Group>
             </Col>
           )}
-          <Col md={isSchoolAdminPath ? 6 : 4}>
+          <Col md={3}>
             <Form.Group>
               <Form.Label className="small fw-bold text-muted mb-1 d-flex align-items-center gap-1">
                 <FaFilter size={12} /> Teacher
@@ -196,7 +204,7 @@ export default function BatchesPage() {
               </Form.Select>
             </Form.Group>
           </Col>
-          <Col md={4}>
+          <Col md={2}>
             <Form.Group>
               <Form.Label className="small fw-bold text-muted mb-1 d-flex align-items-center gap-1">
                 <FaFilter size={12} /> Program Type
@@ -206,6 +214,30 @@ export default function BatchesPage() {
                 <option value="in_school">In School</option>
                 <option value="after_school">After School</option>
               </Form.Select>
+            </Form.Group>
+          </Col>
+          <Col md={2}>
+            <Form.Group>
+              <Form.Label className="small fw-bold text-muted mb-1 d-flex align-items-center gap-1">
+                <FaFilter size={12} /> Grade
+              </Form.Label>
+              <Form.Control
+                placeholder="Filter grade"
+                value={filters.grade}
+                onChange={(e) => setFilters({ ...filters, grade: e.target.value })}
+              />
+            </Form.Group>
+          </Col>
+          <Col md={2}>
+            <Form.Group>
+              <Form.Label className="small fw-bold text-muted mb-1 d-flex align-items-center gap-1">
+                <FaFilter size={12} /> Batch No
+              </Form.Label>
+              <Form.Control
+                placeholder="Filter batch no"
+                value={filters.batchNo}
+                onChange={(e) => setFilters({ ...filters, batchNo: e.target.value })}
+              />
             </Form.Group>
           </Col>
         </Row>
@@ -223,6 +255,7 @@ export default function BatchesPage() {
             <tr>
               <th className="ps-4 py-3">Batch Name</th>
               <th className="py-3">Details</th>
+              <th className="py-3">Grade / Room</th>
               <th>{isSchoolAdminPath ? 'Teacher' : 'School / Teacher'}</th>
               <th className="py-3 text-center">Strength</th>
               <th className="py-3">Status</th>
@@ -239,6 +272,7 @@ export default function BatchesPage() {
                     </div>
                     <div>
                       <div className="fw-bold">{batch.batchName}</div>
+                      {batch.batchNo && <small className="text-primary d-block">Batch No: {batch.batchNo}</small>}
                       <small className="text-muted d-block">{batch.instrument} - {batch.level}</small>
                     </div>
                   </div>
@@ -247,6 +281,12 @@ export default function BatchesPage() {
                   <Badge bg="light" text="dark" className="border mt-1 me-1">
                     {batch.programType?.replace('_', ' ').toUpperCase()}
                   </Badge>
+                </td>
+                <td>
+                  <div className="small">
+                    <div className="fw-medium">{batch.grade || 'N/A'}</div>
+                    <div className="text-muted">Room: {batch.roomNo || 'Open'}</div>
+                  </div>
                 </td>
                 <td>
                   <div className="small">
@@ -291,7 +331,7 @@ export default function BatchesPage() {
             ))}
             {batches.length === 0 && (
               <tr>
-                <td colSpan="6" className="text-center py-5 text-muted">
+                <td colSpan="7" className="text-center py-5 text-muted">
                   No batches found matching selected filters.
                 </td>
               </tr>
@@ -322,6 +362,18 @@ export default function BatchesPage() {
                   </Form.Select>
                 </Col>
               )}
+              <Col md={4} className="mb-3">
+                <Form.Label className="small fw-bold">Grade</Form.Label>
+                <Form.Control placeholder="e.g. Grade 5" value={formData.grade} onChange={(e) => setFormData({ ...formData, grade: e.target.value })} />
+              </Col>
+              <Col md={4} className="mb-3">
+                <Form.Label className="small fw-bold">Batch No</Form.Label>
+                <Form.Control placeholder="e.g. B-102" value={formData.batchNo} onChange={(e) => setFormData({ ...formData, batchNo: e.target.value })} />
+              </Col>
+              <Col md={4} className="mb-3">
+                <Form.Label className="small fw-bold">Room No</Form.Label>
+                <Form.Control placeholder="e.g. Music Room 1" value={formData.roomNo} onChange={(e) => setFormData({ ...formData, roomNo: e.target.value })} />
+              </Col>
               <Col md={4} className="mb-3">
                 <Form.Label className="small fw-bold">Program Type</Form.Label>
                 <Form.Select value={formData.programType} onChange={(e) => setFormData({ ...formData, programType: e.target.value })}>

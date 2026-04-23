@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { Container, Row, Col, Card, Nav, Tab, Form, Button, Spinner, Alert, ListGroup, Badge, Modal, Table } from 'react-bootstrap';
 import { 
   useGetAdminBatchByIdQuery, 
@@ -71,6 +72,9 @@ export default function BatchDetailPage() {
         programType: batch.programType,
         instrument: batch.instrument,
         level: batch.level,
+        grade: batch.grade || '',
+        batchNo: batch.batchNo || '',
+        roomNo: batch.roomNo || '',
         teacherId: batch.teacherId?._id,
         maxStrength: batch.maxStrength,
         startDate: batch.startDate ? new Date(batch.startDate).toISOString().split('T')[0] : '',
@@ -127,7 +131,7 @@ export default function BatchDetailPage() {
               <FaLayerGroup size={40} />
             </div>
             <div>
-              <h2 className="fw-bold mb-1">{batch.batchName}</h2>
+              <h2 className="fw-bold mb-1 display-6">{batch.batchName}</h2>
               <p className="text-muted mb-0">
                 <Badge bg="light" text="dark" className="border me-2 px-3 py-2">
                   {batch.instrument} • {batch.level}
@@ -158,6 +162,20 @@ export default function BatchDetailPage() {
                   <Form.Label className="small fw-bold">Batch Name</Form.Label>
                   <Form.Control value={formData.batchName} onChange={(e) => setFormData({...formData, batchName: e.target.value})} />
                 </Form.Group>
+                <Row>
+                  <Col md={4} className="mb-3">
+                    <Form.Label className="small fw-bold">Grade</Form.Label>
+                    <Form.Control value={formData.grade} onChange={(e) => setFormData({...formData, grade: e.target.value})} />
+                  </Col>
+                  <Col md={4} className="mb-3">
+                    <Form.Label className="small fw-bold">Batch No</Form.Label>
+                    <Form.Control value={formData.batchNo} onChange={(e) => setFormData({...formData, batchNo: e.target.value})} />
+                  </Col>
+                  <Col md={4} className="mb-3">
+                    <Form.Label className="small fw-bold">Room No</Form.Label>
+                    <Form.Control value={formData.roomNo} onChange={(e) => setFormData({...formData, roomNo: e.target.value})} />
+                  </Col>
+                </Row>
                 {!isSchoolAdminPath && (
                   <Form.Group className="mb-3">
                     <Form.Label className="small fw-bold">School</Form.Label>
@@ -254,6 +272,13 @@ export default function BatchDetailPage() {
                       <td><code className="bg-light px-1 rounded small">{es.studentId?.enrolmentNumber}</code></td>
                       <td className="small text-muted">{new Date(es.joinedOn).toLocaleDateString()}</td>
                       <td className="text-end pe-4">
+                        {es.studentId?._id && (
+                          <Link href={`/admin/students/${es.studentId._id}`} passHref>
+                            <Button variant="outline-primary" size="sm" className="me-2 rounded-pill px-3">
+                              View
+                            </Button>
+                          </Link>
+                        )}
                         <Button variant="link" className="text-danger p-0" onClick={() => handleRemove(es.studentId._id)}>
                           <FaTrash size={14} />
                         </Button>

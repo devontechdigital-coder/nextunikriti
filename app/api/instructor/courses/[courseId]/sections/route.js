@@ -16,7 +16,10 @@ export async function GET(req, { params }) {
     await connectDB();
     
     // Verify course belongs to instructor
-    const course = await Course.findOne({ _id: courseId, instructor: user.id });
+    const course = await Course.findOne({
+      _id: courseId,
+      $or: [{ course_creator: user.id }, { instructor: user.id }]
+    });
     if (!course) {
       return NextResponse.json({ success: false, error: 'Course not found or unauthorized' }, { status: 404 });
     }
@@ -41,7 +44,10 @@ export async function POST(req, { params }) {
     await connectDB();
 
     // Verify course belongs to instructor
-    const course = await Course.findOne({ _id: courseId, instructor: user.id });
+    const course = await Course.findOne({
+      _id: courseId,
+      $or: [{ course_creator: user.id }, { instructor: user.id }]
+    });
     if (!course) {
       return NextResponse.json({ success: false, error: 'Course not found or unauthorized' }, { status: 404 });
     }

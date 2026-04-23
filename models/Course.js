@@ -7,6 +7,7 @@ const courseSchema = new mongoose.Schema({
   categoryIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Category' }],
   category: { type: String }, // Keep for legacy compatibility during migration
   course_creator: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  instructor: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   instrument_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Instrument' },
   level_id: { type: mongoose.Schema.Types.ObjectId, ref: 'Level' },
   thumbnail: { type: String, default: '' },
@@ -38,7 +39,7 @@ const courseSchema = new mongoose.Schema({
 if (mongoose.models.Course) {
   const model = mongoose.models.Course;
   // If the cached model doesn't have the new fields, delete it to force reload
-  if (!model.schema.paths.shortDescription || !model.schema.paths.course_creator || !model.schema.paths.instrument_id || !model.schema.paths.level_id || !model.schema.paths.brochureUrl) {
+  if (!model.schema.paths.shortDescription || !model.schema.paths.course_creator || !model.schema.paths.instructor || !model.schema.paths.instrument_id || !model.schema.paths.level_id || !model.schema.paths.brochureUrl) {
     delete mongoose.models.Course;
   }
 }

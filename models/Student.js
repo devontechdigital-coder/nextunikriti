@@ -91,6 +91,7 @@ const studentSchema = new mongoose.Schema({
   street: { type: String, trim: true, default: '' },
   city: { type: String, trim: true, default: '', alias: 'cityDistrict' },
   state: { type: String, trim: true, default: '' },
+  country: { type: String, trim: true, default: '' },
   pinCode: { type: String, trim: true, default: '' },
   motherName: { type: String, trim: true, default: '' },
   motherMobile: { type: String, trim: true, default: '' },

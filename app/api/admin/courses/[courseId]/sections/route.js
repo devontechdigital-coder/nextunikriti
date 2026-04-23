@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import Section from '@/models/Section';
 import Course from '@/models/Course';
+import Lesson from '@/models/Lesson';
 import { getUserFromCookie } from '@/utils/auth';
 
 export async function GET(req, { params }) {
@@ -14,8 +15,22 @@ export async function GET(req, { params }) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
     }
 
-    const sections = await Section.find({ courseId }).sort({ order: 1 });
-    return NextResponse.json({ success: true, data: sections });
+    const sections = await Section.find({ courseId }).sort({ order: 1 }).lean();
+    const sectionIds = sections.map((section) => section._id);
+    const lessons = await Lesson.find({ sectionId: { $in: sectionIds } }).sort({ order: 1 }).lean();
+    const lessonsBySection = lessons.reduce((acc, lesson) => {
+      const key = lesson.sectionId.toString();
+      acc[key] = acc[key] || [];
+      acc[key].push(lesson);
+      return acc;
+    }, {});
+
+    const sectionsWithLessons = sections.map((section) => ({
+      ...section,
+      lessons: lessonsBySection[section._id.toString()] || []
+    }));
+
+    return NextResponse.json({ success: true, data: sectionsWithLessons });
   } catch (error) {
     console.error(error);
     return NextResponse.json({ success: false, error: 'Internal Server Error' }, { status: 500 });

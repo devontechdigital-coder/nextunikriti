@@ -16,7 +16,8 @@ export async function POST(req, { params }) {
     if (!course) return NextResponse.json({ success: false, error: 'Course not found' }, { status: 404 });
 
     // Validate ownership
-    if (course.instructor.toString() !== user.id && user.role !== 'admin') {
+    const ownerId = (course.course_creator || course.instructor)?.toString();
+    if (ownerId !== user.id && user.role !== 'admin') {
       return NextResponse.json({ success: false, error: 'Cannot add sections to this course' }, { status: 403 });
     }
 

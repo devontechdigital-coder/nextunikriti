@@ -30,6 +30,21 @@ const batchSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'Level'
   },
+  grade: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  batchNo: {
+    type: String,
+    trim: true,
+    default: ''
+  },
+  roomNo: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   teacherId: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'User', 
