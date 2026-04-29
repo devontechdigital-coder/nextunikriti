@@ -206,13 +206,11 @@ export default function StudentDashboardPage() {
                         <div className="p-3 bg-light rounded-3 mb-3 small">
                           Our team is verifying your pay-later request. Requested {course.requested_days_ago ?? 0} day(s) ago.
                         </div>
+                        <div className="small text-muted mb-2">
+                          Purchase date: <span className="fw-semibold">{formatDate(course.purchaseDate || course.createdAt)}</span>
+                        </div>
                         <div className="small text-muted mb-4">
                           Current status: {course.status.replaceAll('_', ' ')}
-                        </div>
-                        <div className="mt-auto">
-                          <Link href={`/courses/${course.course_id}`} className="btn btn-outline-dark w-100 rounded-pill py-2 fw-bold small">
-                            View Course Page
-                          </Link>
                         </div>
                       </Card.Body>
                     </Card>

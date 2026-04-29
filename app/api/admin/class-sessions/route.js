@@ -79,8 +79,31 @@ export async function POST(req) {
       teacherId: batch.teacherId
     };
 
+    const selectedDate = new Date(classDate);
+    const dayStart = new Date(selectedDate);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayEnd = new Date(dayStart);
+    dayEnd.setDate(dayEnd.getDate() + 1);
+
+    const existingSession = await ClassSession.findOne({
+      batchId,
+      classDate: { $gte: dayStart, $lt: dayEnd }
+    })
+      .populate('batchId', 'batchName programType instrument level')
+      .populate('teacherId', 'name email')
+      .populate('schoolId', 'schoolName');
+
+    if (existingSession) {
+      return NextResponse.json({ success: true, session: existingSession, existing: true });
+    }
+
     const session = await ClassSession.create(sessionData);
-    return NextResponse.json({ success: true, session });
+    const populatedSession = await ClassSession.findById(session._id)
+      .populate('batchId', 'batchName programType instrument level')
+      .populate('teacherId', 'name email')
+      .populate('schoolId', 'schoolName');
+
+    return NextResponse.json({ success: true, session: populatedSession });
   } catch (error) {
     if (error.code === 11000) {
       return NextResponse.json({ success: false, error: 'A session already exists for this batch on this date' }, { status: 400 });

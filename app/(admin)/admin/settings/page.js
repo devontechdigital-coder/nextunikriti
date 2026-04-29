@@ -55,12 +55,16 @@ export default function AdminSettingsPage() {
   const [paymentModeLater, setPaymentModeLater] = useState(false);
   const [paymentGateway, setPaymentGateway] = useState('stripe');
   const [showTestOtp, setShowTestOtp] = useState(false);
+  const [loginSignupEnabled, setLoginSignupEnabled] = useState(true);
 
   const [successMsg, setSuccessMsg] = useState('');
 
   useEffect(() => {
     if (data?.data) {
-      const getVal = (key, fallback) => data.data.find(s => s.key === key)?.value || fallback;
+      const getVal = (key, fallback) => {
+        const setting = data.data.find(s => s.key === key);
+        return setting ? setting.value : fallback;
+      };
 
       setCategories(getVal('categories', []));
       setBanners(getVal('homepage_banners', []));
@@ -108,6 +112,7 @@ export default function AdminSettingsPage() {
       setPaymentModeLater(getVal('payment_mode_later', false));
       setPaymentGateway(getVal('payment_gateway', 'stripe'));
       setShowTestOtp(getVal('show_test_otp', false));
+      setLoginSignupEnabled(getVal('login_signup_enabled', true));
     }
   }, [data]);
 
@@ -747,6 +752,30 @@ export default function AdminSettingsPage() {
                     </Form>
                   </div>
                 </div>
+              </div>
+
+              <div className="mt-4 p-3 border rounded-3 bg-light shadow-sm">
+                <div className="d-flex justify-content-between align-items-start">
+                  <div>
+                    <h6 className="fw-bold mb-1 d-flex align-items-center gap-2">
+                      Signup User On Login Page
+                    </h6>
+                    <p className="small text-muted mb-1">When enabled, new students can create an account from the login page using OTP. Existing students can still sign in when this is disabled.</p>
+                  </div>
+                  <Form.Check
+                    type="switch"
+                    id="toggle-login-signup"
+                    checked={loginSignupEnabled}
+                    onChange={e => {
+                      setLoginSignupEnabled(e.target.checked);
+                      handleSave('login_signup_enabled', e.target.checked);
+                    }}
+                    className="ms-3 mt-1"
+                  />
+                </div>
+                <span className={`badge ${loginSignupEnabled ? 'bg-success' : 'bg-secondary'}`}>
+                  {loginSignupEnabled ? 'Signup Enabled' : 'Signup Blocked'}
+                </span>
               </div>
 
               {/* Developer Options */}

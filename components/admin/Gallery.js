@@ -12,7 +12,7 @@ import {
 } from 'react-icons/fa';
 import { toast } from 'react-hot-toast';
 
-const ROOT_PREFIX = 'listmein/unikriti/';
+const ROOT_PREFIX = 'crm/';
 
 const Gallery = () => {
   const getFileIcon = (fileName) => {

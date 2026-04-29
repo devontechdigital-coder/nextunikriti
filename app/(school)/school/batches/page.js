@@ -38,7 +38,7 @@ export default function SchoolBatchesPage() {
   const [formData, setFormData] = useState({ 
     batchName: '', schoolId: schoolId, programType: 'in_school', 
     instrument: 'Keyboard', level: 'Foundation', teacherId: '', 
-    maxStrength: 20, startDate: '', endDate: '', status: 'active'
+    maxStrength: 20, totalDays: 0, startDate: '', endDate: '', status: 'active'
   });
   const [successMsg, setSuccessMsg] = useState('');
 
@@ -58,7 +58,7 @@ export default function SchoolBatchesPage() {
     setFormData({ 
       batchName: '', schoolId: schoolId, programType: 'in_school', 
       instrument: 'Keyboard', level: 'Foundation', teacherId: '', 
-      maxStrength: 20, startDate: '', endDate: '', status: 'active'
+      maxStrength: 20, totalDays: 0, startDate: '', endDate: '', status: 'active'
     });
     setShowModal(true);
   };
@@ -180,6 +180,7 @@ export default function SchoolBatchesPage() {
                     <div className="d-flex align-items-center gap-1 text-muted">
                       <FaCalendarAlt size={10} /> {batch.startDate ? new Date(batch.startDate).toLocaleDateString() : 'N/A'}
                     </div>
+                    <div className="text-muted">Days: {batch.totalDays || 0}</div>
                     <Badge bg="light" text="dark" className="border mt-1">
                       {batch.programType?.replace('_', ' ').toUpperCase()}
                     </Badge>
@@ -271,6 +272,10 @@ export default function SchoolBatchesPage() {
               <Col md={6} className="mb-3">
                 <Form.Label className="small fw-bold">Max Capacity</Form.Label>
                 <Form.Control type="number" required min="1" value={formData.maxStrength} onChange={(e) => setFormData({...formData, maxStrength: e.target.value})} />
+              </Col>
+              <Col md={4} className="mb-3">
+                <Form.Label className="small fw-bold">Total No. of Days</Form.Label>
+                <Form.Control type="number" min="0" value={formData.totalDays} onChange={(e) => setFormData({...formData, totalDays: e.target.value})} />
               </Col>
               <Col md={4}>
                 <Form.Label className="small fw-bold">Start Date</Form.Label>

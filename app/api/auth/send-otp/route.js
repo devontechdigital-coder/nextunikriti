@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
+import Setting from '@/models/Setting';
 import User from '@/models/User';
 import { otpService } from '@/services/otpService';
 import { DEFAULT_PHONE_COUNTRY, normalizePhoneNumber } from '@/lib/phone';
@@ -19,9 +20,15 @@ export async function POST(req) {
 
     await connectDB();
 
-    // Create student if running for the first time
+    const signupSetting = await Setting.findOne({ key: 'login_signup_enabled' }).lean();
+    const signupEnabled = signupSetting?.value ?? true;
+
+    // Create student if running for the first time and signup is enabled.
     let user = await User.findOne({ phone: normalizedPhone });
     if (!user) {
+      if (!signupEnabled) {
+        return NextResponse.json({ success: false, error: 'New student signup is currently disabled' }, { status: 403 });
+      }
       user = await User.create({ phone: normalizedPhone, name: 'Student', role: 'student' });
     }
 

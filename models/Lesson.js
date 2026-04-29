@@ -4,7 +4,14 @@ const lessonSchema = new mongoose.Schema({
   sectionId: { type: mongoose.Schema.Types.ObjectId, ref: 'Section', required: true },
   title: { type: String, required: true },
   content: { type: String }, // Rich text description 
-  videoUrl: { type: String }, // HLS manifest URL or tokenized URL
+  videoUrl: { type: String }, // HLS manifest URL, tokenized URL, or default MP4 URL
+  videoQualities: [{
+    label: {
+      type: String,
+      enum: ['240p', '360p', '480p', '720p', '1080p']
+    },
+    url: { type: String }
+  }],
   duration: { type: Number, default: 0 }, // in seconds
   resources: [{
     title: String,

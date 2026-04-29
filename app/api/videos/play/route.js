@@ -9,6 +9,7 @@ import { getUserFromCookie } from '@/utils/auth';
 import { findPreferredEnrollmentForCourse } from '@/lib/enrollmentLifecycle';
 
 const isHttpUrl = (value = '') => /^https?:\/\//i.test(value);
+const ALLOWED_QUALITIES = ['auto', '240p', '360p', '480p', '720p', '1080p'];
 void Section;
 
 export async function POST(req) {
@@ -18,8 +19,11 @@ export async function POST(req) {
     const user = getUserFromCookie();
     if (!user) return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
 
-    const { lessonId } = await req.json();
+    const { lessonId, quality = 'auto' } = await req.json();
     if (!lessonId) return NextResponse.json({ success: false, message: 'Lesson ID is required' }, { status: 400 });
+    if (!ALLOWED_QUALITIES.includes(quality)) {
+      return NextResponse.json({ success: false, message: 'Invalid video quality' }, { status: 400 });
+    }
 
     const lesson = await Lesson.findById(lessonId).populate('sectionId');
     if (!lesson) return NextResponse.json({ success: false, message: 'Lesson not found' }, { status: 404 });
@@ -47,9 +51,13 @@ export async function POST(req) {
       return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 403 });
     }
 
-    const sourceUrl = isHttpUrl(lesson.videoUrl)
-      ? lesson.videoUrl
-      : await generateV4ReadSignedUrl(lesson.videoUrl);
+    const qualitySource = quality === 'auto'
+      ? ''
+      : lesson.videoQualities?.find((item) => item.label === quality && item.url)?.url;
+    const videoSource = qualitySource || lesson.videoUrl;
+    const sourceUrl = isHttpUrl(videoSource)
+      ? videoSource
+      : await generateV4ReadSignedUrl(videoSource);
 
     const upstream = await fetch(sourceUrl, {
       headers: {

@@ -51,6 +51,7 @@ const batchSchema = new mongoose.Schema({
     required: true 
   },
   maxStrength: { type: Number, required: true, min: 1 },
+  totalDays: { type: Number, default: 0, min: 0 },
   startDate: { type: Date },
   endDate: { type: Date },
   course_id: { 

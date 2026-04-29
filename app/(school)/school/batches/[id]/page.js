@@ -66,6 +66,7 @@ export default function SchoolBatchDetailPage() {
         level: batch.level,
         teacherId: batch.teacherId?._id,
         maxStrength: batch.maxStrength,
+        totalDays: batch.totalDays || 0,
         startDate: batch.startDate ? new Date(batch.startDate).toISOString().split('T')[0] : '',
         endDate: batch.endDate ? new Date(batch.endDate).toISOString().split('T')[0] : '',
         status: batch.status
@@ -183,6 +184,12 @@ export default function SchoolBatchDetailPage() {
                       <Form.Label className="small fw-bold">Max Strength</Form.Label>
                       <Form.Control type="number" value={formData.maxStrength} onChange={(e) => setFormData({...formData, maxStrength: e.target.value})} />
                    </Col>
+                   <Col md={6} className="mb-3">
+                      <Form.Label className="small fw-bold">Total No. of Days</Form.Label>
+                      <Form.Control type="number" min="0" value={formData.totalDays} onChange={(e) => setFormData({...formData, totalDays: e.target.value})} />
+                   </Col>
+                </Row>
+                <Row>
                    <Col md={6} className="mb-3">
                       <Form.Label className="small fw-bold">Status</Form.Label>
                       <Form.Select value={formData.status} onChange={(e) => setFormData({...formData, status: e.target.value})}>

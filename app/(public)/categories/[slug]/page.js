@@ -85,15 +85,15 @@ export default async function CategoryLandingPage({ params }) {
                 <a href="#browse-by-level" className="u-btn-dark w-auto">
                   Explore Courses
                 </a>
-                <a href="/courses" className="u-btn-outline">
+                {/* <a href="/courses" className="u-btn-outline">
                   View All Programs
-                </a>
+                </a> */}
               </div>
             </div>
             <div className="col-lg-5">
               <img
                 className="u-hero-image"
-                src={category.image || "https://images.unsplash.com/photo-1509062522246-3755977927d7?q=80&w=1400&auto=format&fit=crop"}
+                src={category.image || ""}
                 alt={category.name}
               />
             </div>

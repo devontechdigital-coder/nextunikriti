@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
-import { Container, Row, Col, Card, ListGroup, Button, Spinner, Alert, Badge, Accordion } from 'react-bootstrap';
+import { Container, Row, Col, Card, ListGroup, Button, Spinner, Alert, Badge, Accordion, Form } from 'react-bootstrap';
 import { useParams, useRouter } from 'next/navigation';
+
+const VIDEO_QUALITY_OPTIONS = ['auto', '240p', '360p', '480p', '720p', '1080p'];
 
 export default function LearningPage() {
   const params = useParams();
@@ -21,6 +23,7 @@ export default function LearningPage() {
   const [videoBlobUrl, setVideoBlobUrl] = useState('');
   const [videoLoading, setVideoLoading] = useState(false);
   const [videoError, setVideoError] = useState('');
+  const [videoQuality, setVideoQuality] = useState('auto');
 
   const flatLessons = course?.sections?.flatMap(sec => sec.lessons) || [];
 
@@ -68,7 +71,7 @@ export default function LearningPage() {
       try {
         const res = await axios.post(
           '/api/videos/play',
-          { lessonId: activeLesson._id },
+          { lessonId: activeLesson._id, quality: videoQuality },
           { responseType: 'blob' }
         );
 
@@ -90,7 +93,7 @@ export default function LearningPage() {
       cancelled = true;
       if (objectUrl) URL.revokeObjectURL(objectUrl);
     };
-  }, [activeLesson]);
+  }, [activeLesson, videoQuality]);
 
   const toggleBookmark = async () => {
     try {
@@ -199,7 +202,7 @@ export default function LearningPage() {
         <Col lg={9} className="border-end overflow-auto" style={{ height: 'calc(100vh - 72px)' }}>
           {activeLesson ? (
             <div>
-              <div className="bg-black d-flex align-items-center justify-content-center text-white" style={{ aspectRatio: '16/9', maxHeight: '70vh' }}>
+              <div className="bg-black d-flex align-items-center justify-content-center text-white position-relative" style={{ aspectRatio: '16/9', maxHeight: '70vh' }}>
                 {activeLesson.hasVideo ? (
                     videoLoading ? (
                       <div className="text-center">
@@ -229,6 +232,23 @@ export default function LearningPage() {
                         <i className="bi bi-file-earmark-text fs-1"></i>
                         <p>No video for this lesson</p>
                     </div>
+                )}
+                {activeLesson.hasVideo && (
+                  <div className="position-absolute top-0 end-0 m-3 quality-picker">
+                    <Form.Select
+                      size="sm"
+                      value={videoQuality}
+                      onChange={(event) => setVideoQuality(event.target.value)}
+                      className="bg-dark text-white border-secondary shadow-sm"
+                      aria-label="Video quality"
+                    >
+                      {VIDEO_QUALITY_OPTIONS.map((quality) => (
+                        <option key={quality} value={quality}>
+                          {quality === 'auto' ? 'Auto' : quality}
+                        </option>
+                      ))}
+                    </Form.Select>
+                  </div>
                 )}
               </div>
 
@@ -337,6 +357,15 @@ export default function LearningPage() {
           </Accordion>
         </Col>
       </Row>
+      <style jsx>{`
+        .quality-picker {
+          width: 112px;
+          z-index: 5;
+        }
+        .quality-picker :global(select) {
+          font-size: 0.78rem;
+        }
+      `}</style>
     </Container>
   );
 }

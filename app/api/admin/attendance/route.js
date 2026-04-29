@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Attendance from '@/models/Attendance';
 import ClassSession from '@/models/ClassSession';
+import '@/models/Student';
+import '@/models/User';
 import { getUserFromCookie } from '@/utils/auth';
 import mongoose from 'mongoose';
 

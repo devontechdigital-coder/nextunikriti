@@ -32,12 +32,29 @@ export default function LoginPage() {
 
   // UI State
   const [loading, setLoading] = useState(false);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [loginSignupEnabled, setLoginSignupEnabled] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
   const normalizedPhone = normalizePhoneNumber(phone, phoneCountry);
 
-  useEffect(() => { setMounted(true); }, []);
+  useEffect(() => {
+    setMounted(true);
+
+    const loadSettings = async () => {
+      try {
+        const res = await axios.get('/api/settings');
+        setLoginSignupEnabled(res.data?.data?.login_signup_enabled ?? true);
+      } catch {
+        setLoginSignupEnabled(true);
+      } finally {
+        setSettingsLoading(false);
+      }
+    };
+
+    loadSettings();
+  }, []);
 
   const handleTabSwitch = (tab) => {
     setActiveTab(tab);
@@ -200,9 +217,12 @@ export default function LoginPage() {
                         required
                       />
                     </div>
-                    <p className="lp-hint">We'll send a one-time code to this number.</p>
+                    <p className="lp-hint">We&apos;ll send a one-time code to this number.</p>
+                    {!loginSignupEnabled && (
+                      <p className="lp-hint">New signup is currently blocked. Existing students can still sign in.</p>
+                    )}
                   </div>
-                  <button className="lp-btn lp-btn-primary" type="submit" disabled={loading || !normalizedPhone}>
+                  <button className="lp-btn lp-btn-primary" type="submit" disabled={loading || settingsLoading || !normalizedPhone}>
                     {loading && <span className="lp-spinner" />}
                     {loading ? 'Sending code…' : 'Send code'}
                   </button>

@@ -28,6 +28,7 @@ const createInitialFormData = (isSchoolAdmin, schoolId) => ({
   roomNo: '',
   teacherId: '',
   maxStrength: 20,
+  totalDays: 0,
   startDate: '',
   endDate: '',
   status: 'active',
@@ -70,14 +71,14 @@ export default function BatchesPage() {
   const batches = data?.batches || [];
   const schools = schoolData?.schools || [];
   const teachers = userData?.data || [];
-  const activeInstruments = instrumentData?.instruments || [];
+  const activeInstruments = useMemo(() => instrumentData?.instruments || [], [instrumentData?.instruments]);
 
   const selectedInstrument = activeInstruments.find((instrument) => instrument.name === formData.instrument);
   const { data: levelData } = useGetAdminLevelsQuery(
     { instrumentId: selectedInstrument?._id, status: 'active' },
     { skip: !selectedInstrument }
   );
-  const availableLevels = levelData?.levels || [];
+  const availableLevels = useMemo(() => levelData?.levels || [], [levelData?.levels]);
 
   const displayLevels = useMemo(() => {
     if (isEditing && formData.level && !availableLevels.find((level) => level.levelName === formData.level)) {
@@ -112,6 +113,7 @@ export default function BatchesPage() {
         roomNo: batch.roomNo || '',
         teacherId: (batch.teacherId?._id || batch.teacherId || '').toString(),
         maxStrength: batch.maxStrength || 20,
+        totalDays: batch.totalDays || 0,
         startDate: batch.startDate ? new Date(batch.startDate).toISOString().split('T')[0] : '',
         endDate: batch.endDate ? new Date(batch.endDate).toISOString().split('T')[0] : '',
         status: batch.status || 'active',
@@ -286,6 +288,7 @@ export default function BatchesPage() {
                   <div className="small">
                     <div className="fw-medium">{batch.grade || 'N/A'}</div>
                     <div className="text-muted">Room: {batch.roomNo || 'Open'}</div>
+                    <div className="text-muted">Days: {batch.totalDays || 0}</div>
                   </div>
                 </td>
                 <td>
@@ -408,6 +411,10 @@ export default function BatchesPage() {
               <Col md={6} className="mb-3">
                 <Form.Label className="small fw-bold">Max Capacity</Form.Label>
                 <Form.Control type="number" required min="1" value={formData.maxStrength} onChange={(e) => setFormData({ ...formData, maxStrength: e.target.value })} />
+              </Col>
+              <Col md={4} className="mb-3">
+                <Form.Label className="small fw-bold">Total No. of Days</Form.Label>
+                <Form.Control type="number" min="0" value={formData.totalDays} onChange={(e) => setFormData({ ...formData, totalDays: e.target.value })} />
               </Col>
               <Col md={4}>
                 <Form.Label className="small fw-bold">Start Date</Form.Label>
