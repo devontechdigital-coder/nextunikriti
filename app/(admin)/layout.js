@@ -4,7 +4,7 @@ import { Container, Nav, Offcanvas } from 'react-bootstrap';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import AdminNavbar from '@/components/AdminNavbar';
-import { FiUsers, FiLayers, FiCreditCard, FiSliders, FiHome, FiUserCheck, FiBox, FiImage, FiSettings, FiBarChart2, FiList, FiFileText, FiMusic, FiLink } from 'react-icons/fi';
+import { FiUsers, FiLayers, FiCreditCard, FiSliders, FiHome, FiUserCheck, FiBox, FiImage, FiSettings, FiBarChart2, FiList, FiFileText, FiMusic, FiLink, FiDatabase } from 'react-icons/fi';
 import { FaCalendarAlt, FaChevronDown } from 'react-icons/fa';
 import { useGetPublicSettingsQuery } from '@/redux/api/apiSlice';
 
@@ -61,6 +61,7 @@ export default function AdminLayout({ children }) {
     { name: 'Gallery', href: `${basePath}/gallery`, icon: <FiImage /> },
     { name: 'Orders', href: `${basePath}/orders`, icon: <FiList /> },
     { name: 'Payments', href: `${basePath}/payments`, icon: <FiCreditCard /> },
+    { name: 'Import / Export', href: `${basePath}/data`, icon: <FiDatabase /> },
     { name: 'Settings', href: `${basePath}/settings`, icon: <FiSettings /> },
     { name: 'Analytics', href: `${basePath}/analytics`, icon: <FiBarChart2 /> },
   ];
