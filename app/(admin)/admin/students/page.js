@@ -12,6 +12,7 @@ import {
 import { FaEdit, FaTrash, FaPlus, FaCheckCircle, FaUserGraduate, FaSearch, FaFilter } from 'react-icons/fa';
 import Link from 'next/link';
 import { useSelector } from 'react-redux';
+import GooglePlaceSelect from '@/components/common/GooglePlaceSelect';
 
 const createInitialFormData = (schoolId = '') => ({
   name: '',
@@ -119,6 +120,19 @@ export default function StudentsPage() {
 
   const handleFieldChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddressSelect = (place) => {
+    if (!place) return;
+    setFormData((prev) => ({
+      ...prev,
+      address1: place.label || prev.address1,
+      cityDistrict: place.city || prev.cityDistrict,
+      state: place.state || prev.state,
+      country: place.country || prev.country,
+      nationality: place.country || prev.nationality,
+      location: place.label || prev.location,
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -444,6 +458,13 @@ export default function StudentsPage() {
 
             <h6 className="fw-bold mb-4 text-primary border-bottom pb-2">Address Details</h6>
             <Row className="g-3 mb-4">
+              <Col xs={12}>
+                <Form.Label className="small fw-bold">Search Address</Form.Label>
+                <GooglePlaceSelect
+                  value={formData.address1 ? { label: formData.address1, value: formData.address1 } : null}
+                  onChange={handleAddressSelect}
+                />
+              </Col>
               <Col md={6}>
                 <Form.Label className="small fw-bold">Address 1 (House Number)</Form.Label>
                 <Form.Control value={formData.address1} onChange={(e) => handleFieldChange('address1', e.target.value)} />

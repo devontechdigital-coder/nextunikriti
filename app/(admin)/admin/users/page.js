@@ -19,6 +19,8 @@ import {
 } from '@/redux/api/apiSlice';
 import { FaEdit, FaTrash, FaPlus, FaCheckCircle } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
+import GooglePlaceSelect from '@/components/common/GooglePlaceSelect';
+import { DEFAULT_PHONE_COUNTRY, formatPhoneInput, normalizePhoneNumber, PHONE_COUNTRY_OPTIONS } from '@/lib/phone';
 
 const createEducationEntry = () => ({
   level: 'graduation',
@@ -111,13 +113,31 @@ const createInitialFormData = (defaultRole = 'student') => ({
   name: '',
   email: '',
   phone: '',
+  phoneCountry: DEFAULT_PHONE_COUNTRY,
   password: '',
   role: defaultRole,
   schoolId: '',
   status: 'active',
+  adminPermissions: [],
   ...createStudentFields(),
   ...createInstructorFields(),
 });
+
+const ADMIN_PERMISSION_OPTIONS = [
+  { key: 'dashboard', label: 'Dashboard' },
+  { key: 'users', label: 'Users' },
+  { key: 'instructors', label: 'Instructors' },
+  { key: 'schools', label: 'Schools' },
+  { key: 'students', label: 'Students' },
+  { key: 'batches', label: 'Batches' },
+  { key: 'courses', label: 'Courses' },
+  { key: 'lesson-reviews', label: 'Lesson Reviews' },
+  { key: 'packages', label: 'Packages' },
+  { key: 'orders', label: 'Orders' },
+  { key: 'payments', label: 'Payments' },
+  { key: 'settings', label: 'Settings' },
+  { key: 'analytics', label: 'Analytics' },
+];
 
 export default function AdminUsersPage() {
   const [page, setPage] = useState(1);
@@ -136,8 +156,8 @@ export default function AdminUsersPage() {
   const schools = schoolData?.schools || [];
   const instruments = instrumentsData?.instruments || [];
   
-  const { userInfo } = useSelector((state) => state.auth);
-  const isSchoolAdmin = userInfo?.role === 'school_admin';
+  const { user } = useSelector((state) => state.auth);
+  const isSchoolAdmin = user?.role === 'school_admin';
   
   const [updateUser, { isLoading: isUpdating }] = useUpdateAdminUserMutation();
   const [createUser, { isLoading: isCreating }] = useCreateAdminUserMutation();
@@ -337,6 +357,7 @@ export default function AdminUsersPage() {
         schoolId: user.schoolId || '',
         password: '',
         status: user.status || 'active',
+        adminPermissions: user.adminPermissions || [],
       });
     } else {
       setEditingUser(null);
@@ -360,6 +381,7 @@ export default function AdminUsersPage() {
         schoolId: prev.schoolId,
         status: prev.status,
         role,
+        adminPermissions: prev.adminPermissions,
       };
 
       if (role === 'instructor') {
@@ -393,6 +415,45 @@ export default function AdminUsersPage() {
   const handleFieldChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
+
+  const handleAddressSelect = (place, mode = 'student') => {
+    setFormData((prev) => mode === 'instructor'
+      ? {
+          ...prev,
+          addressLine1: place?.label || prev.addressLine1,
+          state: place?.state || prev.state,
+          nationality: place?.country || prev.nationality,
+        }
+      : {
+          ...prev,
+          address1: place?.label || prev.address1,
+          cityDistrict: place?.city || prev.cityDistrict,
+          state: place?.state || prev.state,
+          nationality: place?.country || prev.nationality,
+          location: place?.label || prev.location,
+        });
+  };
+
+  const updateAdminPermission = (key, field, value) => {
+    setFormData((prev) => {
+      const current = Array.isArray(prev.adminPermissions) ? prev.adminPermissions : [];
+      const existing = current.find((item) => item.key === key) || { key, view: false, edit: false };
+      const nextItem = {
+        ...existing,
+        [field]: value,
+        ...(field === 'edit' && value ? { view: true } : {}),
+        ...(field === 'view' && !value ? { edit: false } : {}),
+      };
+      const next = current.some((item) => item.key === key)
+        ? current.map((item) => (item.key === key ? nextItem : item))
+        : [...current, nextItem];
+      return { ...prev, adminPermissions: next };
+    });
+  };
+
+  const getAdminPermission = (key) => (
+    (formData.adminPermissions || []).find((item) => item.key === key) || { key, view: false, edit: false }
+  );
 
   const toggleInstrument = (instrumentId) => {
     setFormData((prev) => {
@@ -434,12 +495,24 @@ export default function AdminUsersPage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      const normalizedPhone = formData.phone.trim()
+        ? normalizePhoneNumber(formData.phone, formData.phoneCountry)
+        : null;
+
+      if (formData.phone.trim() && !normalizedPhone) {
+        alert('Enter a valid phone number for the selected country.');
+        return;
+      }
+
       const payload = {
         ...formData,
+        phone: normalizedPhone || undefined,
         education: formData.education.filter((item) =>
           item.level || item.courseName || item.instituteName || item.boardOrUniversity || item.yearOfPassing || item.percentageOrGPA || item.stream
         ),
       };
+      delete payload.phoneCountry;
+      if (!payload.phone) delete payload.phone;
 
       if (editingUser && formData.role === 'instructor') {
         await updateInstructor({ id: editingUser._id, ...payload }).unwrap();
@@ -522,6 +595,7 @@ export default function AdminUsersPage() {
               <option value="student">Student</option>
               <option value="instructor">Instructor</option>
               <option value="admin">Admin</option>
+              <option value="sub_admin">Sub Admin</option>
             </Form.Select>
           </div>
         )}
@@ -648,6 +722,7 @@ export default function AdminUsersPage() {
                   <option value="student">Student</option>
                   <option value="instructor">Instructor</option>
                   <option value="admin">Admin</option>
+                  <option value="sub_admin">Sub Admin</option>
                   <option value="school_admin">School Admin</option>
                 </Form.Select>
               </Form.Group>
@@ -672,12 +747,23 @@ export default function AdminUsersPage() {
             </Form.Group>
             <Form.Group className="mb-3">
               <Form.Label>Phone Number</Form.Label>
-              <Form.Control 
-                type="text" 
-                placeholder="Optional"
-                value={formData.phone}
-                onChange={(e) => handleFieldChange('phone', e.target.value)}
-              />
+              <div className="d-flex gap-2">
+                <Form.Select
+                  value={formData.phoneCountry}
+                  onChange={(e) => handleFieldChange('phoneCountry', e.target.value)}
+                  style={{ maxWidth: 150 }}
+                >
+                  {PHONE_COUNTRY_OPTIONS.map((option) => (
+                    <option key={option.code} value={option.code}>{option.label}</option>
+                  ))}
+                </Form.Select>
+                <Form.Control
+                  type="tel"
+                  placeholder="Optional"
+                  value={formData.phone}
+                  onChange={(e) => handleFieldChange('phone', formatPhoneInput(e.target.value, formData.phoneCountry))}
+                />
+              </div>
             </Form.Group>
             {isInstructorForm && (
               <>
@@ -739,6 +825,48 @@ export default function AdminUsersPage() {
                   {schools.map(s => <option key={s._id} value={s._id}>{s.schoolName}</option>)}
                 </Form.Select>
               </Form.Group>
+            )}
+            {!isSchoolAdmin && formData.role === 'sub_admin' && (
+              <Card className="border-0 shadow-sm mb-4">
+                <Card.Body>
+                  <h6 className="fw-semibold mb-3">Sub Admin Access</h6>
+                  <div className="table-responsive">
+                    <Table size="sm" className="align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th>Module</th>
+                          <th>Can View</th>
+                          <th>Can Edit / Add</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ADMIN_PERMISSION_OPTIONS.map((permission) => {
+                          const value = getAdminPermission(permission.key);
+                          return (
+                            <tr key={permission.key}>
+                              <td>{permission.label}</td>
+                              <td>
+                                <Form.Check
+                                  type="checkbox"
+                                  checked={Boolean(value.view)}
+                                  onChange={(e) => updateAdminPermission(permission.key, 'view', e.target.checked)}
+                                />
+                              </td>
+                              <td>
+                                <Form.Check
+                                  type="checkbox"
+                                  checked={Boolean(value.edit)}
+                                  onChange={(e) => updateAdminPermission(permission.key, 'edit', e.target.checked)}
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </Table>
+                  </div>
+                </Card.Body>
+              </Card>
             )}
             {isInstructorForm && (
               <>
@@ -807,6 +935,15 @@ export default function AdminUsersPage() {
                   <Card.Body>
                     <h6 className="fw-semibold mb-3">Address Details</h6>
                     <Row className="g-3">
+                      <Col xs={12}>
+                        <Form.Group>
+                          <Form.Label>Search Address</Form.Label>
+                          <GooglePlaceSelect
+                            value={formData.addressLine1 ? { label: formData.addressLine1, value: formData.addressLine1 } : null}
+                            onChange={(place) => handleAddressSelect(place, 'instructor')}
+                          />
+                        </Form.Group>
+                      </Col>
                       <Col md={6}>
                         <Form.Group>
                           <Form.Label>Address Line 1</Form.Label>
@@ -1055,6 +1192,15 @@ export default function AdminUsersPage() {
                   <Card.Body>
                     <h6 className="fw-semibold mb-3">Address Details</h6>
                     <Row className="g-3">
+                      <Col xs={12}>
+                        <Form.Group>
+                          <Form.Label>Search Address</Form.Label>
+                          <GooglePlaceSelect
+                            value={formData.address1 ? { label: formData.address1, value: formData.address1 } : null}
+                            onChange={(place) => handleAddressSelect(place, 'student')}
+                          />
+                        </Form.Group>
+                      </Col>
                       <Col md={6}><Form.Group><Form.Label>Address 1</Form.Label><Form.Control value={formData.address1} onChange={(e) => handleFieldChange('address1', e.target.value)} /></Form.Group></Col>
                       <Col md={6}><Form.Group><Form.Label>Address 2</Form.Label><Form.Control value={formData.address2} onChange={(e) => handleFieldChange('address2', e.target.value)} /></Form.Group></Col>
                       <Col md={4}><Form.Group><Form.Label>Street</Form.Label><Form.Control value={formData.street} onChange={(e) => handleFieldChange('street', e.target.value)} /></Form.Group></Col>

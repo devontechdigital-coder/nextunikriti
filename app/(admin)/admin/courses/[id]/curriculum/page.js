@@ -1,6 +1,8 @@
 'use client';
 import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
+import 'react-quill/dist/quill.snow.css';
 import { 
   Container, 
   Row, 
@@ -20,7 +22,9 @@ import {
   useUpdateAdminSectionMutation, 
   useDeleteAdminSectionMutation,
   useReorderAdminCourseSectionsMutation,
-  useUpdateLessonMutation
+  useCreateLessonMutation,
+  useUpdateLessonMutation,
+  useDeleteLessonMutation
 } from '@/redux/api/apiSlice';
 import { 
   FiPlus, 
@@ -35,6 +39,9 @@ import {
   FiArrowLeft
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import LessonQuizEditor from '@/components/admin/LessonQuizEditor';
+
+const ReactQuill = dynamic(() => import('react-quill'), { ssr: false });
 
 export default function AdminCourseCurriculumPage() {
   const { id: courseId } = useParams();
@@ -44,7 +51,9 @@ export default function AdminCourseCurriculumPage() {
   const [updateSection, { isLoading: isUpdating }] = useUpdateAdminSectionMutation();
   const [deleteSection, { isLoading: isDeleting }] = useDeleteAdminSectionMutation();
   const [reorderSections] = useReorderAdminCourseSectionsMutation();
+  const [createLesson, { isLoading: isCreatingLesson }] = useCreateLessonMutation();
   const [updateLesson, { isLoading: isUpdatingLesson }] = useUpdateLessonMutation();
+  const [deleteLesson] = useDeleteLessonMutation();
 
   const [showModal, setShowModal] = useState(false);
   const [editingSection, setEditingSection] = useState(null);
@@ -54,6 +63,9 @@ export default function AdminCourseCurriculumPage() {
   const [lessonPlanDraft, setLessonPlanDraft] = useState('');
   const [lessonPlanStatus, setLessonPlanStatus] = useState('pending');
   const [lessonPlanNote, setLessonPlanNote] = useState('');
+  const [showLessonModal, setShowLessonModal] = useState(false);
+  const [activeSectionId, setActiveSectionId] = useState('');
+  const [lessonDraft, setLessonDraft] = useState({ title: '', content: '', videoUrl: '', audioUrl: '', pdfUrl: '' });
 
   const sections = useMemo(() => sectionsData?.data || [], [sectionsData]);
 
@@ -131,6 +143,50 @@ export default function AdminCourseCurriculumPage() {
     setLessonPlanStatus(lesson.lessonPlanStatus || 'pending');
     setLessonPlanNote(lesson.lessonPlanReviewNote || '');
     setShowLessonPlanModal(true);
+  };
+
+  const openLessonModal = (sectionId, lesson = null) => {
+    setActiveSectionId(sectionId);
+    setEditingLesson(lesson);
+    setLessonDraft({
+      title: lesson?.title || '',
+      content: lesson?.content || '',
+      videoUrl: lesson?.videoUrl || '',
+      audioUrl: lesson?.audioUrl || '',
+      pdfUrl: lesson?.pdfUrl || '',
+    });
+    setShowLessonModal(true);
+  };
+
+  const handleLessonSave = async (event) => {
+    event.preventDefault();
+    if (!lessonDraft.title.trim()) {
+      toast.error('Lesson title is required');
+      return;
+    }
+    try {
+      if (editingLesson) {
+        await updateLesson({ lessonId: editingLesson._id, ...lessonDraft }).unwrap();
+        toast.success('Lesson updated');
+      } else {
+        await createLesson({ sectionId: activeSectionId, ...lessonDraft }).unwrap();
+        toast.success('Lesson added');
+      }
+      setShowLessonModal(false);
+      setEditingLesson(null);
+    } catch (err) {
+      toast.error(err?.data?.error || 'Failed to save lesson');
+    }
+  };
+
+  const handleDeleteLesson = async (lessonId) => {
+    if (!window.confirm('Delete this lesson?')) return;
+    try {
+      await deleteLesson(lessonId).unwrap();
+      toast.success('Lesson deleted');
+    } catch (err) {
+      toast.error(err?.data?.error || 'Failed to delete lesson');
+    }
   };
 
   const handleLessonPlanUpdate = async (status = lessonPlanStatus) => {
@@ -232,6 +288,14 @@ export default function AdminCourseCurriculumPage() {
                   >
                     <FiTrash2 />
                   </Button>
+                  <Button
+                    variant="outline-primary"
+                    size="sm"
+                    className="rounded-pill"
+                    onClick={() => openLessonModal(section._id)}
+                  >
+                    <FiPlus className="me-1" /> Lesson
+                  </Button>
                 </div>
               </Card.Header>
               <Card.Body className="bg-light-gray p-0">
@@ -258,10 +322,24 @@ export default function AdminCourseCurriculumPage() {
                           {lesson.lessonPlanReviewNote && (
                             <div className="small text-muted mt-2">Admin note: {lesson.lessonPlanReviewNote}</div>
                           )}
+                          <div className="d-flex flex-wrap gap-2 mt-2">
+                            {lesson.videoUrl && <Badge bg="info">Video</Badge>}
+                            {lesson.audioUrl && <Badge bg="secondary">Audio</Badge>}
+                            {lesson.pdfUrl && <Badge bg="dark">PDF</Badge>}
+                          </div>
+                          <LessonQuizEditor lessonId={lesson._id} />
                         </div>
-                        <Button variant="outline-primary" size="sm" className="rounded-pill px-3" onClick={() => openLessonPlanModal(lesson)}>
-                          Review
-                        </Button>
+                        <div className="d-flex gap-2">
+                          <Button variant="outline-secondary" size="sm" className="rounded-pill px-3" onClick={() => openLessonModal(section._id, lesson)}>
+                            Edit
+                          </Button>
+                          <Button variant="outline-primary" size="sm" className="rounded-pill px-3" onClick={() => openLessonPlanModal(lesson)}>
+                            Review
+                          </Button>
+                          <Button variant="outline-danger" size="sm" className="rounded-pill px-3" onClick={() => handleDeleteLesson(lesson._id)}>
+                            Delete
+                          </Button>
+                        </div>
                       </div>
                     </ListGroup.Item>
                   )) : (
@@ -368,11 +446,55 @@ export default function AdminCourseCurriculumPage() {
         </Modal.Footer>
       </Modal>
 
+      <Modal show={showLessonModal} onHide={() => setShowLessonModal(false)} centered size="lg">
+        <Modal.Header closeButton className="border-0">
+          <Modal.Title className="fw-bold">{editingLesson ? 'Edit Lesson' : 'Add Lesson'}</Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleLessonSave}>
+          <Modal.Body className="pt-0">
+            <Row className="g-3">
+              <Col md={12}>
+                <Form.Group>
+                  <Form.Label>Lesson Title</Form.Label>
+                  <Form.Control value={lessonDraft.title} onChange={(e) => setLessonDraft({ ...lessonDraft, title: e.target.value })} required />
+                </Form.Group>
+              </Col>
+              <Col md={12}>
+                <Form.Group>
+                  <Form.Label>Content</Form.Label>
+                  <div className="rich-text-editor-container" style={{ minHeight: '260px' }}>
+                    <ReactQuill
+                      theme="snow"
+                      value={lessonDraft.content}
+                      onChange={(value) => setLessonDraft({ ...lessonDraft, content: value })}
+                      placeholder="Write lesson details, instructions, notes, or links..."
+                      style={{ height: '210px', marginBottom: '50px' }}
+                    />
+                  </div>
+                </Form.Group>
+              </Col>
+              <Col md={4}><Form.Group><Form.Label>Video URL</Form.Label><Form.Control value={lessonDraft.videoUrl} onChange={(e) => setLessonDraft({ ...lessonDraft, videoUrl: e.target.value })} /></Form.Group></Col>
+              <Col md={4}><Form.Group><Form.Label>Audio URL</Form.Label><Form.Control value={lessonDraft.audioUrl} onChange={(e) => setLessonDraft({ ...lessonDraft, audioUrl: e.target.value })} /></Form.Group></Col>
+              <Col md={4}><Form.Group><Form.Label>PDF URL</Form.Label><Form.Control value={lessonDraft.pdfUrl} onChange={(e) => setLessonDraft({ ...lessonDraft, pdfUrl: e.target.value })} /></Form.Group></Col>
+            </Row>
+          </Modal.Body>
+          <Modal.Footer className="border-0">
+            <Button variant="light" onClick={() => setShowLessonModal(false)}>Cancel</Button>
+            <Button variant="primary" type="submit" disabled={isCreatingLesson || isUpdatingLesson}>
+              {isCreatingLesson || isUpdatingLesson ? <Spinner size="sm" /> : 'Save Lesson'}
+            </Button>
+          </Modal.Footer>
+        </Form>
+      </Modal>
+
       <style jsx global>{`
         .bg-light-gray { background-color: #fcfcfc; }
         .hover-primary:hover { color: var(--bs-primary) !important; }
         .hover-danger:hover { color: var(--bs-danger) !important; }
         .border-dashed { border-style: dashed !important; border-width: 2px !important; }
+        .ql-container { font-family: inherit; font-size: 0.95rem; }
+        .ql-toolbar { border-top-left-radius: 8px; border-top-right-radius: 8px; }
+        .ql-container { border-bottom-left-radius: 8px; border-bottom-right-radius: 8px; }
       `}</style>
     </Container>
   );

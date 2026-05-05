@@ -220,6 +220,9 @@ export async function PATCH(req) {
         batchId: payment.batchId || null,
         packageId: payment.packageId || null,
         gradeName: normalizeGradeName(payment.gradeName || packageDoc?.gradeName),
+        preferredDays: payment.preferredDays || [],
+        preferredTimes: payment.preferredTimes || [],
+        preferredSchedule: payment.preferredSchedule || [],
         paymentId: payment._id,
         ...buildEnrollmentLifecycleFields({
           paymentStatus: payment.status === 'completed' ? 'paid' : 'pending',

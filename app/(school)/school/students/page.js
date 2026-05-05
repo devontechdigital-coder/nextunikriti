@@ -9,6 +9,7 @@ import {
 import { FaPlus, FaCheckCircle, FaUserGraduate, FaSearch, FaFilter } from 'react-icons/fa';
 import Link from 'next/link';
 import { useSelector } from 'react-redux';
+import GooglePlaceSelect from '@/components/common/GooglePlaceSelect';
 
 export default function SchoolStudentsPage() {
   const { user } = useSelector((state) => state.auth);
@@ -44,6 +45,17 @@ export default function SchoolStudentsPage() {
       city: '', state: '', pinCode: '', status: 'lead'
     });
     setShowModal(true);
+  };
+
+  const handleAddressSelect = (place) => {
+    if (!place) return;
+    setFormData((prev) => ({
+      ...prev,
+      addressLine1: place.label || prev.addressLine1,
+      city: place.city || prev.city,
+      state: place.state || prev.state,
+      nationality: place.country || prev.nationality,
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -261,9 +273,28 @@ export default function SchoolStudentsPage() {
                 <Form.Label className="small fw-bold">Date of Birth</Form.Label>
                 <Form.Control type="date" value={formData.dob} onChange={(e) => setFormData({...formData, dob: e.target.value})} />
               </Col>
+              <Col md={12} className="mt-3">
+                <Form.Label className="small fw-bold">Search Address</Form.Label>
+                <GooglePlaceSelect
+                  value={formData.addressLine1 ? { label: formData.addressLine1, value: formData.addressLine1 } : null}
+                  onChange={handleAddressSelect}
+                />
+              </Col>
+              <Col md={12} className="mt-3">
+                <Form.Label className="small fw-bold">Address</Form.Label>
+                <Form.Control value={formData.addressLine1} onChange={(e) => setFormData({...formData, addressLine1: e.target.value})} />
+              </Col>
               <Col md={4}>
                 <Form.Label className="small fw-bold">City</Form.Label>
                 <Form.Control value={formData.city} onChange={(e) => setFormData({...formData, city: e.target.value})} />
+              </Col>
+              <Col md={4}>
+                <Form.Label className="small fw-bold">State</Form.Label>
+                <Form.Control value={formData.state} onChange={(e) => setFormData({...formData, state: e.target.value})} />
+              </Col>
+              <Col md={4}>
+                <Form.Label className="small fw-bold">PIN Code</Form.Label>
+                <Form.Control value={formData.pinCode} onChange={(e) => setFormData({...formData, pinCode: e.target.value})} />
               </Col>
             </Row>
           </Modal.Body>

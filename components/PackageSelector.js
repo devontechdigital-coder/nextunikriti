@@ -11,6 +11,7 @@ import { buildPackagePricingOptions, getPackageDisplayDurationDays, getPackageDi
 import { mergeGradeOptions, normalizeGradeName, packageMatchesGrade } from '@/lib/gradeUtils';
 import { DEFAULT_PHONE_COUNTRY, formatPhoneDisplay, formatPhoneInput, normalizePhoneNumber, PHONE_COUNTRY_OPTIONS } from '@/lib/phone';
 import { normalizeSchoolSchedule } from '@/lib/schoolSchedule';
+import GooglePlaceSelect from '@/components/common/GooglePlaceSelect';
 
 const AUTH_STEP = { PHONE: 'phone', OTP: 'otp', DETAILS: 'details' };
 const DETAIL_STEP = { BASIC: 0, ADDRESS: 1, FAMILY: 2 };
@@ -31,6 +32,22 @@ const formatScheduleTime = (value) => {
     return `${twelveHour}:${String(minutes).padStart(2, '0')} ${suffix}`;
 };
 const buildSchoolSlotLabel = (slot = {}) => `${formatScheduleTime(slot.startTime)} - ${formatScheduleTime(slot.endTime)}`;
+const getScheduleTimeSlots = (schedule, dayOfWeek) => (
+    schedule.find((entry) => entry.dayOfWeek === dayOfWeek)?.timeSlots || []
+);
+const buildPreferredSchedulePayload = (schedule) => (
+    schedule
+        .map((entry) => ({
+            dayOfWeek: entry.dayOfWeek,
+            timeSlots: Array.isArray(entry.timeSlots) ? entry.timeSlots.filter(Boolean) : [],
+        }))
+        .filter((entry) => entry.dayOfWeek && entry.timeSlots.length)
+);
+const flattenScheduleSlots = (schedule) => (
+    buildPreferredSchedulePayload(schedule).flatMap((entry) => (
+        entry.timeSlots.map((slot) => `${entry.dayOfWeek}: ${slot}`)
+    ))
+);
 const createInitialStudentProfile = () => ({
     joiningYear: '',
     dateOfJoining: '',
@@ -117,11 +134,13 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
     const [schoolsLoading, setSchoolsLoading] = useState(false);
     const [selectedSchoolId, setSelectedSchoolId] = useState('');
     const [preferredDays, setPreferredDays] = useState([]);
-    const [preferredTimes, setPreferredTimes] = useState([]);
-    const [preferredTimeInput, setPreferredTimeInput] = useState('');
+    const [preferredSchedule, setPreferredSchedule] = useState([]);
+    const preferredTimes = useMemo(() => flattenScheduleSlots(preferredSchedule), [preferredSchedule]);
+    const [preferredTimeInputs, setPreferredTimeInputs] = useState({});
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState(null);
     const [couponLoading, setCouponLoading] = useState(false);
+    const [termsAccepted, setTermsAccepted] = useState(false);
     const normalizedPhone = normalizePhoneNumber(phone, phoneCountry);
 
     useEffect(() => {
@@ -183,20 +202,14 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
             entry.isOpen && Array.isArray(entry.slots) && entry.slots.some((slot) => slot.startTime && slot.endTime)
         ))
     ), [selectedSchoolSchedule]);
-    const availableSchoolSlots = useMemo(() => {
+    const slotsBySelectedDay = useMemo(() => {
         const selectedDays = new Set(preferredDays);
-        const slotMap = new Map();
-        availableSchoolDays
+        return availableSchoolDays
             .filter((entry) => selectedDays.has(entry.dayOfWeek))
-            .forEach((entry) => {
-                (entry.slots || [])
-                    .filter((slot) => slot.startTime && slot.endTime)
-                    .forEach((slot) => {
-                        const slotValue = buildSchoolSlotValue(slot);
-                        if (!slotMap.has(slotValue)) slotMap.set(slotValue, slot);
-                    });
-            });
-        return Array.from(slotMap.values());
+            .map((entry) => ({
+                dayOfWeek: entry.dayOfWeek,
+                slots: (entry.slots || []).filter((slot) => slot.startTime && slot.endTime),
+            }));
     }, [availableSchoolDays, preferredDays]);
 
     useEffect(() => {
@@ -249,43 +262,101 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
         if (!requiresSchoolSelection) return;
         const availableDayNames = availableSchoolDays.map((entry) => entry.dayOfWeek);
         setPreferredDays((prev) => prev.filter((day) => availableDayNames.includes(day)));
+        setPreferredSchedule((prev) => prev.filter((entry) => availableDayNames.includes(entry.dayOfWeek)));
     }, [availableSchoolDays, requiresSchoolSelection]);
 
     useEffect(() => {
         if (!requiresSchoolSelection) return;
-        const availableSlotValues = availableSchoolSlots.map((slot) => buildSchoolSlotValue(slot));
-        setPreferredTimes((prev) => prev.filter((slotValue) => availableSlotValues.includes(slotValue)));
-    }, [availableSchoolSlots, requiresSchoolSelection]);
+        const availableSlotsByDay = new Map(
+            availableSchoolDays.map((entry) => [
+                entry.dayOfWeek,
+                new Set((entry.slots || []).map((slot) => buildSchoolSlotValue(slot)).filter((slotValue) => slotValue && slotValue !== '-')),
+            ])
+        );
+        setPreferredSchedule((prev) => prev
+            .map((entry) => ({
+                ...entry,
+                timeSlots: getScheduleTimeSlots(prev, entry.dayOfWeek)
+                    .filter((slotValue) => availableSlotsByDay.get(entry.dayOfWeek)?.has(slotValue)),
+            }))
+            .filter((entry) => entry.timeSlots.length || preferredDays.includes(entry.dayOfWeek)));
+    }, [availableSchoolDays, preferredDays, requiresSchoolSelection]);
 
     const updateStudentProfileField = (field, value) => {
         setStudentProfile((prev) => ({ ...prev, [field]: value }));
     };
 
-    const togglePreferredDay = (day) => {
-        setPreferredDays((prev) => prev.includes(day) ? prev.filter((item) => item !== day) : [...prev, day]);
+    const handleStudentLocationSelect = (place) => {
+        setStudentProfile((prev) => ({
+            ...prev,
+            address1: place?.label || prev.address1,
+            cityDistrict: place?.city || prev.cityDistrict,
+            state: place?.state || prev.state,
+            nationality: place?.country || prev.nationality,
+            location: place?.label || prev.location,
+        }));
     };
 
-    const addPreferredTime = (rawValue = preferredTimeInput) => {
+    const togglePreferredDay = (dayOfWeek) => {
+        setPreferredDays((prev) => prev.includes(dayOfWeek) ? prev.filter((item) => item !== dayOfWeek) : [...prev, dayOfWeek]);
+        setPreferredSchedule((prev) => {
+            const next = prev.some((entry) => entry.dayOfWeek === dayOfWeek)
+                ? prev.filter((entry) => entry.dayOfWeek !== dayOfWeek)
+                : [...prev, { dayOfWeek, timeSlots: [] }];
+            return next;
+        });
+    };
+
+    const addPreferredTime = (dayOfWeek, rawValue = preferredTimeInputs[dayOfWeek] || '') => {
         const value = rawValue.trim();
         if (!value) return;
-        setPreferredTimes((prev) => (
-            prev.some((item) => item.toLowerCase() === value.toLowerCase()) ? prev : [...prev, value]
-        ));
-        setPreferredTimeInput('');
+        setPreferredSchedule((prev) => {
+            const schedule = prev.some((entry) => entry.dayOfWeek === dayOfWeek)
+                ? prev
+                : [...prev, { dayOfWeek, timeSlots: [] }];
+            const next = schedule.map((entry) => {
+                if (entry.dayOfWeek !== dayOfWeek) return entry;
+                const timeSlots = Array.isArray(entry.timeSlots) ? entry.timeSlots : [];
+                return {
+                    ...entry,
+                    timeSlots: timeSlots.some((item) => item.toLowerCase() === value.toLowerCase()) ? timeSlots : [...timeSlots, value],
+                };
+            });
+            return next;
+        });
+        setPreferredTimeInputs((prev) => ({ ...prev, [dayOfWeek]: '' }));
     };
 
-    const removePreferredTime = (value) => {
-        setPreferredTimes((prev) => prev.filter((item) => item !== value));
+    const removePreferredTime = (dayOfWeek, value) => {
+        setPreferredSchedule((prev) => {
+            const next = prev.map((entry) => (
+                entry.dayOfWeek === dayOfWeek
+                    ? { ...entry, timeSlots: (entry.timeSlots || []).filter((item) => item !== value) }
+                    : entry
+            ));
+            return next;
+        });
     };
 
-    const togglePreferredTime = (rawValue) => {
+    const togglePreferredTime = (dayOfWeek, rawValue) => {
         const value = String(rawValue || '').trim();
         if (!value) return;
-        setPreferredTimes((prev) => (
-            prev.some((item) => item.toLowerCase() === value.toLowerCase())
-                ? prev.filter((item) => item.toLowerCase() !== value.toLowerCase())
-                : [...prev, value]
-        ));
+        setPreferredSchedule((prev) => {
+            const schedule = prev.some((entry) => entry.dayOfWeek === dayOfWeek)
+                ? prev
+                : [...prev, { dayOfWeek, timeSlots: [] }];
+            const next = schedule.map((entry) => {
+                if (entry.dayOfWeek !== dayOfWeek) return entry;
+                const timeSlots = Array.isArray(entry.timeSlots) ? entry.timeSlots : [];
+                return {
+                    ...entry,
+                    timeSlots: timeSlots.some((item) => item.toLowerCase() === value.toLowerCase())
+                        ? timeSlots.filter((item) => item.toLowerCase() !== value.toLowerCase())
+                        : [...timeSlots, value],
+                };
+            });
+            return next;
+        });
     };
 
     const handleApplyCoupon = async () => {
@@ -446,11 +517,14 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
 
     const handlePurchase = async () => {
         if (!selectedPkgId) { toast.error('Please select a package first'); return; }
+        if (!termsAccepted) { toast.error('Please agree to the terms and conditions'); return; }
         const finalPreferredDays = requiresSchoolSelection ? preferredDays : preferredDays;
-        const finalPreferredTimes = requiresSchoolSelection ? preferredTimes : preferredTimes;
+        const finalPreferredSchedule = buildPreferredSchedulePayload(preferredSchedule);
+        const finalPreferredTimes = flattenScheduleSlots(finalPreferredSchedule);
         if (requiresSchoolSelection && !selectedSchoolId) { toast.error('Please choose a school first'); return; }
         if (!finalPreferredDays.length) { toast.error(requiresSchoolSelection ? 'Please choose an preferred day' : 'Please choose at least one preferred day'); return; }
         if (!finalPreferredTimes.length) { toast.error(requiresSchoolSelection ? 'Please choose an preferred time slot' : 'Please add at least one preferred time'); return; }
+        if (finalPreferredSchedule.length < finalPreferredDays.length) { toast.error('Please choose at least one preferred time for every selected day'); return; }
         setLoading(true);
         try {
             const body = { package_id: selectedPkgId };
@@ -460,6 +534,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
             if (appliedCoupon?.code) body.coupon_code = appliedCoupon.code;
             body.preferred_days = finalPreferredDays;
             body.preferred_times = finalPreferredTimes;
+            body.preferred_schedule = finalPreferredSchedule;
             if (selectedSchoolId) body.school_id = selectedSchoolId;
             if (pendingUser || userName.trim() || studentProfile.studentName.trim()) {
                 body.student_profile = {
@@ -608,7 +683,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                                                 setSelectedPkgPriceKey(selectedOption?.key || '');
                                             }}
                                         >
-                                            {isSelected && <div className="ps-pkg-badge">RECOMMENDED</div>}
+                                            {/* {isSelected && <div className="ps-pkg-badge">RECOMMENDED</div>} */}
                                             <div className="ps-pkg-icon-wrap">{getIcon(pkg.name)}</div>
                                             <h4 className="ps-pkg-name">{pkg.name}</h4>
                                             {pkg.gradeName && (
@@ -759,7 +834,7 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                                 </div>
                                 <div>
                                     <div className="ps-modal-brand__title">Sign in to Enroll</div>
-                                    <div className="ps-modal-brand__sub">We'll send you a one-time password</div>
+                                    <div className="ps-modal-brand__sub">We&apos;ll send you a one-time password</div>
                                 </div>
                             </>
                         )}
@@ -953,6 +1028,13 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
 
                             {detailStep === DETAIL_STEP.ADDRESS && (
                                 <Row className="g-3 mt-1">
+                                    <Col xs={12}>
+                                        <label className="ps-field-label">Search Address</label>
+                                        <GooglePlaceSelect
+                                            value={studentProfile.address1 ? { label: studentProfile.address1, value: studentProfile.address1 } : null}
+                                            onChange={handleStudentLocationSelect}
+                                        />
+                                    </Col>
                                     <Col md={6}>
                                         <label className="ps-field-label">Address 1</label>
                                         <Form.Control value={studentProfile.address1} onChange={(e) => updateStudentProfileField('address1', e.target.value)} className="ps-form-input" />
@@ -1126,7 +1208,8 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                                 onChange={(event) => {
                                     setSelectedSchoolId(event.target.value);
                                     setPreferredDays([]);
-                                    setPreferredTimes([]);
+                                    setPreferredSchedule([]);
+                                    setPreferredTimeInputs({});
                                 }}
                                 disabled={schoolsLoading}
                                 className="ps-form-input"
@@ -1191,23 +1274,34 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                             </div>
 
                             <div className="ps-confirm-section">
-                                <div className="ps-confirm-section__title">Preferred Time Slot</div>
+                                <div className="ps-confirm-section__title">Preferred Time Slots</div>
                                 {preferredDays.length > 0 ? (
-                                    availableSchoolSlots.length > 0 ? (
-                                        <div className="ps-day-chips">
-                                            {availableSchoolSlots.map((slot) => {
-                                                const slotValue = buildSchoolSlotValue(slot);
-                                                return (
-                                                    <button
-                                                        key={slotValue}
-                                                        type="button"
-                                                        className={`ps-chip ${preferredTimes.includes(slotValue) ? 'ps-chip--active' : ''}`}
-                                                        onClick={() => togglePreferredTime(slotValue)}
-                                                    >
-                                                        {buildSchoolSlotLabel(slot)}
-                                                    </button>
-                                                );
-                                            })}
+                                    slotsBySelectedDay.length > 0 ? (
+                                        <div className="ps-day-slot-list">
+                                            {slotsBySelectedDay.map((entry) => (
+                                                <div key={entry.dayOfWeek} className="ps-day-slot-group">
+                                                    <div className="ps-day-slot-title">{entry.dayOfWeek}</div>
+                                                    {entry.slots.length > 0 ? (
+                                                        <div className="ps-day-chips">
+                                                            {entry.slots.map((slot) => {
+                                                                const slotValue = buildSchoolSlotValue(slot);
+                                                                return (
+                                                                    <button
+                                                                        key={`${entry.dayOfWeek}-${slotValue}`}
+                                                                        type="button"
+                                                                        className={`ps-chip ${getScheduleTimeSlots(preferredSchedule, entry.dayOfWeek).includes(slotValue) ? 'ps-chip--active' : ''}`}
+                                                                        onClick={() => togglePreferredTime(entry.dayOfWeek, slotValue)}
+                                                                    >
+                                                                        {buildSchoolSlotLabel(slot)}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    ) : (
+                                                        <div className="ps-field-hint">No time slot available for {entry.dayOfWeek}.</div>
+                                                    )}
+                                                </div>
+                                            ))}
                                         </div>
                                     ) : (
                                         <div className="ps-field-hint">No time slot available for the selected day.</div>
@@ -1221,38 +1315,49 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
 
                     {!requiresSchoolSelection && (
                         <div className="ps-confirm-section">
-                            <div className="ps-confirm-section__title">Preferred Time Slot</div>
-                            <div className="ps-coupon-row mb-2">
-                                <Form.Control
-                                    placeholder="Add preferred time slot"
-                                    value={preferredTimeInput}
-                                    onChange={(e) => setPreferredTimeInput(e.target.value)}
-                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPreferredTime(); } }}
-                                    className="ps-form-input"
-                                />
-                                <button className="ps-coupon-btn" onClick={() => addPreferredTime()}>Add</button>
-                            </div>
-                            <div className="ps-day-chips mb-2">
+                            <div className="ps-confirm-section__title">Preferred Time Slots</div>
+                            {preferredDays.length > 0 ? (
+                                <div className="ps-day-slot-list">
+                                    {preferredDays.map((day) => (
+                                        <div key={day} className="ps-day-slot-group">
+                                            <div className="ps-day-slot-title">{day}</div>
+                                            <div className="ps-coupon-row mb-2">
+                                                <Form.Control
+                                                    placeholder={`Add time for ${day}`}
+                                                    value={preferredTimeInputs[day] || ''}
+                                                    onChange={(e) => setPreferredTimeInputs((prev) => ({ ...prev, [day]: e.target.value }))}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPreferredTime(day); } }}
+                                                    className="ps-form-input"
+                                                />
+                                                <button className="ps-coupon-btn" onClick={() => addPreferredTime(day)}>Add</button>
+                                            </div>
+                                            <div className="ps-day-chips mb-2">
                                 {ENROLLMENT_TIME_SUGGESTIONS.map((slot) => (
                                     <button
-                                        key={slot}
+                                                        key={`${day}-${slot}`}
                                         type="button"
-                                        className={`ps-chip ${preferredTimes.some((item) => item.toLowerCase() === slot.toLowerCase()) ? 'ps-chip--active' : ''}`}
-                                        onClick={() => togglePreferredTime(slot)}
+                                                        className={`ps-chip ${getScheduleTimeSlots(preferredSchedule, day).some((item) => item.toLowerCase() === slot.toLowerCase()) ? 'ps-chip--active' : ''}`}
+                                                        onClick={() => togglePreferredTime(day, slot)}
                                     >
                                         {slot}
                                     </button>
                                 ))}
                             </div>
-                            {preferredTimes.length > 0 && (
+                                            {getScheduleTimeSlots(preferredSchedule, day).length > 0 && (
                                 <div className="ps-time-chips">
-                                    {preferredTimes.map((slot) => (
-                                        <span key={slot} className="ps-time-chip">
+                                                    {getScheduleTimeSlots(preferredSchedule, day).map((slot) => (
+                                                        <span key={`${day}-${slot}`} className="ps-time-chip">
                                             {slot}
-                                            <button type="button" className="ps-time-chip__remove" onClick={() => removePreferredTime(slot)}>×</button>
+                                                            <button type="button" className="ps-time-chip__remove" onClick={() => removePreferredTime(day, slot)}>×</button>
                                         </span>
                                     ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
+                            ) : (
+                                <div className="ps-field-hint">Choose a day to add time slots.</div>
                             )}
                         </div>
                     )}
@@ -1285,16 +1390,28 @@ export default function PackageSelector({ courseId, courseMode = 'Online', cours
                     {!bothModesEnabled && settings.payLater && !settings.payOnline && (
                         <div className="ps-pay-later-notice">
                             <FaClock />
-                            <span>You'll reserve this course now. Our team will contact you to arrange payment.</span>
+                            <span>You&apos;ll reserve this course now. Our team will contact you to arrange payment.</span>
                         </div>
                     )}
+
+                    <div className="ps-confirm-section">
+                        <Form.Check
+                            type="checkbox"
+                            id="enrollment-terms"
+                            checked={termsAccepted}
+                            onChange={(event) => setTermsAccepted(event.target.checked)}
+                            label="I agree to the terms and conditions."
+                            required
+                        />
+                    </div>
+
                 </Modal.Body>
                 <Modal.Footer className="ps-confirm-footer">
                     <button className="ps-back-link" onClick={() => setShowConfirm(false)}>Go Back</button>
                     <button
                         className={`ps-confirm-btn ${loading ? 'ps-confirm-btn--loading' : ''}`}
                         onClick={handlePurchase}
-                        disabled={loading}
+                        disabled={loading || !termsAccepted}
                     >
                         {loading ? <Spinner size="sm" /> : (selectedMode === 'pay_later' ? '📋 Reserve Enrollment' : '💳 Confirm & Pay')}
                     </button>

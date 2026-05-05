@@ -111,6 +111,7 @@ const handleCallback = async (req, payload) => {
             gradeName: normalizeGradeName(payment.gradeName || packageDoc?.gradeName),
             preferredDays: payment.preferredDays || [],
             preferredTimes: payment.preferredTimes || [],
+            preferredSchedule: payment.preferredSchedule || [],
             paymentId: payment._id,
             ...buildEnrollmentLifecycleFields({
               paymentStatus: 'paid',

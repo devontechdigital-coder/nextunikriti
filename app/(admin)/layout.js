@@ -7,6 +7,7 @@ import AdminNavbar from '@/components/AdminNavbar';
 import { FiUsers, FiLayers, FiCreditCard, FiSliders, FiHome, FiUserCheck, FiBox, FiImage, FiSettings, FiBarChart2, FiList, FiFileText, FiMusic, FiLink, FiDatabase } from 'react-icons/fi';
 import { FaCalendarAlt, FaChevronDown } from 'react-icons/fa';
 import { useGetPublicSettingsQuery } from '@/redux/api/apiSlice';
+import { useSelector } from 'react-redux';
 
 const studentStatusLinks = [
   { label: 'All Students', status: '' },
@@ -21,6 +22,7 @@ export default function AdminLayout({ children }) {
   const [showSidebar, setShowSidebar] = useState(false);
   const [studentsOpen, setStudentsOpen] = useState(false);
   const { data: settingsData } = useGetPublicSettingsQuery();
+  const { user } = useSelector((state) => state.auth);
 
   const pathname = usePathname();
   const isSchoolAdmin = pathname?.startsWith('/school');
@@ -70,6 +72,37 @@ export default function AdminLayout({ children }) {
   const sidebarLinks = allSidebarLinks.filter(link => {
     if (isSchoolAdmin) {
       return schoolAdminLinks.includes(link.name);
+    }
+    if (user?.role === 'sub_admin') {
+      const nameToKey = {
+        Dashboard: 'dashboard',
+        Users: 'users',
+        Instructors: 'instructors',
+        Schools: 'schools',
+        Students: 'students',
+        Batches: 'batches',
+        Instruments: 'instruments',
+        Modes: 'modes',
+        Timetable: 'timetable',
+        Attendance: 'attendance',
+        Courses: 'courses',
+        'Lesson Reviews': 'lesson-reviews',
+        Packages: 'packages',
+        Coupons: 'coupons',
+        Categories: 'categories',
+        Menus: 'menus',
+        Banners: 'banners',
+        Pages: 'pages',
+        Enquiries: 'enquiries',
+        Gallery: 'gallery',
+        Orders: 'orders',
+        Payments: 'payments',
+        'Import / Export': 'data',
+        Settings: 'settings',
+        Analytics: 'analytics',
+      };
+      const allowed = Array.isArray(user.adminPermissions) ? user.adminPermissions : [];
+      return allowed.some((permission) => permission.key === nameToKey[link.name] && permission.view);
     }
     return link.name !== 'Schosols';
   });

@@ -5,6 +5,7 @@ import axios from 'axios';
 import { Alert, Button, Container, Form, Spinner } from 'react-bootstrap';
 import WeeklyScheduleEditor from '@/components/schools/WeeklyScheduleEditor';
 import { createDefaultSchoolSchedule } from '@/lib/schoolSchedule';
+import GooglePlaceSelect from '@/components/common/GooglePlaceSelect';
 
 export default function SchoolSettingsPage() {
   const [formData, setFormData] = useState({
@@ -67,6 +68,16 @@ export default function SchoolSettingsPage() {
     }
   };
 
+  const handleAddressSelect = (place) => {
+    if (!place) return;
+    setFormData((prev) => ({
+      ...prev,
+      address: place.label || prev.address,
+      city: place.city || prev.city,
+      state: place.state || prev.state,
+    }));
+  };
+
   if (loading) {
     return (
       <Container className="py-5 text-center">
@@ -106,6 +117,13 @@ export default function SchoolSettingsPage() {
           <div className="col-md-6">
             <Form.Label>Contact Email</Form.Label>
             <Form.Control type="email" value={formData.contactEmail} onChange={(e) => setFormData({ ...formData, contactEmail: e.target.value })} />
+          </div>
+          <div className="col-12">
+            <Form.Label>Search Address</Form.Label>
+            <GooglePlaceSelect
+              value={formData.address ? { label: formData.address, value: formData.address } : null}
+              onChange={handleAddressSelect}
+            />
           </div>
           <div className="col-md-6">
             <Form.Label>City</Form.Label>

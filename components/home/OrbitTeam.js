@@ -3,12 +3,13 @@
 import React, { useEffect, useRef } from 'react';
 import SectionSkeleton from './SectionSkeleton';
 
-const OrbitTeam = ({ settings = [], isLoading }) => {
+const OrbitTeam = ({ settings = [], logoUrl = '', isLoading }) => {
   const wrapperRef = useRef(null);
   const logoRef = useRef(null);
   const svgLineRef = useRef(null);
 
   const displayTeam = settings || [];
+  const centerLogoUrl = logoUrl?.trim() || '/image/logo-round.png';
 
   useEffect(() => {
     if (isLoading || displayTeam.length === 0) return;
@@ -93,7 +94,7 @@ const OrbitTeam = ({ settings = [], isLoading }) => {
           </svg>
           <div className="arc-line" />
           <div className="main-logo" ref={logoRef}>
-            <img src="/image/logo-round.png" alt="Unikriti" />
+            <img src={centerLogoUrl} alt="Unikriti" />
           </div>
 
           {displayTeam.map((member, idx) => {

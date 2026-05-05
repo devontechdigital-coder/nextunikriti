@@ -15,6 +15,7 @@ import {
   FaPhone, FaEnvelope, FaMapMarkerAlt, FaPlus, FaSave, FaUserGraduate 
 } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
+import GooglePlaceSelect from '@/components/common/GooglePlaceSelect';
 
 export default function StudentProfilePage() {
   const { id } = useParams();
@@ -128,6 +129,19 @@ export default function StudentProfilePage() {
   ].filter(Boolean).join(', ');
   const googleMapSrc = addressQuery ? `https://www.google.com/maps?q=${encodeURIComponent(addressQuery)}&output=embed` : '';
   const googleMapLink = addressQuery ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(addressQuery)}` : '';
+
+  const handleAddressSelect = (place) => {
+    if (!place) return;
+    setFormData((prev) => ({
+      ...prev,
+      address1: place.label || prev.address1,
+      cityDistrict: place.city || prev.cityDistrict,
+      state: place.state || prev.state,
+      country: place.country || prev.country,
+      nationality: place.country || prev.nationality,
+      location: place.label || prev.location,
+    }));
+  };
 
   return (
     <Container className="py-5">
@@ -349,6 +363,13 @@ export default function StudentProfilePage() {
                   <Card.Header className="bg-white py-3 fw-bold border-bottom">Address Details</Card.Header>
                   <Card.Body className="p-4">
                     <Row className="g-3">
+                      <Col xs={12}>
+                        <Form.Label className="small fw-bold">Search Address</Form.Label>
+                        <GooglePlaceSelect
+                          value={formData.address1 ? { label: formData.address1, value: formData.address1 } : null}
+                          onChange={handleAddressSelect}
+                        />
+                      </Col>
                       <Col md={6}>
                         <Form.Label className="small fw-bold">Address 1</Form.Label>
                         <Form.Control value={formData.address1} onChange={(e) => setFormData({...formData, address1: e.target.value})} />

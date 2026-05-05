@@ -15,6 +15,7 @@ const initialForm = {
   schoolId: '',
   preferredDays: [],
   preferredTimeSlots: [],
+  preferredSchedule: [],
 };
 
 const buildSchoolSlotValue = (slot = {}) => `${slot.startTime || ''} - ${slot.endTime || ''}`.trim();
@@ -31,6 +32,25 @@ const formatScheduleTime = (value) => {
 };
 
 const buildSchoolSlotLabel = (slot = {}) => `${formatScheduleTime(slot.startTime)} - ${formatScheduleTime(slot.endTime)}`;
+
+const getScheduleTimeSlots = (schedule, dayOfWeek) => (
+  schedule.find((entry) => entry.dayOfWeek === dayOfWeek)?.timeSlots || []
+);
+
+const buildPreferredSchedulePayload = (schedule) => (
+  schedule
+    .map((entry) => ({
+      dayOfWeek: entry.dayOfWeek,
+      timeSlots: Array.isArray(entry.timeSlots) ? entry.timeSlots.filter(Boolean) : [],
+    }))
+    .filter((entry) => entry.dayOfWeek && entry.timeSlots.length)
+);
+
+const flattenScheduleSlots = (schedule) => (
+  buildPreferredSchedulePayload(schedule).flatMap((entry) => (
+    entry.timeSlots.map((slot) => `${entry.dayOfWeek}: ${slot}`)
+  ))
+);
 
 export default function DynamicPageEnquiryForm({ pageSlug, pageTitle }) {
   const [formData, setFormData] = useState(initialForm);
@@ -65,24 +85,14 @@ export default function DynamicPageEnquiryForm({ pageSlug, pageTitle }) {
   const availableSchoolDays = useMemo(() => selectedSchoolSchedule.filter((entry) => (
     entry.isOpen && Array.isArray(entry.slots) && entry.slots.some((slot) => slot.startTime && slot.endTime)
   )), [selectedSchoolSchedule]);
-  const availableSchoolSlots = useMemo(() => {
+  const slotsBySelectedDay = useMemo(() => {
     const selectedDays = new Set(formData.preferredDays);
-    const slotMap = new Map();
-
-    availableSchoolDays
+    return availableSchoolDays
       .filter((entry) => selectedDays.has(entry.dayOfWeek))
-      .forEach((entry) => {
-        (entry.slots || [])
-          .filter((slot) => slot.startTime && slot.endTime)
-          .forEach((slot) => {
-            const slotValue = buildSchoolSlotValue(slot);
-            if (slotValue && slotValue !== '-' && !slotMap.has(slotValue)) {
-              slotMap.set(slotValue, slot);
-            }
-          });
-      });
-
-    return Array.from(slotMap.values());
+      .map((entry) => ({
+        dayOfWeek: entry.dayOfWeek,
+        slots: (entry.slots || []).filter((slot) => slot.startTime && slot.endTime),
+      }));
   }, [availableSchoolDays, formData.preferredDays]);
 
   useEffect(() => {
@@ -90,28 +100,69 @@ export default function DynamicPageEnquiryForm({ pageSlug, pageTitle }) {
     setFormData((current) => ({
       ...current,
       preferredDays: current.preferredDays.filter((day) => availableDayNames.includes(day)),
+      preferredSchedule: current.preferredSchedule.filter((entry) => availableDayNames.includes(entry.dayOfWeek)),
     }));
   }, [availableSchoolDays]);
 
   useEffect(() => {
-    const availableSlotValues = availableSchoolSlots.map((slot) => buildSchoolSlotValue(slot));
+    const availableSlotsByDay = new Map(
+      availableSchoolDays.map((entry) => [
+        entry.dayOfWeek,
+        new Set((entry.slots || []).map((slot) => buildSchoolSlotValue(slot)).filter((slotValue) => slotValue && slotValue !== '-')),
+      ])
+    );
     setFormData((current) => ({
       ...current,
-      preferredTimeSlots: current.preferredTimeSlots.filter((slotValue) => availableSlotValues.includes(slotValue)),
+      preferredSchedule: current.preferredSchedule
+        .map((entry) => ({
+          ...entry,
+          timeSlots: getScheduleTimeSlots(current.preferredSchedule, entry.dayOfWeek)
+            .filter((slotValue) => availableSlotsByDay.get(entry.dayOfWeek)?.has(slotValue)),
+        }))
+        .filter((entry) => entry.timeSlots.length || current.preferredDays.includes(entry.dayOfWeek)),
     }));
-  }, [availableSchoolSlots]);
+  }, [availableSchoolDays]);
 
   const updateField = (field, value) => {
     setFormData((current) => ({ ...current, [field]: value }));
   };
 
-  const toggleListValue = (field, value) => {
+  const togglePreferredDay = (dayOfWeek) => {
     setFormData((current) => {
-      const currentValues = Array.isArray(current[field]) ? current[field] : [];
-      const nextValues = currentValues.some((item) => item.toLowerCase() === value.toLowerCase())
-        ? currentValues.filter((item) => item.toLowerCase() !== value.toLowerCase())
-        : [...currentValues, value];
-      return { ...current, [field]: nextValues };
+      const isSelected = current.preferredDays.includes(dayOfWeek);
+      return {
+        ...current,
+        preferredDays: isSelected
+          ? current.preferredDays.filter((day) => day !== dayOfWeek)
+          : [...current.preferredDays, dayOfWeek],
+        preferredSchedule: isSelected
+          ? current.preferredSchedule.filter((entry) => entry.dayOfWeek !== dayOfWeek)
+          : current.preferredSchedule.some((entry) => entry.dayOfWeek === dayOfWeek)
+            ? current.preferredSchedule
+            : [...current.preferredSchedule, { dayOfWeek, timeSlots: [] }],
+      };
+    });
+  };
+
+  const togglePreferredDayTime = (dayOfWeek, slotValue) => {
+    setFormData((current) => {
+      const schedule = current.preferredSchedule.some((entry) => entry.dayOfWeek === dayOfWeek)
+        ? current.preferredSchedule
+        : [...current.preferredSchedule, { dayOfWeek, timeSlots: [] }];
+
+      return {
+        ...current,
+        preferredSchedule: schedule.map((entry) => {
+          if (entry.dayOfWeek !== dayOfWeek) return entry;
+          const timeSlots = Array.isArray(entry.timeSlots) ? entry.timeSlots : [];
+          return {
+            ...entry,
+            timeSlots: timeSlots.includes(slotValue)
+              ? timeSlots.filter((item) => item !== slotValue)
+              : [...timeSlots, slotValue],
+          };
+        }),
+      };
     });
   };
 
@@ -121,6 +172,7 @@ export default function DynamicPageEnquiryForm({ pageSlug, pageTitle }) {
       schoolId,
       preferredDays: [],
       preferredTimeSlots: [],
+      preferredSchedule: [],
     }));
   };
 
@@ -131,8 +183,11 @@ export default function DynamicPageEnquiryForm({ pageSlug, pageTitle }) {
     setError('');
 
     try {
+      const preferredSchedule = buildPreferredSchedulePayload(formData.preferredSchedule);
       await axios.post('/api/enquiries', {
         ...formData,
+        preferredSchedule,
+        preferredTimeSlots: flattenScheduleSlots(preferredSchedule),
         schoolName: selectedSchool?.schoolName || '',
         pageSlug,
         pageTitle,
@@ -245,7 +300,7 @@ export default function DynamicPageEnquiryForm({ pageSlug, pageTitle }) {
                         key={entry.dayOfWeek}
                         type="button"
                         className={`eq-chip${formData.preferredDays.includes(entry.dayOfWeek) ? ' eq-chip-active' : ''}`}
-                        onClick={() => toggleListValue('preferredDays', entry.dayOfWeek)}
+                        onClick={() => togglePreferredDay(entry.dayOfWeek)}
                       >
                         {entry.dayOfWeek}
                       </button>
@@ -261,21 +316,32 @@ export default function DynamicPageEnquiryForm({ pageSlug, pageTitle }) {
                 {!formData.schoolId ? (
                   <p className="eq-empty-hint">Choose a school first to view time slots.</p>
                 ) : formData.preferredDays.length > 0 ? (
-                  availableSchoolSlots.length > 0 ? (
-                    <div className="eq-chips">
-                      {availableSchoolSlots.map((slot) => {
-                        const slotValue = buildSchoolSlotValue(slot);
-                        return (
-                          <button
-                            key={slotValue}
-                            type="button"
-                            className={`eq-chip${formData.preferredTimeSlots.includes(slotValue) ? ' eq-chip-active' : ''}`}
-                            onClick={() => toggleListValue('preferredTimeSlots', slotValue)}
-                          >
-                            {buildSchoolSlotLabel(slot)}
-                          </button>
-                        );
-                      })}
+                  slotsBySelectedDay.length > 0 ? (
+                    <div className="eq-day-slot-list">
+                      {slotsBySelectedDay.map((entry) => (
+                        <div key={entry.dayOfWeek} className="eq-day-slot-group">
+                          <div className="eq-day-slot-title">{entry.dayOfWeek}</div>
+                          {entry.slots.length ? (
+                            <div className="eq-chips">
+                              {entry.slots.map((slot) => {
+                                const slotValue = buildSchoolSlotValue(slot);
+                                return (
+                                  <button
+                                    key={`${entry.dayOfWeek}-${slotValue}`}
+                                    type="button"
+                                    className={`eq-chip${getScheduleTimeSlots(formData.preferredSchedule, entry.dayOfWeek).includes(slotValue) ? ' eq-chip-active' : ''}`}
+                                    onClick={() => togglePreferredDayTime(entry.dayOfWeek, slotValue)}
+                                  >
+                                    {buildSchoolSlotLabel(slot)}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          ) : (
+                            <p className="eq-empty-hint">No time slot available for {entry.dayOfWeek}.</p>
+                          )}
+                        </div>
+                      ))}
                     </div>
                   ) : (
                     <p className="eq-empty-hint">No time slot available for the selected day.</p>

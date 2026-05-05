@@ -34,6 +34,19 @@ const normalizeStringList = (value) => (
       )]
     : []
 );
+const normalizePreferredSchedule = (value) => (
+  Array.isArray(value)
+    ? value
+      .map((entry) => ({
+        dayOfWeek: String(entry?.dayOfWeek || '').trim(),
+        timeSlots: normalizeStringList(entry?.timeSlots),
+      }))
+      .filter((entry) => entry.dayOfWeek && entry.timeSlots.length)
+    : []
+);
+const flattenPreferredSchedule = (schedule) => (
+  schedule.flatMap((entry) => entry.timeSlots.map((slot) => `${entry.dayOfWeek}: ${slot}`))
+);
 
 const normalizeModeLabel = (mode) => String(mode || 'Online').trim();
 
@@ -58,6 +71,7 @@ export async function POST(req) {
       coupon_code,
       preferred_days,
       preferred_times,
+      preferred_schedule,
       student_profile,
     } = await req.json();
     
@@ -73,8 +87,14 @@ export async function POST(req) {
     let selectedGradeName = normalizeGradeName(selected_grade_name);
     const selectedSchoolId = String(school_id || '').trim();
     const normalizedCouponCode = normalizeCouponCode(coupon_code);
-    const preferredDays = normalizeStringList(preferred_days);
-    const preferredTimes = normalizeStringList(preferred_times);
+    const preferredSchedule = normalizePreferredSchedule(preferred_schedule);
+    const preferredDays = [...new Set([
+      ...normalizeStringList(preferred_days),
+      ...preferredSchedule.map((entry) => entry.dayOfWeek),
+    ])];
+    const preferredTimes = preferredSchedule.length
+      ? flattenPreferredSchedule(preferredSchedule)
+      : normalizeStringList(preferred_times);
 
     if (package_id) {
       const Package = (await import('@/models/Package')).default;
@@ -166,24 +186,44 @@ export async function POST(req) {
         return NextResponse.json({ success: false, message: 'One or more selected days are not available for this school' }, { status: 400 });
       }
 
-      const validSlotValues = new Set();
-      preferredDays.forEach((day) => {
-        const daySchedule = scheduleByDay.get(day);
-        const normalizedDaySlots = Array.isArray(daySchedule?.slots) && daySchedule.slots.length
-          ? daySchedule.slots
-          : ((daySchedule?.startTime || daySchedule?.endTime)
-              ? [{ startTime: daySchedule.startTime || '', endTime: daySchedule.endTime || '' }]
-              : []);
+      if (preferredSchedule.length) {
+        const hasInvalidScheduleTime = preferredSchedule.some((entry) => {
+          const daySchedule = scheduleByDay.get(entry.dayOfWeek);
+          const normalizedDaySlots = Array.isArray(daySchedule?.slots) && daySchedule.slots.length
+            ? daySchedule.slots
+            : ((daySchedule?.startTime || daySchedule?.endTime)
+                ? [{ startTime: daySchedule.startTime || '', endTime: daySchedule.endTime || '' }]
+                : []);
+          const validSlotValues = new Set(
+            normalizedDaySlots
+              .map((slot) => buildSchoolSlotValue(slot))
+              .filter((slotValue) => slotValue && slotValue !== '-')
+          );
+          return entry.timeSlots.some((slotValue) => !validSlotValues.has(slotValue));
+        });
+        if (hasInvalidScheduleTime) {
+          return NextResponse.json({ success: false, message: 'One or more selected times are not available for the selected day' }, { status: 400 });
+        }
+      } else {
+        const validSlotValues = new Set();
+        preferredDays.forEach((day) => {
+          const daySchedule = scheduleByDay.get(day);
+          const normalizedDaySlots = Array.isArray(daySchedule?.slots) && daySchedule.slots.length
+            ? daySchedule.slots
+            : ((daySchedule?.startTime || daySchedule?.endTime)
+                ? [{ startTime: daySchedule.startTime || '', endTime: daySchedule.endTime || '' }]
+                : []);
 
-        normalizedDaySlots
-          .map((slot) => buildSchoolSlotValue(slot))
-          .filter((slotValue) => slotValue && slotValue !== '-')
-          .forEach((slotValue) => validSlotValues.add(slotValue));
-      });
+          normalizedDaySlots
+            .map((slot) => buildSchoolSlotValue(slot))
+            .filter((slotValue) => slotValue && slotValue !== '-')
+            .forEach((slotValue) => validSlotValues.add(slotValue));
+        });
 
-      const hasInvalidTime = preferredTimes.some((slotValue) => !validSlotValues.has(slotValue));
-      if (hasInvalidTime) {
-        return NextResponse.json({ success: false, message: 'One or more selected times are not available for this school' }, { status: 400 });
+        const hasInvalidTime = preferredTimes.some((slotValue) => !validSlotValues.has(slotValue));
+        if (hasInvalidTime) {
+          return NextResponse.json({ success: false, message: 'One or more selected times are not available for this school' }, { status: 400 });
+        }
       }
     }
 
@@ -212,6 +252,7 @@ export async function POST(req) {
         couponApplied: appliedCoupon?._id || null,
         preferredDays,
         preferredTimes,
+        preferredSchedule,
         amount: finalPrice,
         gateway: 'pay_later',
         status: 'pending',
@@ -229,6 +270,7 @@ export async function POST(req) {
           gradeName: selectedGradeName,
           preferredDays,
           preferredTimes,
+          preferredSchedule,
           paymentId: paymentRecord._id,
           ...buildEnrollmentLifecycleFields({
             paymentStatus: 'pending',
@@ -281,6 +323,7 @@ export async function POST(req) {
       couponApplied: appliedCoupon?._id || null,
       preferredDays,
       preferredTimes,
+      preferredSchedule,
       amount: finalPrice,
       gateway: activeGateway,
       transactionId: `pending_${Math.random()}`
@@ -313,7 +356,8 @@ export async function POST(req) {
             couponCode: normalizedCouponCode,
             gradeName: selectedGradeName,
             preferredDays: preferredDays.join(', '),
-            preferredTimes: preferredTimes.join(', ')
+            preferredTimes: preferredTimes.join(', '),
+            preferredSchedule: JSON.stringify(preferredSchedule)
         }
       });
       return NextResponse.json({ success: true, gateway: 'stripe', id: session.id, url: session.url });

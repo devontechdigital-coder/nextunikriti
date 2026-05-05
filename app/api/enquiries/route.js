@@ -11,6 +11,19 @@ const cleanList = (value) => (
     ? value.map(clean).filter(Boolean)
     : clean(value).split(',').map(clean).filter(Boolean)
 );
+const cleanSchedule = (value) => (
+  Array.isArray(value)
+    ? value
+      .map((entry) => ({
+        dayOfWeek: clean(entry?.dayOfWeek),
+        timeSlots: cleanList(entry?.timeSlots),
+      }))
+      .filter((entry) => entry.dayOfWeek && entry.timeSlots.length)
+    : []
+);
+const formatScheduleSlots = (schedule) => (
+  schedule.flatMap((entry) => entry.timeSlots.map((slot) => `${entry.dayOfWeek}: ${slot}`))
+);
 
 export async function POST(req) {
   try {
@@ -30,10 +43,16 @@ export async function POST(req) {
       school = await School.findById(body.schoolId).select('schoolName contactEmail city weeklySchedule').lean();
     }
 
-    const preferredDays = cleanList(body.preferredDays);
-    const preferredTimeSlots = cleanList(body.preferredTimeSlots);
+    const preferredSchedule = cleanSchedule(body.preferredSchedule);
+    const preferredDays = [...new Set([
+      ...cleanList(body.preferredDays),
+      ...preferredSchedule.map((entry) => entry.dayOfWeek),
+    ])];
+    const preferredTimeSlots = preferredSchedule.length
+      ? formatScheduleSlots(preferredSchedule)
+      : cleanList(body.preferredTimeSlots);
 
-    if (school && (preferredDays.length || preferredTimeSlots.length)) {
+    if (school && (preferredDays.length || preferredTimeSlots.length || preferredSchedule.length)) {
       const scheduleByDay = new Map(
         (school.weeklySchedule || [])
           .filter((entry) => entry?.dayOfWeek && entry?.isOpen)
@@ -44,18 +63,32 @@ export async function POST(req) {
         return NextResponse.json({ success: false, error: 'One or more selected days are not available for this school.' }, { status: 400 });
       }
 
-      const validSlotValues = new Set();
-      preferredDays.forEach((day) => {
-        const daySchedule = scheduleByDay.get(day);
-        (daySchedule?.slots || [])
-          .map((slot) => `${slot.startTime || ''} - ${slot.endTime || ''}`.trim())
-          .filter((slotValue) => slotValue && slotValue !== '-')
-          .forEach((slotValue) => validSlotValues.add(slotValue));
-      });
+      if (preferredSchedule.length) {
+        const hasInvalidScheduleTime = preferredSchedule.some((entry) => {
+          const validSlotValues = new Set(
+            (scheduleByDay.get(entry.dayOfWeek)?.slots || [])
+              .map((slot) => `${slot.startTime || ''} - ${slot.endTime || ''}`.trim())
+              .filter((slotValue) => slotValue && slotValue !== '-')
+          );
+          return entry.timeSlots.some((slotValue) => !validSlotValues.has(slotValue));
+        });
+        if (hasInvalidScheduleTime) {
+          return NextResponse.json({ success: false, error: 'One or more selected time slots are not available for the selected day.' }, { status: 400 });
+        }
+      } else {
+        const validSlotValues = new Set();
+        preferredDays.forEach((day) => {
+          const daySchedule = scheduleByDay.get(day);
+          (daySchedule?.slots || [])
+            .map((slot) => `${slot.startTime || ''} - ${slot.endTime || ''}`.trim())
+            .filter((slotValue) => slotValue && slotValue !== '-')
+            .forEach((slotValue) => validSlotValues.add(slotValue));
+        });
 
-      const hasInvalidTime = preferredTimeSlots.some((slotValue) => !validSlotValues.has(slotValue));
-      if (hasInvalidTime) {
-        return NextResponse.json({ success: false, error: 'One or more selected time slots are not available for this school.' }, { status: 400 });
+        const hasInvalidTime = preferredTimeSlots.some((slotValue) => !validSlotValues.has(slotValue));
+        if (hasInvalidTime) {
+          return NextResponse.json({ success: false, error: 'One or more selected time slots are not available for this school.' }, { status: 400 });
+        }
       }
     }
 
@@ -79,6 +112,7 @@ export async function POST(req) {
       preferredTimeSlot: preferredTimeSlots[0] || clean(body.preferredTimeSlot),
       preferredDays,
       preferredTimeSlots,
+      preferredSchedule,
     });
 
     sendTrialEnquiryNotification({ enquiry, school }).catch((error) => {

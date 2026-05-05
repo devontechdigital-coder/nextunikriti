@@ -19,7 +19,7 @@ export async function POST(req) {
     }
 
     // Admins, school admins, and instructors must have elevated roles
-    if (!['admin', 'school_admin', 'instructor'].includes(user.role)) {
+    if (!['admin', 'sub_admin', 'school_admin', 'instructor'].includes(user.role)) {
       return NextResponse.json({ success: false, error: 'Access denied for student roles via email logic' }, { status: 403 });
     }
 
@@ -29,7 +29,12 @@ export async function POST(req) {
     }
 
     // Generate JWT
-    const jwtPayload = { id: user._id, role: user.role };
+    const jwtPayload = {
+      id: user._id,
+      role: user.role === 'sub_admin' ? 'admin' : user.role,
+      actualRole: user.role,
+      adminPermissions: user.adminPermissions || [],
+    };
     if (user.schoolId) {
       jwtPayload.schoolId = user.schoolId;
     }

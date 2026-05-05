@@ -321,6 +321,22 @@ export const apiSlice = createApi({
       }),
       invalidatesTags: ['Lesson', 'Section'],
     }),
+    getLessonQuiz: builder.query({
+      query: (lessonId) => ({ url: '/quizs', method: 'GET', params: { lessonId } }),
+      providesTags: ['Quiz'],
+    }),
+    createQuiz: builder.mutation({
+      query: (data) => ({ url: '/quizs', method: 'POST', data }),
+      invalidatesTags: ['Quiz'],
+    }),
+    updateQuiz: builder.mutation({
+      query: ({ id, ...data }) => ({ url: `/quizs/${id}`, method: 'PUT', data }),
+      invalidatesTags: ['Quiz'],
+    }),
+    deleteQuiz: builder.mutation({
+      query: (id) => ({ url: `/quizs/${id}`, method: 'DELETE' }),
+      invalidatesTags: ['Quiz'],
+    }),
 
     // ── Student Learning Page ──────────────────────────────────────────────
     getLearningCourse: builder.query({
@@ -686,6 +702,10 @@ export const {
   useCreateLessonMutation,
   useUpdateLessonMutation,
   useDeleteLessonMutation,
+  useGetLessonQuizQuery,
+  useCreateQuizMutation,
+  useUpdateQuizMutation,
+  useDeleteQuizMutation,
   useGetLearningCourseQuery,
   useMarkLessonCompleteMutation,
   useGetVideoPlayUrlMutation,

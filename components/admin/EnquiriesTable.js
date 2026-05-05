@@ -71,6 +71,19 @@ export default function EnquiriesTable({ scope = 'admin' }) {
     return list.length ? list.join(' / ') : fallback;
   };
 
+  const formatPreferredSchedule = (enquiry) => {
+    const schedule = Array.isArray(enquiry.preferredSchedule) ? enquiry.preferredSchedule : [];
+    const scheduleText = schedule
+      .filter((entry) => entry?.dayOfWeek && Array.isArray(entry.timeSlots) && entry.timeSlots.length)
+      .map((entry) => `${entry.dayOfWeek}: ${entry.timeSlots.filter(Boolean).join(', ')}`)
+      .join(' / ');
+
+    if (scheduleText) return scheduleText;
+    return [formatList(enquiry.preferredDays, enquiry.preferredDay), formatList(enquiry.preferredTimeSlots, enquiry.preferredTimeSlot)]
+      .filter(Boolean)
+      .join(' / ');
+  };
+
   const getSourceTitle = (enquiry) => {
     if (enquiry.source === 'contact_page') {
       return enquiry.subject || 'Contact enquiry';
@@ -151,7 +164,7 @@ export default function EnquiriesTable({ scope = 'admin' }) {
                     <td>
                       <div className="fw-semibold">{enquiry.instrument || 'Instrument not selected'}</div>
                       <div className="small text-muted">
-                        {[enquiry.center, formatList(enquiry.preferredDays, enquiry.preferredDay), formatList(enquiry.preferredTimeSlots, enquiry.preferredTimeSlot)].filter(Boolean).join(' / ') || 'No preferred slot'}
+                        {[enquiry.center, formatPreferredSchedule(enquiry)].filter(Boolean).join(' / ') || 'No preferred slot'}
                       </div>
                     </td>
                     <td>{enquiry.schoolId?.schoolName || enquiry.schoolName || 'Not selected'}</td>

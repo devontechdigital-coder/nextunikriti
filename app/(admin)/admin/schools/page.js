@@ -11,6 +11,7 @@ import {
   useDeleteAdminSchoolMutation 
 } from '@/redux/api/apiSlice';
 import { FaEdit, FaTrash, FaPlus, FaCheckCircle, FaSchool } from 'react-icons/fa';
+import GooglePlaceSelect from '@/components/common/GooglePlaceSelect';
 
 export default function SchoolsPage() {
   const [filters, setFilters] = useState({ city: '', status: '' });
@@ -84,6 +85,16 @@ export default function SchoolsPage() {
   const handleCloseModal = () => {
     setShowModal(false);
     setEditingSchool(null);
+  };
+
+  const handleAddressSelect = (place) => {
+    if (!place) return;
+    setFormData((prev) => ({
+      ...prev,
+      address: place.label || prev.address,
+      city: place.city || prev.city,
+      state: place.state || prev.state,
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -259,6 +270,13 @@ export default function SchoolsPage() {
                   value={formData.board}
                   onChange={(e) => setFormData({...formData, board: e.target.value})}
                   placeholder="e.g., CBSE, ICSE"
+                />
+              </div>
+              <div className="col-12 mb-4">
+                <Form.Label>Search Address</Form.Label>
+                <GooglePlaceSelect
+                  value={formData.address ? { label: formData.address, value: formData.address } : null}
+                  onChange={handleAddressSelect}
                 />
               </div>
               <div className="col-md-4 mb-4">

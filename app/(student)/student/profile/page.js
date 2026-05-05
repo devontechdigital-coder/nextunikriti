@@ -5,6 +5,7 @@ import { Alert, Button, Card, Col, Form, Row, Spinner } from 'react-bootstrap';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { FaCamera, FaSave, FaUserCircle } from 'react-icons/fa';
+import GooglePlaceSelect from '@/components/common/GooglePlaceSelect';
 
 const createInitialForm = () => ({
   name: '',
@@ -118,6 +119,18 @@ export default function StudentProfilePage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
+  const handleAddressSelect = (place) => {
+    if (!place) return;
+    setFormData((prev) => ({
+      ...prev,
+      address1: place.label || prev.address1,
+      cityDistrict: place.city || prev.cityDistrict,
+      state: place.state || prev.state,
+      nationality: place.country || prev.nationality,
+      location: place.label || prev.location,
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setSaving(true);
@@ -205,6 +218,7 @@ export default function StudentProfilePage() {
               <Card.Body className="p-4">
                 <h6 className="fw-semibold mb-3">Address Details</h6>
                 <Row className="g-3">
+                  <Col xs={12}><Form.Group><Form.Label>Search Address</Form.Label><GooglePlaceSelect value={formData.address1 ? { label: formData.address1, value: formData.address1 } : null} onChange={handleAddressSelect} /></Form.Group></Col>
                   <Col md={6}><Form.Group><Form.Label>Address 1</Form.Label><Form.Control value={formData.address1} onChange={(e) => handleChange('address1', e.target.value)} /></Form.Group></Col>
                   <Col md={6}><Form.Group><Form.Label>Address 2</Form.Label><Form.Control value={formData.address2} onChange={(e) => handleChange('address2', e.target.value)} /></Form.Group></Col>
                   <Col md={4}><Form.Group><Form.Label>Street</Form.Label><Form.Control value={formData.street} onChange={(e) => handleChange('street', e.target.value)} /></Form.Group></Col>

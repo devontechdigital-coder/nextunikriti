@@ -7,9 +7,14 @@ const userSchema = new mongoose.Schema({
   password: { type: String, select: false },
   role: { 
     type: String, 
-    enum: ['student', 'instructor', 'admin', 'school_admin', 'parent', 'staff'], 
+    enum: ['student', 'instructor', 'admin', 'sub_admin', 'school_admin', 'parent', 'staff'], 
     default: 'student' 
   },
+  adminPermissions: [{
+    key: { type: String, trim: true },
+    view: { type: Boolean, default: true },
+    edit: { type: Boolean, default: false },
+  }],
   schoolId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'School',

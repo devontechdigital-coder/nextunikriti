@@ -5,6 +5,11 @@ import { getUserFromCookie } from '@/utils/auth';
 
 import bcrypt from 'bcryptjs';
 
+const cleanOptionalString = (value) => {
+  const trimmed = String(value || '').trim();
+  return trimmed || undefined;
+};
+
 export async function PUT(req, { params }) {
   try {
     const adminUser = getUserFromCookie();
@@ -17,6 +22,27 @@ export async function PUT(req, { params }) {
 
     await connectDB();
 
+    const unsetData = {};
+    if ('phone' in updateData) {
+      const cleanPhone = cleanOptionalString(updateData.phone);
+      if (cleanPhone) {
+        updateData.phone = cleanPhone;
+      } else {
+        delete updateData.phone;
+        unsetData.phone = '';
+      }
+    }
+
+    if ('email' in updateData) {
+      const cleanEmail = cleanOptionalString(updateData.email);
+      if (cleanEmail) {
+        updateData.email = cleanEmail;
+      } else {
+        delete updateData.email;
+        unsetData.email = '';
+      }
+    }
+
     // Hash password if provided
     if (updateData.password) {
       updateData.password = await bcrypt.hash(updateData.password, 10);
@@ -24,11 +50,16 @@ export async function PUT(req, { params }) {
       delete updateData.password; // Don't overwrite with empty string
     }
 
-    const updatedUser = await User.findByIdAndUpdate(
-      id,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    );
+    if (updateData.role !== 'sub_admin') {
+      updateData.adminPermissions = [];
+    } else if (!Array.isArray(updateData.adminPermissions)) {
+      updateData.adminPermissions = [];
+    }
+
+    const updateOperation = { $set: updateData };
+    if (Object.keys(unsetData).length > 0) updateOperation.$unset = unsetData;
+
+    const updatedUser = await User.findByIdAndUpdate(id, updateOperation, { new: true, runValidators: true });
 
     if (!updatedUser) {
       return NextResponse.json({ success: false, error: 'User not found' }, { status: 404 });
@@ -36,6 +67,10 @@ export async function PUT(req, { params }) {
 
     return NextResponse.json({ success: true, data: updatedUser });
   } catch (error) {
+    if (error?.code === 11000) {
+      const field = Object.keys(error.keyPattern || error.keyValue || {})[0] || 'Field';
+      return NextResponse.json({ success: false, error: `${field === 'phone' ? 'Phone number' : 'Email'} already exists` }, { status: 400 });
+    }
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

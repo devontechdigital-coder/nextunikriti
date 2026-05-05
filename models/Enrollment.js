@@ -12,6 +12,10 @@ const enrollmentSchema = new mongoose.Schema({
   pricingOptionId: { type: mongoose.Schema.Types.ObjectId },
   preferredDays: [{ type: String, trim: true }],
   preferredTimes: [{ type: String, trim: true }],
+  preferredSchedule: [{
+    dayOfWeek: { type: String, trim: true, default: '' },
+    timeSlots: [{ type: String, trim: true }],
+  }],
 
   paymentStatus: { type: String, enum: ['paid', 'pending', 'free'], default: 'paid' },
   status: { type: String, enum: ['active', 'pending_payment', 'suspended'], default: 'active' },

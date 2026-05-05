@@ -25,6 +25,10 @@ const enquirySchema = new mongoose.Schema({
   preferredTimeSlot: { type: String, trim: true, default: '' },
   preferredDays: [{ type: String, trim: true }],
   preferredTimeSlots: [{ type: String, trim: true }],
+  preferredSchedule: [{
+    dayOfWeek: { type: String, trim: true, default: '' },
+    timeSlots: [{ type: String, trim: true }],
+  }],
   status: {
     type: String,
     enum: ['new', 'contacted', 'scheduled', 'closed'],

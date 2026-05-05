@@ -60,6 +60,11 @@ export async function GET(req) {
 
 import bcrypt from 'bcryptjs';
 
+const cleanOptionalString = (value) => {
+  const trimmed = String(value || '').trim();
+  return trimmed || undefined;
+};
+
 export async function POST(req) {
   try {
     const user = getUserFromCookie();
@@ -67,7 +72,9 @@ export async function POST(req) {
       return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { name, email, phone, password, role, schoolId } = await req.json();
+    const { name, email, phone, password, role, schoolId, adminPermissions } = await req.json();
+    const cleanPhone = cleanOptionalString(phone);
+    const cleanEmail = cleanOptionalString(email);
 
     if (!password) {
       return NextResponse.json({ success: false, error: 'Password is required' }, { status: 400 });
@@ -76,14 +83,15 @@ export async function POST(req) {
     await connectDB();
     
     // Check if user exists
-    const query = { $or: [{ email }] };
-    if (phone) {
-      query.$or.push({ phone });
+    const query = { $or: [] };
+    if (cleanEmail) query.$or.push({ email: cleanEmail });
+    if (cleanPhone) {
+      query.$or.push({ phone: cleanPhone });
     }
 
-    const existingUser = await User.findOne(query);
+    const existingUser = query.$or.length ? await User.findOne(query) : null;
     if (existingUser) {
-      const conflictField = existingUser.email === email ? 'Email' : 'Phone number';
+      const conflictField = existingUser.email === cleanEmail ? 'Email' : 'Phone number';
       return NextResponse.json({ success: false, error: `${conflictField} already exists` }, { status: 400 });
     }
 
@@ -102,11 +110,14 @@ export async function POST(req) {
 
     const newUserData = {
       name,
-      email,
-      phone,
+      email: cleanEmail,
       password: hashedPassword,
       role: finalRole
     };
+    if (cleanPhone) newUserData.phone = cleanPhone;
+    if (finalRole === 'sub_admin') {
+      newUserData.adminPermissions = Array.isArray(adminPermissions) ? adminPermissions : [];
+    }
     
     if (finalSchoolId) {
        newUserData.schoolId = finalSchoolId;
@@ -116,6 +127,10 @@ export async function POST(req) {
 
     return NextResponse.json({ success: true, data: newUser });
   } catch (error) {
+    if (error?.code === 11000) {
+      const field = Object.keys(error.keyPattern || error.keyValue || {})[0] || 'Field';
+      return NextResponse.json({ success: false, error: `${field === 'phone' ? 'Phone number' : 'Email'} already exists` }, { status: 400 });
+    }
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

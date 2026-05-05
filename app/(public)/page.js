@@ -26,7 +26,7 @@ export default async function Home() {
       <ProgramsSection />
       <AwardsSlider settings={settings.hp_awards} isLoading={false} />
       <PopularCourses />
-      <OrbitTeam settings={settings.hp_team} isLoading={false} />
+      <OrbitTeam settings={settings.hp_team} logoUrl={settings.hp_team_logo} isLoading={false} />
       <ReviewsSlider settings={settings.hp_testimonials} isLoading={false} />
       <FAQSection settings={settings.hp_faqs} isLoading={false} />
       <CenterLocator />

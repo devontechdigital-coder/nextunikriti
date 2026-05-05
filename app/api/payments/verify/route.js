@@ -72,6 +72,7 @@ export async function POST(req) {
           gradeName: normalizeGradeName(paymentRecord.gradeName || packageDoc?.gradeName),
           preferredDays: paymentRecord.preferredDays || [],
           preferredTimes: paymentRecord.preferredTimes || [],
+          preferredSchedule: paymentRecord.preferredSchedule || [],
           paymentId: paymentRecord._id,
           ...buildEnrollmentLifecycleFields({
             paymentStatus: 'paid',

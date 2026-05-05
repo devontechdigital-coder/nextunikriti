@@ -5434,6 +5434,14 @@ div#navMain{
                 }
                 .ps-time-chip__remove { background: transparent; border: none; color: #d1d5db; cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; }
                 .ps-time-chip__remove:hover { color: #fff; }
+                .ps-day-slot-list { display: grid; gap: 12px; }
+                .ps-day-slot-group {
+                    border: 1px solid #eef2f7; border-radius: 10px; padding: 12px;
+                    background: #fafafa;
+                }
+                .ps-day-slot-title {
+                    font-size: 0.8rem; font-weight: 800; color: #111827; margin-bottom: 8px;
+                }
 
                 /* ===== PAY OPTIONS ===== */
                 .ps-pay-options { display: flex; flex-direction: column; gap: 8px; }
@@ -5699,6 +5707,22 @@ div#navMain{
           background: #333;
           border-color: #333;
           color: #fff;
+        }
+        .eq-day-slot-list {
+          display: grid;
+          gap: 12px;
+        }
+        .eq-day-slot-group {
+          border: 0.5px solid #e8e8e8;
+          border-radius: 10px;
+          padding: 12px 14px;
+          background: #fafafa;
+        }
+        .eq-day-slot-title {
+          font-size: 12px;
+          font-weight: 700;
+          color: #333;
+          margin-bottom: 10px;
         }
 
         /* ── Alerts ── */

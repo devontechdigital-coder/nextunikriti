@@ -247,9 +247,27 @@ export default function AdminOrdersPage() {
     const value = String(slot || '').trim();
     if (!value) return '';
 
+    const daySeparatorIndex = value.indexOf(': ');
+    if (daySeparatorIndex > -1) {
+      const day = value.slice(0, daySeparatorIndex);
+      const time = value.slice(daySeparatorIndex + 2);
+      return `${day}: ${formatTimeRange(time)}`;
+    }
+
     const [start, end] = value.split(' - ');
     if (!end) return formatTimeValue(start);
     return `${formatTimeValue(start)} - ${formatTimeValue(end)}`;
+  };
+
+  const formatPreferredSchedule = (order) => {
+    const schedule = Array.isArray(order.preferredSchedule) ? order.preferredSchedule : [];
+    const scheduleText = schedule
+      .filter((entry) => entry?.dayOfWeek && Array.isArray(entry.timeSlots) && entry.timeSlots.length)
+      .map((entry) => `${entry.dayOfWeek}: ${entry.timeSlots.map(formatTimeRange).join(', ')}`)
+      .join(' / ');
+
+    if (scheduleText) return scheduleText;
+    return Array.isArray(order.preferredTimes) ? order.preferredTimes.map(formatTimeRange).join(', ') : '';
   };
 
   const uniqueCourses = [...new Set(
@@ -397,8 +415,8 @@ export default function AdminOrdersPage() {
                       {order.schoolId.city ? `, ${order.schoolId.city}` : ''}
                     </div>
                   )}
-                  {Array.isArray(order.preferredTimes) && order.preferredTimes.length > 0 && (
-                    <div className="x-small text-muted">Time: {order.preferredTimes.map(formatTimeRange).join(', ')}</div>
+                  {formatPreferredSchedule(order) && (
+                    <div className="x-small text-muted">Time: {formatPreferredSchedule(order)}</div>
                   )}
                 </td>
                 <td>{order.gradeName ? <Badge bg="secondary">{order.gradeName}</Badge> : <span className="text-muted small">-</span>}</td>

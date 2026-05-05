@@ -16,6 +16,7 @@ export default function AdminSettingsPage() {
   const [timeline, setTimeline] = useState([]);
   const [awards, setAwards] = useState([]);
   const [team, setTeam] = useState([]);
+  const [teamLogoUrl, setTeamLogoUrl] = useState('');
   const [testimonials, setTestimonials] = useState([]);
   const [faqs, setFaqs] = useState([]);
   const [contact, setContact] = useState({ 
@@ -73,6 +74,7 @@ export default function AdminSettingsPage() {
       setTimeline(getVal('hp_timeline', []));
       setAwards(getVal('hp_awards', []));
       setTeam(getVal('hp_team', []));
+      setTeamLogoUrl(getVal('hp_team_logo', ''));
       setTestimonials(getVal('hp_testimonials', []));
       setFaqs(getVal('hp_faqs', []));
       setContact(getVal('hp_contact', { 
@@ -150,6 +152,21 @@ export default function AdminSettingsPage() {
 
   const deleteBanner = (id) => {
     setBanners(banners.filter(b => b.id !== id));
+  };
+
+  const handleSaveTeam = async () => {
+    try {
+      await updateSettings({
+        settings: [
+          { key: 'hp_team', value: team },
+          { key: 'hp_team_logo', value: teamLogoUrl }
+        ]
+      }).unwrap();
+      setSuccessMsg('Team updated successfully!');
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (err) {
+      alert('Failed to update team settings.');
+    }
   };
 
   if (isLoading) return <Container className="py-5 text-center"><Spinner animation="border" /></Container>;
@@ -428,10 +445,28 @@ export default function AdminSettingsPage() {
                   <Button variant="outline-primary" size="sm" onClick={() => setTeam([...team, { id: Date.now(), name: '', role: '', img: '', x: 50, y: 50 }])}>
                     <FaPlus className="me-1" /> Add Member
                   </Button>
-                  <Button variant="primary" size="sm" onClick={() => handleSave('hp_team', team)} disabled={isUpdating}>
+                  <Button variant="primary" size="sm" onClick={handleSaveTeam} disabled={isUpdating}>
                     <FaSave className="me-1" /> Save Team
                   </Button>
                 </div>
+              </div>
+              <div className="p-3 border rounded bg-light mb-4">
+                <Form.Group>
+                  <Form.Label className="small fw-semibold">Center Logo Image URL</Form.Label>
+                  <div className="d-flex gap-2 align-items-start">
+                    <Form.Control
+                      size="sm"
+                      value={teamLogoUrl}
+                      onChange={e => setTeamLogoUrl(e.target.value)}
+                      placeholder="/image/logo-round.png"
+                    />
+                    {teamLogoUrl && (
+                      <div className="border rounded p-1 bg-white" style={{ width: '44px', height: '44px' }}>
+                        <img src={teamLogoUrl} alt="Team logo preview" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+                      </div>
+                    )}
+                  </div>
+                </Form.Group>
               </div>
               <Table hover responsive className="align-middle">
                 <thead className="table-light">

@@ -13,7 +13,6 @@ export async function middleware(request) {
     try {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback_secret_for_dev_only');
       const { payload } = await jwtVerify(token, secret);
-      
       if (payload.role === 'admin') {
         return NextResponse.redirect(new URL('/admin/dashboard', request.url));
       }
@@ -42,9 +41,48 @@ export async function middleware(request) {
       const secret = new TextEncoder().encode(process.env.JWT_SECRET || 'fallback_secret_for_dev_only');
       const { payload } = await jwtVerify(token, secret);
       const role = payload.role;
+      const actualRole = payload.actualRole || role;
 
       if (isAdminRoute && !['admin', 'school_admin'].includes(role)) {
         return NextResponse.redirect(new URL('/login', request.url));
+      }
+
+      if (isAdminRoute && actualRole === 'sub_admin' && pathname.startsWith('/admin')) {
+        const adminPermissions = Array.isArray(payload.adminPermissions) ? payload.adminPermissions : [];
+        const allowedKeys = adminPermissions.filter((item) => item?.view).map((item) => item.key);
+        const pathToKey = [
+          ['dashboard', '/admin/dashboard'],
+          ['users', '/admin/users'],
+          ['instructors', '/admin/instructors'],
+          ['schools', '/admin/schools'],
+          ['students', '/admin/students'],
+          ['batches', '/admin/batches'],
+          ['instruments', '/admin/instruments'],
+          ['modes', '/admin/modes'],
+          ['timetable', '/admin/timetable'],
+          ['attendance', '/admin/attendance'],
+          ['courses', '/admin/courses'],
+          ['lesson-reviews', '/admin/lesson-reviews'],
+          ['packages', '/admin/packages'],
+          ['coupons', '/admin/coupons'],
+          ['categories', '/admin/categories'],
+          ['menus', '/admin/menus'],
+          ['banners', '/admin/banners'],
+          ['pages', '/admin/pages'],
+          ['enquiries', '/admin/enquiries'],
+          ['gallery', '/admin/gallery'],
+          ['orders', '/admin/orders'],
+          ['payments', '/admin/payments'],
+          ['data', '/admin/data'],
+          ['settings', '/admin/settings'],
+          ['analytics', '/admin/analytics'],
+        ];
+        const current = pathToKey.find(([, href]) => pathname === href || pathname.startsWith(`${href}/`));
+        const requestedKey = current?.[0] || 'dashboard';
+        if (!allowedKeys.includes(requestedKey)) {
+          const firstAllowed = pathToKey.find(([key]) => allowedKeys.includes(key));
+          return NextResponse.redirect(new URL(firstAllowed?.[1] || '/login', request.url));
+        }
       }
 
       if (isInstructorRoute && role !== 'instructor' && role !== 'admin') {

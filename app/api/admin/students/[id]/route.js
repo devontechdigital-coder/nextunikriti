@@ -4,6 +4,7 @@ import Student from '@/models/Student';
 import User from '@/models/User';
 import StudentParent from '@/models/StudentParent';
 import { getUserFromCookie } from '@/utils/auth';
+import bcrypt from 'bcryptjs';
 
 function buildStudentPayload(body) {
   const payload = {};
@@ -105,11 +106,17 @@ export async function PUT(req, { params }) {
     }
 
     // Update User if name/email/phone provided
-    if (body.name || body.email || body.phone) {
-      await User.findByIdAndUpdate(student.userId, {
+    if (body.name || body.email || body.phone || body.password) {
+      const userUpdate = {
         ...(body.name !== undefined ? { name: body.name } : {}),
         ...(body.email !== undefined ? { email: body.email } : {}),
         ...(body.phone !== undefined ? { phone: body.phone } : {})
+      };
+      if (body.password) {
+        userUpdate.password = await bcrypt.hash(body.password, 10);
+      }
+      await User.findByIdAndUpdate(student.userId, {
+        ...userUpdate
       });
     }
 

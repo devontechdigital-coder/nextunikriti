@@ -13,6 +13,7 @@ import {
 } from '@/redux/api/apiSlice';
 import { FaCheck, FaTimes, FaBan, FaChartLine, FaCheckCircle, FaPlus, FaTrash } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
+import GooglePlaceSelect from '@/components/common/GooglePlaceSelect';
 
 const createEducationEntry = () => ({
   level: 'graduation',
@@ -128,6 +129,16 @@ export default function AdminInstructorsPage() {
 
   const handleFieldChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAddressSelect = (place) => {
+    if (!place) return;
+    setFormData((prev) => ({
+      ...prev,
+      addressLine1: place.label || prev.addressLine1,
+      state: place.state || prev.state,
+      nationality: place.country || prev.nationality,
+    }));
   };
 
   const toggleInstrument = (instrumentId) => {
@@ -477,6 +488,15 @@ export default function AdminInstructorsPage() {
             <div className="border rounded-3 p-3 mb-4">
               <h6 className="fw-bold mb-3">Address Details</h6>
               <Row className="g-3">
+                <Col xs={12}>
+                  <Form.Group>
+                    <Form.Label className="small fw-bold">Search Address</Form.Label>
+                    <GooglePlaceSelect
+                      value={formData.addressLine1 ? { label: formData.addressLine1, value: formData.addressLine1 } : null}
+                      onChange={handleAddressSelect}
+                    />
+                  </Form.Group>
+                </Col>
                 <Col md={6}>
                   <Form.Group>
                     <Form.Label className="small fw-bold">Address Line 1</Form.Label>

@@ -11,6 +11,10 @@ const paymentSchema = new mongoose.Schema({
   packagePriceKey: { type: String, trim: true },
   preferredDays: [{ type: String, trim: true }],
   preferredTimes: [{ type: String, trim: true }],
+  preferredSchedule: [{
+    dayOfWeek: { type: String, trim: true, default: '' },
+    timeSlots: [{ type: String, trim: true }],
+  }],
   amount: { type: Number, required: true },
   status: { type: String, enum: ['pending', 'completed', 'failed', 'refunded'], default: 'pending' },
   gateway: { type: String, enum: ['stripe', 'razorpay', 'icici', 'pay_later', 'admin_manual'], required: true },

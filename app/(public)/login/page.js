@@ -112,7 +112,7 @@ export default function LoginPage() {
         const userData = res.data.data;
         dispatch(setCredentials(userData));
         const role = userData.role;
-        if (role === 'admin') window.location.href = '/admin';
+        if (role === 'admin' || role === 'sub_admin') window.location.href = '/admin';
         else if (role === 'school_admin') window.location.href = '/school/dashboard';
         else window.location.href = '/instructor';
       }

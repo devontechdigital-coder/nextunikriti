@@ -14,6 +14,7 @@ import {
   FaPhone, FaEnvelope, FaMapMarkerAlt, FaPlus, FaSave, FaUserGraduate 
 } from 'react-icons/fa';
 import { useSelector } from 'react-redux';
+import GooglePlaceSelect from '@/components/common/GooglePlaceSelect';
 
 export default function SchoolStudentProfilePage() {
   const { id } = useParams();
@@ -68,6 +69,17 @@ export default function SchoolStudentProfilePage() {
     } catch (err) {
       alert('Failed to update profile.');
     }
+  };
+
+  const handleAddressSelect = (place) => {
+    if (!place) return;
+    setFormData((prev) => ({
+      ...prev,
+      addressLine1: place.label || prev.addressLine1,
+      city: place.city || prev.city,
+      state: place.state || prev.state,
+      nationality: place.country || prev.nationality,
+    }));
   };
 
   const handleAddParent = async (e) => {
@@ -237,6 +249,13 @@ export default function SchoolStudentProfilePage() {
                   <Card.Header className="bg-white py-3 fw-bold border-bottom">Address Details</Card.Header>
                   <Card.Body className="p-4">
                     <Row className="g-3">
+                      <Col md={12}>
+                        <Form.Label className="small fw-bold">Search Address</Form.Label>
+                        <GooglePlaceSelect
+                          value={formData.addressLine1 ? { label: formData.addressLine1, value: formData.addressLine1 } : null}
+                          onChange={handleAddressSelect}
+                        />
+                      </Col>
                       <Col md={12}>
                         <Form.Label className="small fw-bold">Address Line 1</Form.Label>
                         <Form.Control value={formData.addressLine1} onChange={(e) => setFormData({...formData, addressLine1: e.target.value})} />

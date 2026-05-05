@@ -5,6 +5,8 @@ const lessonSchema = new mongoose.Schema({
   title: { type: String, required: true },
   content: { type: String }, // Rich text description 
   videoUrl: { type: String }, // HLS manifest URL, tokenized URL, or default MP4 URL
+  audioUrl: { type: String, default: '' },
+  pdfUrl: { type: String, default: '' },
   videoQualities: [{
     label: {
       type: String,

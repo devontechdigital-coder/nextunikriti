@@ -16,7 +16,8 @@ import {
   Alert, 
   Modal, 
   Form, 
-  ListGroup 
+  ListGroup,
+  Badge
 } from 'react-bootstrap';
 import { 
   useGetCourseSectionsQuery,
@@ -44,6 +45,7 @@ import {
   FiFileText
 } from 'react-icons/fi';
 import toast from 'react-hot-toast';
+import LessonQuizEditor from '@/components/admin/LessonQuizEditor';
 
 export default function CourseCurriculumPage() {
   const { courseId } = useParams();
@@ -65,7 +67,7 @@ export default function CourseCurriculumPage() {
   const [showLessonModal, setShowLessonModal] = useState(false);
   const [editingLesson, setEditingLesson] = useState(null);
   const [targetSectionId, setTargetSectionId] = useState(null);
-  const [lessonData, setLessonData] = useState({ title: '', content: '', videoUrl: '' });
+  const [lessonData, setLessonData] = useState({ title: '', content: '', videoUrl: '', audioUrl: '', pdfUrl: '' });
 
   const sections = useMemo(() => sectionsData?.data || [], [sectionsData]);
 
@@ -141,10 +143,10 @@ export default function CourseCurriculumPage() {
     setTargetSectionId(sectionId);
     if (lesson) {
       setEditingLesson(lesson);
-      setLessonData({ title: lesson.title, content: lesson.content || '', videoUrl: lesson.videoUrl || '' });
+      setLessonData({ title: lesson.title, content: lesson.content || '', videoUrl: lesson.videoUrl || '', audioUrl: lesson.audioUrl || '', pdfUrl: lesson.pdfUrl || '' });
     } else {
       setEditingLesson(null);
-      setLessonData({ title: '', content: '', videoUrl: '' });
+      setLessonData({ title: '', content: '', videoUrl: '', audioUrl: '', pdfUrl: '' });
     }
     setShowLessonModal(true);
   };
@@ -214,14 +216,20 @@ export default function CourseCurriculumPage() {
       <>
         <ListGroup variant="flush">
           {lessons.map((lesson) => (
-            <ListGroup.Item key={lesson._id} className="py-3 px-4 d-flex align-items-center justify-content-between hover-bg-light transition-all">
-              <div className="d-flex align-items-center gap-3">
+            <ListGroup.Item key={lesson._id} className="py-3 px-4 hover-bg-light transition-all">
+              <div className="d-flex align-items-start justify-content-between">
+              <div className="d-flex align-items-start gap-3">
                 <div className="text-primary fs-5">
                   {lesson.videoUrl ? <FiPlayCircle /> : <FiFileText />}
                 </div>
                 <div>
                   <h6 className="mb-0 fw-medium">{lesson.title}</h6>
                   {lesson.duration > 0 && <small className="text-muted">{Math.floor(lesson.duration / 60)} min</small>}
+                  <div className="d-flex flex-wrap gap-2 mt-2">
+                    {lesson.videoUrl && <Badge bg="info">Video</Badge>}
+                    {lesson.audioUrl && <Badge bg="secondary">Audio</Badge>}
+                    {lesson.pdfUrl && <Badge bg="dark">PDF</Badge>}
+                  </div>
                 </div>
               </div>
               <div className="d-flex gap-2">
@@ -232,6 +240,8 @@ export default function CourseCurriculumPage() {
                   <FiTrash2 size={14} />
                 </Button>
               </div>
+              </div>
+              <LessonQuizEditor lessonId={lesson._id} />
             </ListGroup.Item>
           ))}
         </ListGroup>
@@ -381,15 +391,26 @@ export default function CourseCurriculumPage() {
               />
             </Form.Group>
 
-            <Form.Group className="mb-3">
-              <Form.Label className="small fw-bold text-muted text-uppercase">Video URL (Optional)</Form.Label>
-              <Form.Control 
-                type="text" 
-                placeholder="https://..." 
-                value={lessonData.videoUrl}
-                onChange={(e) => setLessonData({ ...lessonData, videoUrl: e.target.value })}
-              />
-            </Form.Group>
+            <Row className="g-3 mb-3">
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label className="small fw-bold text-muted text-uppercase">Video URL</Form.Label>
+                  <Form.Control type="url" placeholder="https://..." value={lessonData.videoUrl} onChange={(e) => setLessonData({ ...lessonData, videoUrl: e.target.value })} />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label className="small fw-bold text-muted text-uppercase">Audio URL</Form.Label>
+                  <Form.Control type="url" placeholder="https://..." value={lessonData.audioUrl} onChange={(e) => setLessonData({ ...lessonData, audioUrl: e.target.value })} />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label className="small fw-bold text-muted text-uppercase">PDF URL</Form.Label>
+                  <Form.Control type="url" placeholder="https://..." value={lessonData.pdfUrl} onChange={(e) => setLessonData({ ...lessonData, pdfUrl: e.target.value })} />
+                </Form.Group>
+              </Col>
+            </Row>
 
             <Form.Group className="mb-3">
               <Form.Label className="small fw-bold text-muted text-uppercase">Lesson Content</Form.Label>
